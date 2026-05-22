@@ -1,0 +1,13 @@
+{
+  "name": "api",
+  "private": true,
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "db:validate": "prisma validate --schema prisma/schema.prisma"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
