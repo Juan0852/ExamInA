@@ -98,6 +98,7 @@ apps/api/
   src/
     modules/
       auth/
+      health/
       users/
       profiles/
       preferences/
@@ -278,6 +279,49 @@ Pendientes:
 - Hacer push de `main`.
 - Crear y publicar `develop`.
 - Continuar trabajo normal desde `develop`.
+
+### 2026-05-22 - Codex
+
+Branch:
+
+`chore/api-minimum`
+
+Cambios realizados:
+
+- Se inicio el trabajo normal desde `develop` en una rama de trabajo.
+- Se añadió NestJS minimo en `apps/api`.
+- Se creó `HealthModule` con estructura Spring-style dentro de `apps/api/src/modules/health`.
+- Se añadieron endpoints base de health bajo el prefijo global `/api/v1`.
+- Se ajustaron scripts de API para usar `tsx` en desarrollo y `tsc` para build.
+- Se instalaron dependencias con `corepack pnpm install --ignore-scripts`.
+- Se corrigió la inyección de `HealthService` con `@Inject(HealthService)` porque `tsx` no aporta metadata suficiente para inyección automática por tipo.
+
+Archivos tocados:
+
+- `apps/api/package.json`
+- `apps/api/tsconfig.json`
+- `apps/api/src/main.ts`
+- `apps/api/src/app.module.ts`
+- `apps/api/src/modules/health/`
+- `pnpm-lock.yaml`
+- `README.md`
+- `docs/AGENT_HANDOFF.md`
+- `docs/EXAMINA_PROJECT_PLAN.md`
+- `docs/IMPLEMENTATION_ROADMAP.md`
+
+Validacion ejecutada:
+
+- `corepack pnpm install --ignore-scripts`
+- `corepack pnpm --filter api typecheck`
+- `corepack pnpm --filter api build`
+- `corepack pnpm --filter api dev`
+- `curl -s http://localhost:3000/api/v1/health`
+- `curl -s http://localhost:3000/api/v1/health/live`
+- `curl -s http://localhost:3000/api/v1/health/ready`
+
+Pendientes:
+
+- Crear commit de la API minima si el usuario lo aprueba.
 
 ### 2026-05-22 - Codex
 

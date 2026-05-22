@@ -38,6 +38,7 @@ apps/api/
   src/
     modules/
       auth/
+      health/
       users/
       profiles/
       preferences/
