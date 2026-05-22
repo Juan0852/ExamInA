@@ -294,11 +294,19 @@ Cambios realizados:
 - Se añadieron endpoints base de health bajo el prefijo global `/api/v1`.
 - Se ajustaron scripts de API para usar `tsx` en desarrollo y `tsc` para build.
 - Se instalaron dependencias con `corepack pnpm install --ignore-scripts`.
+- Se instalaron las dependencias backend documentadas: Prisma client, Firebase Admin, Zod, OpenAI, AWS S3 SDK, Nest config, class-validator y class-transformer.
+- Se instalaron las dependencias web documentadas: React, Vite, React Router, Zustand, TanStack Query, Zod, Firebase client, Tailwind, React Three Fiber, Drei, Three y lucide-react.
+- Se instalaron las dependencias mobile documentadas: Expo, React Native, Expo Router, Zustand, TanStack Query, Zod, Firebase client, AsyncStorage, Expo ImagePicker, Expo Camera y librerias base de navegacion React Native.
+- Se alineo `prisma` CLI con `@prisma/client`.
+- Se añadieron `apps/mobile/app/_layout.tsx` y `apps/mobile/app/index.tsx` minimos para que TypeScript tenga entradas reales en mobile.
 - Se corrigió la inyección de `HealthService` con `@Inject(HealthService)` porque `tsx` no aporta metadata suficiente para inyección automática por tipo.
 
 Archivos tocados:
 
 - `apps/api/package.json`
+- `apps/web/package.json`
+- `apps/mobile/package.json`
+- `apps/mobile/app/`
 - `apps/api/tsconfig.json`
 - `apps/api/src/main.ts`
 - `apps/api/src/app.module.ts`
@@ -312,7 +320,13 @@ Archivos tocados:
 Validacion ejecutada:
 
 - `corepack pnpm install --ignore-scripts`
+- `corepack pnpm --filter api add ...`
+- `corepack pnpm --filter web add ...`
+- `corepack pnpm --filter mobile add ...`
+- `corepack pnpm ignored-builds`
 - `corepack pnpm --filter api typecheck`
+- `corepack pnpm --filter web typecheck`
+- `corepack pnpm --filter mobile typecheck`
 - `corepack pnpm --filter api build`
 - `corepack pnpm --filter api dev`
 - `curl -s http://localhost:3000/api/v1/health`
@@ -321,7 +335,7 @@ Validacion ejecutada:
 
 Pendientes:
 
-- Crear commit de la API minima si el usuario lo aprueba.
+- Crear commit con API minima y dependencias completas si el usuario lo aprueba.
 
 ### 2026-05-22 - Codex
 
