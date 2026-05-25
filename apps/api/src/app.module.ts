@@ -3,6 +3,9 @@ import { ConfigModule } from "@nestjs/config";
 import { join } from "node:path";
 import { AuthModule } from "./modules/auth/auth.module";
 import { HealthModule } from "./modules/health/health.module";
+import { QuestionsModule } from "./modules/questions/questions.module";
+import { SubjectsModule } from "./modules/subjects/subjects.module";
+import { TopicsModule } from "./modules/topics/topics.module";
 
 @Module({
   imports: [
@@ -11,7 +14,10 @@ import { HealthModule } from "./modules/health/health.module";
       envFilePath: join(process.cwd(), ".env")
     }),
     AuthModule,
-    HealthModule
+    HealthModule,
+    QuestionsModule,
+    SubjectsModule,
+    TopicsModule
   ]
 })
 export class AppModule {}

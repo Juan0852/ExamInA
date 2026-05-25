@@ -250,6 +250,37 @@ El logo 3D solo va en web landing, no en mobile.
 
 ## Historial de handoff
 
+### 2026-05-25 - Antigravity
+
+Branch:
+
+`feature/academic-catalog`
+
+Cambios realizados:
+
+- Se implementó el módulo de Asignaturas (`subjects`) con su controlador, servicio, mapper, DTOs y repositorio Prisma.
+- Se implementó el módulo de Temas (`topics`) con su controlador, servicio, mapper, DTOs y repositorio Prisma, permitiendo filtrar temas por asignatura.
+- Se implementó el módulo de Preguntas (`questions`) con su controlador, servicio, mapper, DTOs y repositorio Prisma, con soporte para listar por filtros (tema, asignatura, dificultad, tipo) y obtener detalles por ID.
+- Se importaron `SubjectsModule`, `TopicsModule` y `QuestionsModule` en `AppModule`.
+
+Archivos tocados:
+
+- `apps/api/src/app.module.ts`
+- `apps/api/src/modules/subjects/`
+- `apps/api/src/modules/topics/`
+- `apps/api/src/modules/questions/`
+- `docs/AGENT_HANDOFF.md`
+
+Validacion ejecutada:
+
+- `corepack pnpm --filter api typecheck`
+- `corepack pnpm --filter api build`
+
+Pendientes:
+
+- Crear e integrar la interfaz web mínima (React + Vite) para consumir este catálogo.
+- Implementar los módulos de intentos (`attempts`) y correcciones (`corrections`).
+
 ### 2026-05-25 - Codex
 
 Branch:
