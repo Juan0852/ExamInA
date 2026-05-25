@@ -13,7 +13,8 @@ export class PrismaAuthRepository implements AuthRepository {
       where: { firebaseUid },
       include: {
         profile: true,
-        preferences: true
+        preferences: true,
+        progress: true
       }
     });
 
@@ -44,11 +45,15 @@ export class PrismaAuthRepository implements AuthRepository {
         },
         preferences: {
           create: {}
+        },
+        progress: {
+          create: {}
         }
       },
       include: {
         profile: true,
-        preferences: true
+        preferences: true,
+        progress: true
       }
     });
 

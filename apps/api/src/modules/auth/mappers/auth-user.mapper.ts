@@ -33,6 +33,19 @@ export class AuthUserMapper {
             defaultTimerEnabled: user.preferences.defaultTimerEnabled,
             defaultExamDurationSeconds: user.preferences.defaultExamDurationSeconds
           }
+        : null,
+      progress: user.progress
+        ? {
+            id: user.progress.id,
+            totalQuestionsAnswered: user.progress.totalQuestionsAnswered,
+            totalCorrectAnswers: user.progress.totalCorrectAnswers,
+            totalExamsCompleted: user.progress.totalExamsCompleted,
+            totalFlashcardsReviewed: user.progress.totalFlashcardsReviewed,
+            totalStudyTimeSeconds: user.progress.totalStudyTimeSeconds,
+            averageScore: user.progress.averageScore,
+            level: user.progress.level,
+            experience: user.progress.experience
+          }
         : null
     };
   }

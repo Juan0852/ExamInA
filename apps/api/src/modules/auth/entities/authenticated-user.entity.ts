@@ -25,4 +25,15 @@ export interface AuthenticatedUserEntity {
     defaultTimerEnabled: boolean;
     defaultExamDurationSeconds: number;
   } | null;
+  progress: {
+    id: string;
+    totalQuestionsAnswered: number;
+    totalCorrectAnswers: number;
+    totalExamsCompleted: number;
+    totalFlashcardsReviewed: number;
+    totalStudyTimeSeconds: number;
+    averageScore: number;
+    level: number;
+    experience: number;
+  } | null;
 }

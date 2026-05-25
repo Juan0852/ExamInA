@@ -3,6 +3,7 @@ import type { AuthProvider } from "../../../shared/providers/auth/auth-provider.
 import type { AuthResponseDto } from "../dtos/auth-response.dto";
 import type { LoginRequestDto } from "../dtos/login-request.dto";
 import type { RegisterRequestDto } from "../dtos/register-request.dto";
+import type { AuthenticatedUserEntity } from "../entities/authenticated-user.entity";
 import { AuthUserMapper } from "../mappers/auth-user.mapper";
 import type { AuthRepository } from "../repositories/auth.repository";
 
@@ -48,9 +49,7 @@ export class AuthService {
   }
 
   async createSession(authorizationHeader?: string): Promise<AuthResponseDto> {
-    const token = this.extractBearerToken(authorizationHeader);
-    const authUser = await this.authProvider.verifyToken(token);
-    const user = await this.authRepository.findOrCreateFromAuthUser(authUser);
+    const user = await this.resolveAuthenticatedUser(authorizationHeader);
 
     return {
       data: {
@@ -59,6 +58,12 @@ export class AuthService {
       meta: {},
       error: null
     };
+  }
+
+  async resolveAuthenticatedUser(authorizationHeader?: string): Promise<AuthenticatedUserEntity> {
+    const token = this.extractBearerToken(authorizationHeader);
+    const authUser = await this.authProvider.verifyToken(token);
+    return this.authRepository.findOrCreateFromAuthUser(authUser);
   }
 
   async getMe(authorizationHeader?: string): Promise<AuthResponseDto> {

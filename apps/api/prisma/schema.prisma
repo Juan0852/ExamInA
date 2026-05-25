@@ -8,12 +8,16 @@ datasource db {
 
 enum UserRole {
   STUDENT
+  MODERATOR
   ADMIN
 }
 
 enum UserStatus {
   ACTIVE
   DISABLED
+  SUSPENDED
+  BANNED
+  DELETED
 }
 
 enum QuestionType {
@@ -29,10 +33,154 @@ enum QuestionDifficulty {
   HARD
 }
 
+enum AttemptStatus {
+  PENDING
+  CORRECTED
+  FAILED
+}
+
+enum ExamSessionMode {
+  PRACTICE
+  MOCK_EXAM
+  FLASHCARDS
+  CUSTOM
+}
+
+enum ExamSessionStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum CommunityPostType {
+  TEXT
+  QUESTION
+  EXAM_RESULT
+  PROGRESS_UPDATE
+  TIP
+  DOUBT
+}
+
+enum CommunityVisibility {
+  PUBLIC
+  FRIENDS_ONLY
+  PRIVATE
+}
+
+enum CommunityContentStatus {
+  PUBLISHED
+  HIDDEN
+  DELETED
+  UNDER_REVIEW
+}
+
+enum CommunityReactionType {
+  LIKE
+  USEFUL
+  CONGRATS
+  INTERESTING
+  SAVED
+}
+
+enum UserSubjectEnrollmentStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum FileAssetType {
+  IMAGE
+  PDF
+  AUDIO
+  VIDEO
+  OTHER
+}
+
+enum FileAssetVisibility {
+  PRIVATE
+  PUBLIC
+}
+
+enum FileAssetPurpose {
+  AVATAR
+  BANNER
+  ATTEMPT_ATTACHMENT
+  EXAM_ATTACHMENT
+  OCR_SOURCE
+  OTHER
+}
+
+enum LlmReviewStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  BLOCKED
+}
+
+enum ModerationActionType {
+  WARNING
+  TEMPORARY_SUSPENSION
+  PERMANENT_BAN
+  ACCOUNT_RESTORED
+  CONTENT_RESTRICTION
+}
+
+enum ModerationReason {
+  SPAM
+  HARASSMENT
+  HATE_SPEECH
+  EXPLICIT_CONTENT
+  IMPERSONATION
+  CHEATING
+  COPYRIGHT_VIOLATION
+  MALICIOUS_LINKS
+  INAPPROPRIATE_PROFILE
+  INAPPROPRIATE_CONTENT
+  REPEATED_RULE_VIOLATIONS
+  OTHER
+}
+
+enum SharedExamStatus {
+  DRAFT
+  PUBLISHED
+  UNLISTED
+  ARCHIVED
+  HIDDEN
+}
+
+enum SharedExamUsageStatus {
+  STARTED
+  FINISHED
+  ABANDONED
+}
+
+enum ReportTargetType {
+  POST
+  COMMENT
+  SHARED_EXAM
+  USER
+}
+
+enum ReportStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
 model User {
-  id          String   @id @default(cuid())
-  firebaseUid String  @unique
-  email       String  @unique
+  id          String     @id @default(cuid())
+  firebaseUid String     @unique
+  email       String     @unique
   displayName String?
   photoUrl    String?
   role        UserRole   @default(STUDENT)
@@ -42,6 +190,28 @@ model User {
 
   profile     UserProfile?
   preferences UserPreferences?
+  progress    UserProgress?
+
+  attempts                 Attempt[]
+  examSessions             ExamSession[]
+  subjectEnrollments       UserSubjectEnrollment[]
+  subjectProgress          UserSubjectProgress[]
+  topicProgress            UserTopicProgress[]
+  studyActivities          StudyActivity[]
+  fileAssets               FileAsset[]
+  llmReviews               LlmReviewAsset[]
+  sentFriendships          Friendship[]            @relation("FriendshipRequester")
+  receivedFriendships      Friendship[]            @relation("FriendshipReceiver")
+  moderationActions        UserModerationAction[]  @relation("ModerationTarget")
+  appliedModerationActions UserModerationAction[]  @relation("ModerationModerator")
+  achievements             UserAchievement[]
+  communityPosts           CommunityPost[]
+  communityComments        CommunityComment[]
+  communityReactions       CommunityReaction[]
+  sharedExams              SharedExam[]
+  sharedExamUsages         SharedExamUsage[]
+  reportsCreated           ContentReport[]         @relation("ReportCreator")
+  reportsReceived          ContentReport[]         @relation("ReportedUser")
 
   @@map("users")
 }
@@ -93,8 +263,10 @@ model Subject {
   description String?
   createdAt   DateTime @default(now())
 
-  topics    Topic[]
-  questions Question[]
+  topics      Topic[]
+  questions   Question[]
+  enrollments UserSubjectEnrollment[]
+  progress    UserSubjectProgress[]
 
   @@map("subjects")
 }
@@ -106,8 +278,9 @@ model Topic {
   slug      String
   createdAt DateTime @default(now())
 
-  subject   Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subject   Subject             @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   questions Question[]
+  progress  UserTopicProgress[]
 
   @@unique([subjectId, slug])
   @@index([subjectId])
@@ -126,10 +299,14 @@ model Question {
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
 
-  subject  Subject           @relation(fields: [subjectId], references: [id], onDelete: Restrict)
-  topic    Topic             @relation(fields: [topicId], references: [id], onDelete: Restrict)
-  solution QuestionSolution?
-  keywords QuestionKeyword[]
+  subject              Subject               @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  topic                Topic                 @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  solution             QuestionSolution?
+  keywords             QuestionKeyword[]
+  attempts             Attempt[]
+  examSessionQuestions ExamSessionQuestion[]
+  examSessionAnswers   ExamSessionAnswer[]
+  sharedExamQuestions  SharedExamQuestion[]
 
   @@index([subjectId])
   @@index([topicId])
@@ -162,4 +339,545 @@ model QuestionKeyword {
   @@unique([questionId, keyword])
   @@index([questionId])
   @@map("question_keywords")
+}
+
+model Attempt {
+  id            String        @id @default(cuid())
+  userId        String
+  questionId    String
+  examSessionId String?
+  userAnswer    String
+  score         Float?
+  status        AttemptStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question      Question           @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  examSession   ExamSession?       @relation(fields: [examSessionId], references: [id], onDelete: SetNull)
+  correction    Correction?
+  sessionAnswer ExamSessionAnswer?
+  assets        AttemptAsset[]
+  llmReviews    LlmReviewAsset[]
+
+  @@index([userId])
+  @@index([questionId])
+  @@index([examSessionId])
+  @@index([status])
+  @@map("attempts")
+}
+
+model Correction {
+  id                String   @id @default(cuid())
+  attemptId         String   @unique
+  isCorrect         Boolean
+  score             Float
+  summary           String
+  feedback          String
+  detectedErrors    Json?
+  missingKeywords   Json?
+  suggestions       Json?
+  recommendedTopics Json?
+  createdAt         DateTime @default(now())
+
+  attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("corrections")
+}
+
+model ExamSession {
+  id                   String            @id @default(cuid())
+  userId               String
+  title                String
+  mode                 ExamSessionMode   @default(PRACTICE)
+  status               ExamSessionStatus @default(DRAFT)
+  timerEnabled         Boolean           @default(false)
+  durationLimitSeconds Int?
+  startedAt            DateTime?
+  finishedAt           DateTime?
+  lastActivityAt       DateTime?
+  resumeExpiresAt      DateTime?
+  totalTimeSeconds     Int               @default(0)
+  totalScore           Float?
+  maxScore             Float?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions        ExamSessionQuestion[]
+  answers          ExamSessionAnswer[]
+  attempts         Attempt[]
+  posts            CommunityPost[]
+  assets           ExamSessionAsset[]
+  llmReviews       LlmReviewAsset[]
+  sharedExams      SharedExam[]
+  sharedExamUsages SharedExamUsage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([lastActivityAt])
+  @@map("exam_sessions")
+}
+
+model ExamSessionQuestion {
+  id               String   @id @default(cuid())
+  examSessionId    String
+  questionId       String
+  sortOrder        Int      @map("order")
+  questionSnapshot Json
+  solutionSnapshot Json?
+  createdAt        DateTime @default(now())
+
+  examSession ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+  question    Question    @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([examSessionId, sortOrder])
+  @@unique([examSessionId, questionId])
+  @@index([questionId])
+  @@map("exam_session_questions")
+}
+
+model ExamSessionAnswer {
+  id            String    @id @default(cuid())
+  examSessionId String
+  questionId    String
+  attemptId     String?   @unique
+  userAnswer    String
+  score         Float?
+  isCorrect     Boolean?
+  answeredAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  examSession ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+  question    Question    @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  attempt     Attempt?    @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+
+  @@unique([examSessionId, questionId])
+  @@index([questionId])
+  @@map("exam_session_answers")
+}
+
+model UserProgress {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  totalQuestionsAnswered  Int      @default(0)
+  totalCorrectAnswers     Int      @default(0)
+  totalExamsCompleted     Int      @default(0)
+  totalFlashcardsReviewed Int      @default(0)
+  totalStudyTimeSeconds   Int      @default(0)
+  averageScore            Float    @default(0)
+  level                   Int      @default(1)
+  experience              Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_progress")
+}
+
+model UserSubjectEnrollment {
+  id        String                      @id @default(cuid())
+  userId    String
+  subjectId String
+  status    UserSubjectEnrollmentStatus @default(ACTIVE)
+  startedAt DateTime                    @default(now())
+  endedAt   DateTime?
+  createdAt DateTime                    @default(now())
+  updatedAt DateTime                    @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subjectId])
+  @@index([subjectId])
+  @@index([status])
+  @@map("user_subject_enrollments")
+}
+
+model UserSubjectProgress {
+  id                String   @id @default(cuid())
+  userId            String
+  subjectId         String
+  questionsAnswered Int      @default(0)
+  correctAnswers    Int      @default(0)
+  examsCompleted    Int      @default(0)
+  averageScore      Float    @default(0)
+  studyTimeSeconds  Int      @default(0)
+  masteryLevel      Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subjectId])
+  @@index([subjectId])
+  @@map("user_subject_progress")
+}
+
+model UserTopicProgress {
+  id                String    @id @default(cuid())
+  userId            String
+  topicId           String
+  questionsAnswered Int       @default(0)
+  correctAnswers    Int       @default(0)
+  averageScore      Float     @default(0)
+  studyTimeSeconds  Int       @default(0)
+  masteryLevel      Int       @default(0)
+  lastPracticedAt   DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+  @@index([topicId])
+  @@map("user_topic_progress")
+}
+
+model StudyActivity {
+  id                 String   @id @default(cuid())
+  userId             String
+  activityDate       DateTime
+  questionsAnswered  Int      @default(0)
+  correctAnswers     Int      @default(0)
+  flashcardsReviewed Int      @default(0)
+  examsCompleted     Int      @default(0)
+  studyTimeSeconds   Int      @default(0)
+  experienceEarned   Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, activityDate])
+  @@index([activityDate])
+  @@map("study_activities")
+}
+
+model LevelRule {
+  id                 String   @id @default(cuid())
+  level              Int      @unique
+  requiredExperience Int
+  title              String
+  createdAt          DateTime @default(now())
+
+  @@map("level_rules")
+}
+
+model Achievement {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  title            String
+  description      String
+  icon             String?
+  experienceReward Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  users UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([achievementId])
+  @@map("user_achievements")
+}
+
+model FileAsset {
+  id               String              @id @default(cuid())
+  userId           String
+  bucket           String
+  key              String
+  url              String?
+  mimeType         String
+  sizeBytes        Int
+  originalFilename String
+  fileType         FileAssetType
+  visibility       FileAssetVisibility @default(PRIVATE)
+  purpose          FileAssetPurpose
+  checksum         String?
+  width            Int?
+  height           Int?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attemptAssets     AttemptAsset[]
+  examSessionAssets ExamSessionAsset[]
+  llmReviews        LlmReviewAsset[]
+
+  @@unique([bucket, key])
+  @@index([userId])
+  @@index([purpose])
+  @@map("file_assets")
+}
+
+model AttemptAsset {
+  id          String   @id @default(cuid())
+  attemptId   String
+  fileAssetId String
+  createdAt   DateTime @default(now())
+
+  attempt   Attempt   @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  fileAsset FileAsset @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, fileAssetId])
+  @@index([fileAssetId])
+  @@map("attempt_assets")
+}
+
+model ExamSessionAsset {
+  id            String   @id @default(cuid())
+  examSessionId String
+  fileAssetId   String
+  createdAt     DateTime @default(now())
+
+  examSession ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+  fileAsset   FileAsset   @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([examSessionId, fileAssetId])
+  @@index([fileAssetId])
+  @@map("exam_session_assets")
+}
+
+model LlmReviewAsset {
+  id                String          @id @default(cuid())
+  fileAssetId       String
+  userId            String
+  attemptId         String?
+  examSessionId     String?
+  status            LlmReviewStatus @default(PENDING)
+  extractedText     String?
+  llmInputSnapshot  Json?
+  llmOutputSnapshot Json?
+  errorMessage      String?
+  createdAt         DateTime        @default(now())
+  processedAt       DateTime?
+
+  fileAsset   FileAsset    @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempt     Attempt?     @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+  examSession ExamSession? @relation(fields: [examSessionId], references: [id], onDelete: SetNull)
+
+  @@index([fileAssetId])
+  @@index([userId])
+  @@index([attemptId])
+  @@index([examSessionId])
+  @@index([status])
+  @@map("llm_review_assets")
+}
+
+model Friendship {
+  id          String           @id @default(cuid())
+  requesterId String
+  receiverId  String
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  requester User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  receiver  User @relation("FriendshipReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, receiverId])
+  @@index([receiverId])
+  @@index([status])
+  @@map("friendships")
+}
+
+model UserModerationAction {
+  id          String               @id @default(cuid())
+  userId      String
+  moderatorId String?
+  action      ModerationActionType
+  reason      ModerationReason
+  notes       String?
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime             @default(now())
+
+  user      User  @relation("ModerationTarget", fields: [userId], references: [id], onDelete: Cascade)
+  moderator User? @relation("ModerationModerator", fields: [moderatorId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([moderatorId])
+  @@index([action])
+  @@index([reason])
+  @@map("user_moderation_actions")
+}
+
+model CommunityPost {
+  id            String                 @id @default(cuid())
+  authorId      String
+  type          CommunityPostType      @default(TEXT)
+  visibility    CommunityVisibility    @default(PUBLIC)
+  title         String?
+  content       String
+  examSessionId String?
+  sharedExamId  String?
+  status        CommunityContentStatus @default(PUBLISHED)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  author      User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  examSession ExamSession?        @relation(fields: [examSessionId], references: [id], onDelete: SetNull)
+  sharedExam  SharedExam?         @relation(fields: [sharedExamId], references: [id], onDelete: SetNull)
+  comments    CommunityComment[]
+  reactions   CommunityReaction[]
+  reports     ContentReport[]
+
+  @@index([authorId])
+  @@index([examSessionId])
+  @@index([sharedExamId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("community_posts")
+}
+
+model CommunityComment {
+  id              String                 @id @default(cuid())
+  postId          String
+  authorId        String
+  parentCommentId String?
+  content         String
+  status          CommunityContentStatus @default(PUBLISHED)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  post          CommunityPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentComment CommunityComment?   @relation("CommunityCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies       CommunityComment[]  @relation("CommunityCommentReplies")
+  reactions     CommunityReaction[]
+  reports       ContentReport[]
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentCommentId])
+  @@index([status])
+  @@map("community_comments")
+}
+
+model CommunityReaction {
+  id        String                @id @default(cuid())
+  userId    String
+  postId    String?
+  commentId String?
+  type      CommunityReactionType @default(LIKE)
+  createdAt DateTime              @default(now())
+
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    CommunityPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment CommunityComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId, type])
+  @@unique([userId, commentId, type])
+  @@index([postId])
+  @@index([commentId])
+  @@map("community_reactions")
+}
+
+model SharedExam {
+  id                  String              @id @default(cuid())
+  ownerId             String
+  sourceExamSessionId String?
+  title               String
+  description         String?
+  visibility          CommunityVisibility @default(PRIVATE)
+  status              SharedExamStatus    @default(DRAFT)
+  allowCloning        Boolean             @default(true)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  owner             User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  sourceExamSession ExamSession?         @relation(fields: [sourceExamSessionId], references: [id], onDelete: SetNull)
+  questions         SharedExamQuestion[]
+  usages            SharedExamUsage[]
+  posts             CommunityPost[]
+  reports           ContentReport[]
+
+  @@index([ownerId])
+  @@index([sourceExamSessionId])
+  @@index([visibility])
+  @@index([status])
+  @@map("shared_exams")
+}
+
+model SharedExamUsage {
+  id            String                @id @default(cuid())
+  sharedExamId  String
+  userId        String
+  examSessionId String?
+  status        SharedExamUsageStatus @default(STARTED)
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime              @default(now())
+
+  sharedExam  SharedExam   @relation(fields: [sharedExamId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examSession ExamSession? @relation(fields: [examSessionId], references: [id], onDelete: SetNull)
+
+  @@index([sharedExamId])
+  @@index([userId])
+  @@index([examSessionId])
+  @@index([status])
+  @@map("shared_exam_usages")
+}
+
+model SharedExamQuestion {
+  id               String   @id @default(cuid())
+  sharedExamId     String
+  questionId       String
+  sortOrder        Int      @map("order")
+  questionSnapshot Json
+  solutionSnapshot Json?
+  createdAt        DateTime @default(now())
+
+  sharedExam SharedExam @relation(fields: [sharedExamId], references: [id], onDelete: Cascade)
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([sharedExamId, sortOrder])
+  @@unique([sharedExamId, questionId])
+  @@index([questionId])
+  @@map("shared_exam_questions")
+}
+
+model ContentReport {
+  id             String           @id @default(cuid())
+  reporterId     String
+  targetType     ReportTargetType
+  postId         String?
+  commentId      String?
+  sharedExamId   String?
+  reportedUserId String?
+  reason         ModerationReason
+  details        String?
+  status         ReportStatus     @default(OPEN)
+  createdAt      DateTime         @default(now())
+  resolvedAt     DateTime?
+
+  reporter     User              @relation("ReportCreator", fields: [reporterId], references: [id], onDelete: Cascade)
+  post         CommunityPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment      CommunityComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  sharedExam   SharedExam?       @relation(fields: [sharedExamId], references: [id], onDelete: Cascade)
+  reportedUser User?             @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: SetNull)
+
+  @@index([reporterId])
+  @@index([postId])
+  @@index([commentId])
+  @@index([sharedExamId])
+  @@index([reportedUserId])
+  @@index([status])
+  @@map("content_reports")
 }

@@ -25,6 +25,7 @@ import { AUTH_PROVIDER, AUTH_REPOSITORY, AuthService } from "./services/auth.ser
       provide: AUTH_REPOSITORY,
       useClass: PrismaAuthRepository
     }
-  ]
+  ],
+  exports: [AuthService]
 })
 export class AuthModule {}
