@@ -250,6 +250,47 @@ El logo 3D solo va en web landing, no en mobile.
 
 ## Historial de handoff
 
+### 2026-05-25 - Codex
+
+Branch:
+
+`feature/auth-firebase`
+
+Cambios realizados:
+
+- Se integró `chore/database-foundation` en `develop` mediante fast-forward y se publicó `develop`.
+- Se creó la rama `feature/auth-firebase` desde `develop`.
+- Se implementó `AuthModule` con estructura Spring-style.
+- Se añadió `POST /api/v1/auth/session`.
+- Se añadió `GET /api/v1/auth/me`.
+- Se implementó `FirebaseAuthProvider` con Firebase Admin.
+- Se dejó `MockAuthProvider` como default local mediante `AUTH_PROVIDER=mock`.
+- Se implementó repositorio Prisma para buscar/crear usuario interno, perfil y preferencias.
+- Se limpió el mapper de auth para no exponer campos internos de Prisma.
+
+Archivos tocados:
+
+- `apps/api/.env.example`
+- `apps/api/src/app.module.ts`
+- `apps/api/src/shared/providers/auth/firebase-auth.provider.ts`
+- `apps/api/src/modules/auth/`
+- `docs/AGENT_HANDOFF.md`
+
+Validacion ejecutada:
+
+- `corepack pnpm --filter api db:generate`
+- `corepack pnpm --filter api typecheck`
+- `corepack pnpm --filter api build`
+- `corepack pnpm --filter api dev`
+- `curl -s -X POST http://localhost:3000/api/v1/auth/session -H 'Authorization: Bearer local-test-token'`
+- `curl -s http://localhost:3000/api/v1/auth/me -H 'Authorization: Bearer local-test-token'`
+- `curl -s http://localhost:3000/api/v1/health/database`
+
+Pendientes:
+
+- Probar Firebase real cuando el usuario configure credenciales de Firebase Admin.
+- Crear commit de auth backend si el usuario lo aprueba.
+
 ### 2026-05-22 - Codex
 
 Branch:

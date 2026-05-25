@@ -1,0 +1,30 @@
+import { Body, Controller, Get, Headers, Inject, Post } from "@nestjs/common";
+import { ZodValidationPipe } from "../../../shared/validation/zod-validation.pipe";
+import { loginRequestSchema, type LoginRequestDto } from "../dtos/login-request.dto";
+import { registerRequestSchema, type RegisterRequestDto } from "../dtos/register-request.dto";
+import { AuthService } from "../services/auth.service";
+
+@Controller("auth")
+export class AuthController {
+  constructor(@Inject(AuthService) private readonly authService: AuthService) {}
+
+  @Post("register")
+  register(@Body(new ZodValidationPipe(registerRequestSchema)) credentials: RegisterRequestDto) {
+    return this.authService.register(credentials);
+  }
+
+  @Post("login")
+  login(@Body(new ZodValidationPipe(loginRequestSchema)) credentials: LoginRequestDto) {
+    return this.authService.login(credentials);
+  }
+
+  @Post("session")
+  createSession(@Headers("authorization") authorizationHeader?: string) {
+    return this.authService.createSession(authorizationHeader);
+  }
+
+  @Get("me")
+  getMe(@Headers("authorization") authorizationHeader?: string) {
+    return this.authService.getMe(authorizationHeader);
+  }
+}

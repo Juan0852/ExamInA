@@ -7,5 +7,8 @@ build/
 .env.*
 !.env.example
 !apps/**/.env.example
+apps/api/firebase-service-account.json
+apps/api/*firebase-adminsdk*.json
+apps/api/*service-account*.json
 coverage/
 *.log
