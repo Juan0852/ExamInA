@@ -4,5 +4,162 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum QuestionType {
+  OPEN_ANSWER
+  MULTIPLE_CHOICE
+  PROCEDURE
+  FLASHCARD
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model User {
+  id          String   @id @default(cuid())
+  firebaseUid String  @unique
+  email       String  @unique
+  displayName String?
+  photoUrl    String?
+  role        UserRole   @default(STUDENT)
+  status      UserStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  profile     UserProfile?
+  preferences UserPreferences?
+
+  @@map("users")
+}
+
+model UserProfile {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  username          String    @unique
+  bio               String?
+  avatarFileId      String?
+  bannerFileId      String?
+  level             Int       @default(1)
+  experience        Int       @default(0)
+  currentStreakDays Int       @default(0)
+  longestStreakDays Int       @default(0)
+  lastStudyDate     DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model UserPreferences {
+  id                         String   @id @default(cuid())
+  userId                     String   @unique
+  preferredTheme             String   @default("system")
+  preferredLanguage          String   @default("es")
+  notificationsEnabled       Boolean  @default(true)
+  studyReminderEnabled       Boolean  @default(false)
+  studyReminderTime          String?
+  timerSoundEnabled          Boolean  @default(true)
+  defaultTimerEnabled        Boolean  @default(false)
+  defaultExamDurationSeconds Int      @default(5400)
+  preferredSubjects          Json?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model Subject {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  topics    Topic[]
+  questions Question[]
+
+  @@map("subjects")
+}
+
+model Topic {
+  id        String   @id @default(cuid())
+  subjectId String
+  name      String
+  slug      String
+  createdAt DateTime @default(now())
+
+  subject   Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  questions Question[]
+
+  @@unique([subjectId, slug])
+  @@index([subjectId])
+  @@map("topics")
+}
+
+model Question {
+  id         String             @id @default(cuid())
+  subjectId  String
+  topicId    String
+  statement  String
+  type       QuestionType       @default(OPEN_ANSWER)
+  difficulty QuestionDifficulty @default(MEDIUM)
+  sourceYear Int?
+  sourceExam String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  subject  Subject           @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  topic    Topic             @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  solution QuestionSolution?
+  keywords QuestionKeyword[]
+
+  @@index([subjectId])
+  @@index([topicId])
+  @@index([difficulty])
+  @@index([type])
+  @@map("questions")
+}
+
+model QuestionSolution {
+  id              String   @id @default(cuid())
+  questionId      String   @unique
+  finalAnswer     String
+  explanation     String
+  gradingCriteria Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("question_solutions")
+}
+
+model QuestionKeyword {
+  id         String @id @default(cuid())
+  questionId String
+  keyword    String
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, keyword])
+  @@index([questionId])
+  @@map("question_keywords")
 }

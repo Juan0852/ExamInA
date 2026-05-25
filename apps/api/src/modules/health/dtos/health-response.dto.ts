@@ -1,5 +1,5 @@
 export interface HealthResponseDto {
   status: "ok";
-  service: "api";
+  service: "api" | "database";
   timestamp: string;
 }

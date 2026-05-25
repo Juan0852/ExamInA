@@ -19,4 +19,9 @@ export class HealthController {
   getReadiness() {
     return this.healthService.getReadiness();
   }
+
+  @Get("database")
+  async getDatabaseHealth() {
+    return this.healthService.getDatabaseHealth();
+  }
 }

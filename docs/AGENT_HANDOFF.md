@@ -254,6 +254,59 @@ El logo 3D solo va en web landing, no en mobile.
 
 Branch:
 
+`chore/database-foundation`
+
+Cambios realizados:
+
+- Se integró `chore/api-minimum` en `develop` mediante fast-forward y se publicó `develop`.
+- Se creó la rama `chore/database-foundation` desde `develop`.
+- Se añadió el schema Prisma core con `User`, `UserProfile`, `UserPreferences`, `Subject`, `Topic`, `Question`, `QuestionSolution` y `QuestionKeyword`.
+- Se adaptó Prisma a la configuración de Prisma 7 usando `apps/api/prisma.config.ts`.
+- Se añadió `@prisma/adapter-pg`, `pg` y `@types/pg`.
+- Se implementó `DatabaseModule` y `PrismaService` lazy para no bloquear el arranque si no hay `DATABASE_URL`.
+- Se añadió `/api/v1/health/database`.
+- Se separaron los archivos de entorno por app: `apps/api/.env.example`, `apps/web/.env.example` y `apps/mobile/.env.example`.
+- `apps/api/.env` queda como archivo local editable y no commiteable. El usuario debe colocar sus credenciales reales de PostgreSQL local.
+- Se aplicó la migración inicial oficial de Prisma `20260525014804_init_core_schema`.
+- La base local ya contiene las tablas core y `_prisma_migrations`.
+
+Archivos tocados:
+
+- `apps/api/package.json`
+- `apps/api/prisma/schema.prisma`
+- `apps/api/prisma.config.ts`
+- `apps/api/.env.example`
+- `apps/web/.env.example`
+- `apps/mobile/.env.example`
+- `apps/api/prisma/migrations/20260525014804_init_core_schema/migration.sql`
+- `apps/api/src/shared/database/database.module.ts`
+- `apps/api/src/shared/database/prisma.service.ts`
+- `apps/api/src/modules/health/`
+- `pnpm-lock.yaml`
+- `docs/AGENT_HANDOFF.md`
+
+Validacion ejecutada:
+
+- `corepack pnpm --filter api db:validate` con `DATABASE_URL` definido en el entorno
+- `corepack pnpm --filter api db:generate` con `DATABASE_URL` definido en el entorno
+- `corepack pnpm --filter api typecheck`
+- `corepack pnpm --filter api build`
+- `corepack pnpm --filter api exec prisma migrate dev --name init_core_schema --create-only`
+- `corepack pnpm --filter api exec prisma migrate dev`
+- `corepack pnpm --filter api exec prisma migrate status`
+- `corepack pnpm --filter api dev`
+- `curl -s http://localhost:3000/api/v1/health`
+- `curl -s -i http://localhost:3000/api/v1/health/database`
+- `curl -s http://localhost:3000/api/v1/health/database`
+
+Pendientes:
+
+- Crear commit de database foundation si el usuario lo aprueba.
+
+### 2026-05-22 - Codex
+
+Branch:
+
 `main`
 
 Cambios realizados:
