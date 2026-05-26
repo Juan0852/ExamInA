@@ -8,6 +8,7 @@ import { SubjectsPage } from "../pages/SubjectsPage";
 import { TopicsPage } from "../pages/TopicsPage";
 import { QuestionPage } from "../pages/QuestionPage";
 import { OnboardingPage } from "../pages/OnboardingPage";
+import { ProfilePage } from "../pages/ProfilePage";
 import { DevPanel } from "../shared/components/DevPanel";
 
 /**
@@ -45,6 +46,7 @@ export function AppRouter() {
           <Route path="/subjects" element={<SubjectsPage />} />
           <Route path="/subjects/:subjectId/topics" element={<TopicsPage />} />
           <Route path="/questions/:questionId" element={<QuestionPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
         {/* Fallback para cualquier ruta inexistente */}

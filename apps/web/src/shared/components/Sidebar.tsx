@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth.store";
-import { 
+import {
   LogOut, 
   BookOpen, 
   GraduationCap, 
@@ -11,7 +11,7 @@ import {
   Moon, 
   Menu, 
   X,
-  Compass
+  UserCircle
 } from "lucide-react";
 
 /**
@@ -88,6 +88,12 @@ export function Sidebar() {
       disabled: false,
     },
     {
+      label: "Perfil",
+      path: "/profile",
+      icon: UserCircle,
+      disabled: false,
+    },
+    {
       label: "Simulacros",
       path: "/mock-exams",
       icon: GraduationCap,
@@ -109,22 +115,14 @@ export function Sidebar() {
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-white dark:bg-[#0E1B2F] border-r border-slate-200 dark:border-brand-navy/30 transition-colors duration-200">
       {/* Cabecera del Sidebar: LOGO ENORME */}
-      <div className="p-6 border-b border-slate-100 dark:border-brand-navy/15 flex flex-col items-center justify-center">
-        <Link to="/dashboard" onClick={closeSidebar} className="group block focus:outline-none">
+      <div className="px-4 py-8 border-b border-slate-100 dark:border-brand-navy/15 flex flex-col items-center justify-center">
+        <Link to="/dashboard" onClick={closeSidebar} className="group flex w-full justify-center focus:outline-none">
           <img
-            src="/brand/examina-logo-horizontal.png"
+            src="/brand/examina-logo-transparent-cropped.png"
             alt="ExamInA"
-            className="h-16 w-auto dark:hidden transition-transform duration-300 group-hover:scale-[1.02]"
-          />
-          <img
-            src="/brand/examina-logo-horizontal.png"
-            alt="ExamInA"
-            className="h-16 w-auto hidden dark:block invert brightness-200 transition-transform duration-300 group-hover:scale-[1.02]"
+            className="h-auto w-full max-w-[250px] transition-transform duration-300 group-hover:scale-[1.02]"
           />
         </Link>
-        <span className="text-[10px] uppercase tracking-widest text-brand-blue dark:text-brand-cyan font-black mt-2">
-          Estudia. Practica. Aprueba.
-        </span>
       </div>
 
       {/* Enlaces de navegación */}
@@ -239,14 +237,9 @@ export function Sidebar() {
         {/* Logo del Header Móvil (Más compacto pero visible) */}
         <Link to="/dashboard" className="flex items-center">
           <img
-            src="/brand/examina-logo-horizontal.png"
+            src="/brand/examina-logo-transparent-cropped.png"
             alt="ExamInA"
-            className="h-10 w-auto dark:hidden"
-          />
-          <img
-            src="/brand/examina-logo-horizontal.png"
-            alt="ExamInA"
-            className="h-10 w-auto hidden dark:block invert brightness-200"
+            className="h-auto w-40"
           />
         </Link>
 

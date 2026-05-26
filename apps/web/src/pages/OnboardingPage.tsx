@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import { apiService } from "../shared/services/api.service";
 import { useQuery } from "@tanstack/react-query";
+import { useAchievementToasts } from "../shared/achievements/achievement-toast.store";
+import type { AchievementsResponse } from "../shared/achievements/types";
 import {
   BookOpen,
   ChevronRight,
@@ -53,6 +55,7 @@ const isSubjectEnabled = (name: string): boolean => {
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { user, setSession, token } = useAuthStore();
+  const pushAchievementToasts = useAchievementToasts();
   
   // Paso actual: 1 (Asignaturas), 2 (Horas), 3 (Referencia), 4 (Perfil), 5 (Completado)
   const [step, setStep] = useState(1);
@@ -210,6 +213,9 @@ export function OnboardingPage() {
       } else if (user && profileResponse.data?.user) {
         setSession(token || "", profileResponse.data.user);
       }
+
+      const achievementsResponse = await apiService.post<AchievementsResponse>("/achievements/me/evaluate");
+      pushAchievementToasts(achievementsResponse.meta.newlyUnlockedAchievements ?? []);
 
       setStep(5);
     } catch (err: any) {

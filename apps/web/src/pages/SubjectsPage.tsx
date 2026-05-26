@@ -95,8 +95,8 @@ export function SubjectsPage() {
                 className="bg-white dark:bg-[#0E1B2F] border border-slate-200 dark:border-brand-navy/30 rounded-2xl p-6 hover:shadow-lg hover:border-brand-blue/35 transition-all flex flex-col justify-between group shadow-sm"
               >
                 <div className="space-y-4">
-                  <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 flex-none bg-brand-sky dark:bg-brand-navy/30">
-                    <img src={getSubjectIcon(subject.name)} alt={subject.name} className="w-7 h-7 object-contain flex-shrink-0" />
+                  <div className="h-20 w-20 min-w-20 max-w-20 rounded-2xl overflow-hidden flex items-center justify-center flex-shrink-0 flex-none bg-brand-sky dark:bg-brand-navy/30">
+                    <img src={getSubjectIcon(subject.name)} alt={subject.name} className="h-16 w-16 min-w-16 max-w-16 object-contain flex-shrink-0" />
                   </div>
                   <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100 group-hover:text-brand-blue dark:group-hover:text-brand-cyan transition-colors">
                     {subject.name}
@@ -120,8 +120,8 @@ export function SubjectsPage() {
               >
                 <div className="space-y-4">
                   <div className="flex justify-between items-start">
-                    <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 flex-none opacity-60 bg-slate-100 dark:bg-[#1C2C42]/50">
-                      <img src={getSubjectIcon(subject.name)} alt={subject.name} className="w-7 h-7 object-contain flex-shrink-0" />
+                    <div className="h-20 w-20 min-w-20 max-w-20 rounded-2xl overflow-hidden flex items-center justify-center flex-shrink-0 flex-none opacity-60 bg-slate-100 dark:bg-[#1C2C42]/50">
+                      <img src={getSubjectIcon(subject.name)} alt={subject.name} className="h-16 w-16 min-w-16 max-w-16 object-contain flex-shrink-0" />
                     </div>
                     <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-[#12243B] border border-slate-200/40 dark:border-brand-navy/30 rounded-md">
                       Próximamente

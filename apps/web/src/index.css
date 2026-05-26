@@ -39,6 +39,10 @@
     0%, 100% { box-shadow: 0 0 15px rgba(8, 121, 242, 0.2); }
     50% { box-shadow: 0 0 25px rgba(51, 214, 208, 0.4); }
   }
+  @keyframes achievement-progress-countdown {
+    from { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: 245; }
+  }
 }
 
 /* Light / Dark Mode support custom properties for smooth transitions */
@@ -88,6 +92,10 @@
 }
 
 @layer utilities {
+  .achievement-toast-progress {
+    animation: achievement-progress-countdown 3s linear forwards;
+  }
+
   .hero-word-rotator {
     display: block;
     position: relative;
