@@ -227,6 +227,8 @@ Los servicios externos deben estar desacoplados mediante interfaces dentro de `a
 
 La logica de negocio no debe depender directamente de Firebase, OpenAI, AWS S3, OCR o Prisma.
 
+Storage se implementara primero con `LocalStorageProvider` basado en filesystem de Node.js para desarrollo/debugging. Produccion usara `S3StorageProvider` detras de la misma interfaz. Ver `docs/STORAGE_STRATEGY.md`.
+
 ### Web y mobile
 
 Web y mobile deben estar separados:
@@ -249,6 +251,38 @@ El logo 3D solo va en web landing, no en mobile.
 9. Validar que no se crea ningun `packages/` accidentalmente.
 
 ## Historial de handoff
+
+### 2026-05-25 - Antigravity
+
+Branch:
+
+`feature/web-minimum`
+
+Cambios realizados:
+
+- Se configuró el entorno del frontend web (`apps/web`) con Vite 8 y Tailwind CSS v4.
+- Se implementó la estructura de arquitectura MVVM (Model-View-ViewModel) en React.
+- Se añadió `api.service.ts` y el store Zustand `auth.store.ts` para gestionar la sesión con soporte para Mock Login (Modelo).
+- Se implementaron esquemas de validación Zod locales (`loginSchema` y `answerSchema`) para validar de manera segura en el cliente.
+- Se implementaron los hooks de ViewModel (`useLoginViewModel`, `useSubjectsViewModel`, `useTopicsQuestionsViewModel`, `useQuestionViewModel`).
+- Se crearon las Vistas (`LoginPage`, `LandingPage`, `DashboardPage`, `SubjectsPage`, `TopicsPage`, `QuestionPage`) y el Layout global (`AppLayout` con `Navbar`).
+- Se verificó que el proyecto compila y se genera el bundle sin errores.
+
+Archivos tocados:
+
+- `apps/web/index.html`
+- `apps/web/vite.config.ts`
+- `apps/web/src/`
+- `docs/AGENT_HANDOFF.md`
+
+Validacion ejecutada:
+
+- `corepack pnpm --filter web typecheck`
+- `corepack pnpm --filter web build`
+
+Pendientes:
+
+- Desarrollar el módulo backend de intentos (`attempts`) y correcciones (`corrections`) e integrarlo en la UI reemplazando el flujo mockeado actual.
 
 ### 2026-05-25 - Antigravity
 

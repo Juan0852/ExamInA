@@ -220,7 +220,8 @@ El objetivo es que el backend pueda cambiar entre proveedores locales, mocks y p
 #### StorageProvider
 
 - Interfaz para generar URLs firmadas y manejar archivos.
-- Implementación inicial: `S3StorageProvider`.
+- Implementación inicial local: `LocalStorageProvider` usando filesystem de Node.js.
+- Implementación de producción: `S3StorageProvider`.
 
 #### OcrProvider
 
@@ -725,11 +726,15 @@ Debe comparar:
 - precisión de la respuesta;
 - conceptos faltantes.
 
-## 15. Storage con AWS S3
+## 15. Storage local primero y AWS S3 despues
 
 La parte de files/storage debe permitir subir imágenes de soluciones escritas a mano en una fase posterior.
 
-Flujo deseado:
+En desarrollo se usara `LocalStorageProvider` con filesystem local para facilitar debugging.
+
+En produccion se usara `S3StorageProvider`.
+
+Flujo deseado en produccion:
 
 1. El frontend pide al backend una presigned URL.
 2. El backend genera una presigned URL de S3.
@@ -738,10 +743,13 @@ Flujo deseado:
 
 Regla principal:
 
-- AWS S3 guarda el archivo físico.
+- En local, el filesystem guarda el archivo fisico.
+- En produccion, AWS S3 guarda el archivo físico.
 - Supabase PostgreSQL guarda la metadata y referencias del archivo.
 
 No se deben guardar imágenes directamente dentro de PostgreSQL.
+
+La decision detallada esta en `docs/STORAGE_STRATEGY.md`.
 
 No se debe depender únicamente de una URL fija. Se debe preferir guardar `bucket` y `key` para generar signed URLs temporales desde el backend.
 

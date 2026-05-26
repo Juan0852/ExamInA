@@ -10,5 +10,6 @@ build/
 apps/api/firebase-service-account.json
 apps/api/*firebase-adminsdk*.json
 apps/api/*service-account*.json
+apps/api/storage/
 coverage/
 *.log

@@ -1,0 +1,186 @@
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Bounds, Center, Environment, OrbitControls, useGLTF } from "@react-three/drei";
+import { Suspense, useMemo, useRef } from "react";
+import { Mesh, MeshPhysicalMaterial } from "three";
+import type { Group } from "three";
+
+function PlatinumParticles() {
+  const groupRef = useRef<Group>(null);
+  const particles = useMemo(() => {
+      const particleCount = 150;
+
+      return Array.from({ length: particleCount }, (_, index) => {
+      const radius = 1.75 + Math.random() * 1.65;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+
+      return {
+        key: `particle-${index}`,
+        position: [
+          radius * Math.sin(phi) * Math.cos(theta),
+          radius * Math.sin(phi) * Math.sin(theta),
+          radius * Math.cos(phi)
+        ] as [number, number, number],
+        scale: 0.012 + Math.random() * 0.032
+      };
+    });
+  }, []);
+
+  useFrame((state) => {
+    if (!groupRef.current) {
+      return;
+    }
+
+    groupRef.current.rotation.y = state.clock.elapsedTime * 0.055 + state.pointer.x * 0.22;
+    groupRef.current.rotation.x = state.clock.elapsedTime * 0.025 - state.pointer.y * 0.16;
+  });
+
+  return (
+    <group ref={groupRef}>
+      {particles.map((particle) => (
+        <mesh key={particle.key} position={particle.position} scale={particle.scale}>
+          <sphereGeometry args={[1, 16, 16]} />
+          <meshStandardMaterial
+            color="#38bdf8"
+            emissive="#0ea5e9"
+            emissiveIntensity={0.65}
+            roughness={0.32}
+            metalness={0.2}
+            transparent
+            opacity={0.82}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function OpeningHalo() {
+  const groupRef = useRef<Group>(null);
+
+  useFrame((state) => {
+    if (!groupRef.current) {
+      return;
+    }
+
+    const pulse = 1 + Math.sin(state.clock.elapsedTime * 1.15) * 0.035;
+    groupRef.current.scale.setScalar(pulse);
+    groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.28) * 0.08;
+  });
+
+  return (
+    <group ref={groupRef} position={[0, 0, -0.35]}>
+      <mesh rotation={[0, 0, 0]}>
+        <torusGeometry args={[1.86, 0.012, 12, 160]} />
+        <meshBasicMaterial color="#60a5fa" transparent opacity={0.34} />
+      </mesh>
+      <mesh rotation={[0, 0, Math.PI / 5]}>
+        <torusGeometry args={[2.18, 0.008, 12, 160]} />
+        <meshBasicMaterial color="#22d3ee" transparent opacity={0.22} />
+      </mesh>
+      <mesh rotation={[0, 0, -Math.PI / 7]}>
+        <torusGeometry args={[2.48, 0.006, 12, 160]} />
+        <meshBasicMaterial color="#bfdbfe" transparent opacity={0.16} />
+      </mesh>
+    </group>
+  );
+}
+
+function LogoModel() {
+  const model = useGLTF("/models/examina-logo-3d.glb");
+  const groupRef = useRef<Group>(null);
+  const platinumScene = useMemo(() => {
+    const scene = model.scene.clone(true);
+    const platinumMaterial = new MeshPhysicalMaterial({
+      color: "#b8cde7",
+      metalness: 0.92,
+      roughness: 0.2,
+      clearcoat: 0.65,
+      clearcoatRoughness: 0.16,
+      reflectivity: 0.7,
+      envMapIntensity: 1.55
+    });
+
+    scene.traverse((object) => {
+      if (object instanceof Mesh) {
+        object.material = platinumMaterial;
+        object.castShadow = true;
+        object.receiveShadow = true;
+      }
+    });
+
+    return scene;
+  }, [model.scene]);
+
+  useFrame((state) => {
+    if (!groupRef.current) {
+      return;
+    }
+
+    groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.35) * 0.12;
+    groupRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.25) * 0.05;
+  });
+
+  return (
+    <group ref={groupRef}>
+      <Center>
+        <primitive object={platinumScene} />
+      </Center>
+    </group>
+  );
+}
+
+interface LogoScene3DProps {
+  className?: string;
+  showEffects?: boolean;
+  showModel?: boolean;
+}
+
+export function LogoScene3D({
+  className = "relative mx-auto h-[280px] w-full max-w-[460px] sm:h-[360px] lg:h-[420px]",
+  showEffects = true,
+  showModel = true
+}: LogoScene3DProps) {
+  return (
+    <div className={className}>
+      <Canvas
+        camera={{ position: [0, 0, 5], fov: 38 }}
+        dpr={[1, 1.75]}
+        gl={{ antialias: true, alpha: true }}
+      >
+        <ambientLight intensity={0.58} />
+        <directionalLight position={[3, 4, 5]} intensity={2.05} color="#e0f2fe" />
+        <directionalLight position={[-4, 1, 3]} intensity={0.82} color="#7dd3fc" />
+        <pointLight position={[-3, -2, 4]} intensity={1.05} color="#0ea5e9" />
+        <pointLight position={[2.5, 0.5, 2]} intensity={0.45} color="#bfdbfe" />
+        <Suspense fallback={null}>
+          {showEffects ? (
+            <>
+              <OpeningHalo />
+              <PlatinumParticles />
+            </>
+          ) : null}
+          {showModel ? (
+            <>
+              <Bounds fit clip observe margin={1.2}>
+                <LogoModel />
+              </Bounds>
+              <OrbitControls
+                enableDamping
+                enablePan={false}
+                enableZoom={false}
+                rotateSpeed={0.6}
+                dampingFactor={0.08}
+                minPolarAngle={Math.PI / 2.8}
+                maxPolarAngle={Math.PI / 1.8}
+              />
+            </>
+          ) : null}
+          <Environment preset="city" />
+        </Suspense>
+      </Canvas>
+    </div>
+  );
+}
+
+useGLTF.preload("/models/examina-logo-3d.glb");
