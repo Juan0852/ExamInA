@@ -10,7 +10,8 @@ config({ path: join(apiRoot, ".env") });
 export default defineConfig({
   schema: join(apiRoot, "prisma/schema.prisma"),
   datasource: {
-    url: env("DATABASE_URL")
+    url: env("DATABASE_URL"),
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL ? env("SHADOW_DATABASE_URL") : undefined
   },
   migrations: {
     path: join(apiRoot, "prisma/migrations")

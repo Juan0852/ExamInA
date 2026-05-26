@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%">
+  <defs>
+    <linearGradient id="brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4FACFE" />
+      <stop offset="100%" stop-color="#00F2FE" />
+    </linearGradient>
+    <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  
+  <!-- Contenedor Base de Cristal -->
+  <rect x="3" y="3" width="58" height="58" rx="16" fill="#0E1B2F" fill-opacity="0.85" stroke="url(#brand-grad)" stroke-width="2" />
+  
+  <!-- Círculo interior de profundidad -->
+  <circle cx="32" cy="32" r="22" stroke="url(#brand-grad)" stroke-width="1" stroke-dasharray="4 4" opacity="0.25" fill="none" />
+  
+  <!-- Templo romano y guirnaldas (Escalados) -->
+  <g transform="translate(4.8, 3.2) scale(0.85)">
+    <!-- Base de escalones (Bottom) -->
+    <rect x="14" y="48" width="36" height="4" rx="1" fill="#ffffff" />
+    <rect x="16" y="44" width="32" height="4" fill="url(#brand-grad)" />
+    <rect x="18" y="41" width="28" height="3" fill="url(#brand-grad)" opacity="0.5" />
+
+    <!-- Columnas del templo (4 columnas) -->
+    <!-- Columna 1 -->
+    <rect x="20" y="25" width="2.5" height="16" fill="#ffffff" />
+    <!-- Columna 2 -->
+    <rect x="27" y="25" width="2.5" height="16" fill="url(#brand-grad)" filter="url(#neon-glow)" />
+    <!-- Columna 3 -->
+    <rect x="34" y="25" width="2.5" height="16" fill="url(#brand-grad)" filter="url(#neon-glow)" />
+    <!-- Columna 4 -->
+    <rect x="41" y="25" width="2.5" height="16" fill="#ffffff" />
+
+    <!-- Entablamento (Barra horizontal sobre columnas) -->
+    <rect x="18" y="22" width="28" height="3" rx="0.5" fill="#ffffff" />
+
+    <!-- Frontón Triangular (Roof) -->
+    <polygon points="16,22 48,22 32,13" fill="url(#brand-grad)" filter="url(#neon-glow)" opacity="0.4" />
+    <polygon points="16,22 48,22 32,13" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" fill="none" />
+    
+    <!-- Detalle interior del frontón (Círculo/Escudo tallado) -->
+    <circle cx="32" cy="18" r="1.5" fill="#ffffff" />
+    
+    <!-- Laurel / Guirnalda romana flotante -->
+    <path d="M12 28 C 10 34, 14 38, 14 38" stroke="url(#brand-grad)" stroke-width="1" fill="none" opacity="0.3" />
+    <path d="M52 28 C 54 34, 50 38, 50 38" stroke="url(#brand-grad)" stroke-width="1" fill="none" opacity="0.3" />
+  </g>
+</svg>

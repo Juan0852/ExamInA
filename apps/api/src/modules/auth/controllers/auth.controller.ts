@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Headers, Inject, Post } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Inject, Post, Put, Query } from "@nestjs/common";
 import { ZodValidationPipe } from "../../../shared/validation/zod-validation.pipe";
 import { loginRequestSchema, type LoginRequestDto } from "../dtos/login-request.dto";
 import { registerRequestSchema, type RegisterRequestDto } from "../dtos/register-request.dto";
+import { updateProfileRequestSchema, type UpdateProfileRequestDto } from "../dtos/update-profile-request.dto";
 import { AuthService } from "../services/auth.service";
 
 @Controller("auth")
@@ -26,5 +27,34 @@ export class AuthController {
   @Get("me")
   getMe(@Headers("authorization") authorizationHeader?: string) {
     return this.authService.getMe(authorizationHeader);
+  }
+
+  @Get("profile/username-availability")
+  checkUsernameAvailability(
+    @Query("username") username = "",
+    @Headers("authorization") authorizationHeader?: string
+  ) {
+    return this.authService.checkUsernameAvailability(username, authorizationHeader);
+  }
+
+  @Put("preferences")
+  updatePreferences(
+    @Body() preferencesDto: {
+      preferredSubjects?: string[];
+      weeklyStudyHours?: string | null;
+      referralSource?: string | null;
+      onboardingCompleted?: boolean;
+    },
+    @Headers("authorization") authorizationHeader?: string
+  ) {
+    return this.authService.updatePreferences(preferencesDto, authorizationHeader);
+  }
+
+  @Put("profile")
+  updateProfile(
+    @Body(new ZodValidationPipe(updateProfileRequestSchema)) profileDto: UpdateProfileRequestDto,
+    @Headers("authorization") authorizationHeader?: string
+  ) {
+    return this.authService.updateProfile(profileDto, authorizationHeader);
   }
 }

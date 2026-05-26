@@ -10,6 +10,7 @@ export interface AuthUserResponseDto {
     id: string;
     username: string;
     bio: string | null;
+    targetUniversity: string | null;
     level: number;
     experience: number;
     currentStreakDays: number;
@@ -24,6 +25,10 @@ export interface AuthUserResponseDto {
     timerSoundEnabled: boolean;
     defaultTimerEnabled: boolean;
     defaultExamDurationSeconds: number;
+    preferredSubjects: any;
+    weeklyStudyHours: string | null;
+    referralSource: string | null;
+    onboardingCompleted: boolean;
   } | null;
   progress: {
     id: string;

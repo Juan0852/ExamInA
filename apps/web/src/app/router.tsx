@@ -7,6 +7,8 @@ import { DashboardPage } from "../pages/DashboardPage";
 import { SubjectsPage } from "../pages/SubjectsPage";
 import { TopicsPage } from "../pages/TopicsPage";
 import { QuestionPage } from "../pages/QuestionPage";
+import { OnboardingPage } from "../pages/OnboardingPage";
+import { DevPanel } from "../shared/components/DevPanel";
 
 /**
  * Componente que redirige si el usuario ya está autenticado.
@@ -35,6 +37,8 @@ export function AppRouter() {
           }
         />
 
+        <Route path="/onboarding" element={<OnboardingPage />} />
+
         {/* Rutas Privadas / Autenticadas (envueltas en el AppLayout) */}
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
@@ -46,6 +50,9 @@ export function AppRouter() {
         {/* Fallback para cualquier ruta inexistente */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Panel de desarrollo flotante — sólo visible en modo DEV */}
+      <DevPanel />
     </BrowserRouter>
   );
 }

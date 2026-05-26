@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%">
+  <defs>
+    <linearGradient id="brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4FACFE" />
+      <stop offset="100%" stop-color="#00F2FE" />
+    </linearGradient>
+    <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  
+  <!-- Contenedor Base de Cristal -->
+  <rect x="3" y="3" width="58" height="58" rx="16" fill="#0E1B2F" fill-opacity="0.85" stroke="url(#brand-grad)" stroke-width="2" />
+  
+  <!-- Círculo interior de profundidad -->
+  <circle cx="32" cy="32" r="22" stroke="url(#brand-grad)" stroke-width="1" stroke-dasharray="4 4" opacity="0.25" fill="none" />
+  
+  <!-- Símbolo Principal: Átomo / Órbitas de Física (Escalado) -->
+  <g transform="translate(1.6, 1.6) scale(0.95)">
+    <!-- Órbita 1 (Horizontal inclinada) -->
+    <ellipse cx="32" cy="32" rx="20" ry="7" transform="rotate(-30 32 32)" stroke="url(#brand-grad)" stroke-width="2" fill="none" filter="url(#neon-glow)" />
+    
+    <!-- Órbita 2 (Vertical inclinada derecha) -->
+    <ellipse cx="32" cy="32" rx="20" ry="7" transform="rotate(30 32 32)" stroke="url(#brand-grad)" stroke-width="2" fill="none" filter="url(#neon-glow)" />
+    
+    <!-- Órbita 3 (Vertical inclinada izquierda) -->
+    <ellipse cx="32" cy="32" rx="20" ry="7" transform="rotate(90 32 32)" stroke="#ffffff" stroke-width="1.8" fill="none" opacity="0.9" />
+
+    <!-- Electrones Orbitando (Círculos pequeños con brillo) -->
+    <!-- Electrón en Órbita 1 -->
+    <circle cx="16" cy="23" r="2.5" fill="#00F2FE" filter="url(#neon-glow)" />
+    <circle cx="16" cy="23" r="1" fill="#ffffff" />
+    
+    <!-- Electrón en Órbita 2 -->
+    <circle cx="48" cy="23" r="2.5" fill="#00F2FE" filter="url(#neon-glow)" />
+    <circle cx="48" cy="23" r="1" fill="#ffffff" />
+    
+    <!-- Electrón en Órbita 3 -->
+    <circle cx="32" cy="52" r="2.5" fill="#ffffff" />
+
+    <!-- Núcleo Atómico Central (Partículas Protones y Neutrones Agrupadas) -->
+    <g transform="translate(32, 32)">
+      <circle cx="-3" cy="-3" r="4.5" fill="url(#brand-grad)" />
+      <circle cx="3" cy="-3" r="4.5" fill="#ffffff" />
+      <circle cx="0" cy="3" r="4.5" fill="url(#brand-grad)" />
+      <circle cx="-1" cy="-1" r="4" fill="#ffffff" opacity="0.8" />
+    </g>
+  </g>
+</svg>

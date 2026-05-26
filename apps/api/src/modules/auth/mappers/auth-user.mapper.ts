@@ -16,6 +16,7 @@ export class AuthUserMapper {
             id: user.profile.id,
             username: user.profile.username,
             bio: user.profile.bio,
+            targetUniversity: user.profile.targetUniversity,
             level: user.profile.level,
             experience: user.profile.experience,
             currentStreakDays: user.profile.currentStreakDays,
@@ -31,7 +32,11 @@ export class AuthUserMapper {
             studyReminderEnabled: user.preferences.studyReminderEnabled,
             timerSoundEnabled: user.preferences.timerSoundEnabled,
             defaultTimerEnabled: user.preferences.defaultTimerEnabled,
-            defaultExamDurationSeconds: user.preferences.defaultExamDurationSeconds
+            defaultExamDurationSeconds: user.preferences.defaultExamDurationSeconds,
+            preferredSubjects: user.preferences.preferredSubjects,
+            weeklyStudyHours: user.preferences.weeklyStudyHours,
+            referralSource: user.preferences.referralSource,
+            onboardingCompleted: user.preferences.onboardingCompleted
           }
         : null,
       progress: user.progress

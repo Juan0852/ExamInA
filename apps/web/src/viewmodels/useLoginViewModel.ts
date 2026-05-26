@@ -115,6 +115,7 @@ export function useLoginViewModel() {
     password,
     setPassword,
     error,
+    setError,
     isLoading,
     handleLogin,
     handleMockLogin,

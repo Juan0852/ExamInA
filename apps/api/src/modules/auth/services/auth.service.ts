@@ -1,8 +1,9 @@
-import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import type { AuthProvider } from "../../../shared/providers/auth/auth-provider.interface";
 import type { AuthResponseDto } from "../dtos/auth-response.dto";
 import type { LoginRequestDto } from "../dtos/login-request.dto";
 import type { RegisterRequestDto } from "../dtos/register-request.dto";
+import type { UpdateProfileRequestDto } from "../dtos/update-profile-request.dto";
 import type { AuthenticatedUserEntity } from "../entities/authenticated-user.entity";
 import { AuthUserMapper } from "../mappers/auth-user.mapper";
 import type { AuthRepository } from "../repositories/auth.repository";
@@ -68,6 +69,77 @@ export class AuthService {
 
   async getMe(authorizationHeader?: string): Promise<AuthResponseDto> {
     return this.createSession(authorizationHeader);
+  }
+
+  async updatePreferences(
+    preferencesData: {
+      preferredSubjects?: string[];
+      weeklyStudyHours?: string | null;
+      referralSource?: string | null;
+      onboardingCompleted?: boolean;
+    },
+    authorizationHeader?: string
+  ): Promise<AuthResponseDto> {
+    const user = await this.resolveAuthenticatedUser(authorizationHeader);
+    const updatedUser = await this.authRepository.updatePreferences(user.id, preferencesData);
+
+    return {
+      data: {
+        user: AuthUserMapper.toResponse(updatedUser)
+      },
+      meta: {},
+      error: null
+    };
+  }
+
+  async updateProfile(
+    profileData: UpdateProfileRequestDto,
+    authorizationHeader?: string
+  ): Promise<AuthResponseDto> {
+    const user = await this.resolveAuthenticatedUser(authorizationHeader);
+    if (profileData.username) {
+      const isUsernameAvailable = await this.authRepository.isUsernameAvailable(
+        profileData.username,
+        user.id
+      );
+
+      if (!isUsernameAvailable) {
+        throw new ConflictException("Ese nombre público ya está siendo utilizado por alguien más.");
+      }
+    }
+
+    const updatedUser = await this.authRepository.updateProfile(user.id, {
+      displayName: profileData.displayName,
+      username: profileData.username,
+      bio: profileData.bio,
+      targetUniversity: profileData.targetUniversity,
+      photoUrl: profileData.photoUrl || undefined
+    });
+
+    return {
+      data: {
+        user: AuthUserMapper.toResponse(updatedUser)
+      },
+      meta: {},
+      error: null
+    };
+  }
+
+  async checkUsernameAvailability(
+    username: string,
+    authorizationHeader?: string
+  ): Promise<{ data: { available: boolean }; meta: {}; error: null }> {
+    const user = await this.resolveAuthenticatedUser(authorizationHeader);
+    const normalizedUsername = username.trim().toLowerCase();
+    const available = await this.authRepository.isUsernameAvailable(normalizedUsername, user.id);
+
+    return {
+      data: {
+        available
+      },
+      meta: {},
+      error: null
+    };
   }
 
   private createAuthResponse(

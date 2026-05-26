@@ -221,6 +221,7 @@ model UserProfile {
   userId            String    @unique
   username          String    @unique
   bio               String?
+  targetUniversity  String?
   avatarFileId      String?
   bannerFileId      String?
   level             Int       @default(1)
@@ -248,6 +249,9 @@ model UserPreferences {
   defaultTimerEnabled        Boolean  @default(false)
   defaultExamDurationSeconds Int      @default(5400)
   preferredSubjects          Json?
+  weeklyStudyHours           String?
+  referralSource             String?
+  onboardingCompleted        Boolean  @default(false)
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 

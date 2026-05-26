@@ -2,6 +2,31 @@ import { Link } from "react-router-dom";
 import { useSubjectsViewModel } from "../viewmodels/useSubjectsViewModel";
 import { Book, ChevronRight, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 
+// Helper para comprobar si una asignatura está activa (Sólo Matemáticas y Biología)
+const isSubjectEnabled = (name: string): boolean => {
+  const normalized = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return normalized.includes("matematica") || normalized.includes("biologia");
+};
+
+// Helper para obtener el icono SVG correspondiente
+const getSubjectIcon = (name: string): string => {
+  const slug = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (slug.includes("matemat")) return "/brand/subjects/matematicas.svg";
+  if (slug.includes("biolog")) return "/brand/subjects/biologia.svg";
+  if (slug.includes("fisic")) return "/brand/subjects/fisica.svg";
+  if (slug.includes("quimic")) return "/brand/subjects/quimica.svg";
+  if (slug.includes("lengua") || slug.includes("literatura")) return "/brand/subjects/lengua.svg";
+  if (slug.includes("ingles")) return "/brand/subjects/ingles.svg";
+  if (slug.includes("filosof")) return "/brand/subjects/filosofia.svg";
+  if (slug.includes("geograf")) return "/brand/subjects/geografia.svg";
+  if (slug.includes("latin")) return "/brand/subjects/latin.svg";
+  if (slug.includes("dibujo")) return "/brand/subjects/dibujo-tecnico.svg";
+  if (slug.includes("economia")) return "/brand/subjects/economia.svg";
+  if (slug.includes("tecnolo") || slug.includes("ingenier")) return "/brand/subjects/tecnologia.svg";
+  if (slug.includes("histor")) return "/brand/subjects/historia.svg";
+  return "/brand/subjects/matematicas.svg"; // fallback
+};
+
 /**
  * SubjectsPage: Vista de catálogo de asignaturas.
  * Consume useSubjectsViewModel enlazando datos a la interfaz.
@@ -61,32 +86,63 @@ export function SubjectsPage() {
       {/* Grid de Asignaturas */}
       {!isLoading && !error && subjects.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subjects.map((subject) => (
-            <Link
-              key={subject.id}
-              to={`/subjects/${subject.id}/topics`}
-              className="bg-white dark:bg-[#0E1B2F] border border-slate-200 dark:border-brand-navy/30 rounded-2xl p-6 hover:shadow-lg hover:border-brand-blue/35 transition-all flex flex-col justify-between group shadow-sm"
-            >
-              <div className="space-y-4">
-                <div className="w-10 h-10 rounded-lg bg-brand-sky dark:bg-brand-navy/30 text-brand-blue dark:text-brand-cyan flex items-center justify-center font-bold">
-                  <Book size={20} />
+          {subjects.map((subject) => {
+            const enabled = isSubjectEnabled(subject.name);
+            return enabled ? (
+              <Link
+                key={subject.id}
+                to={`/subjects/${subject.id}/topics`}
+                className="bg-white dark:bg-[#0E1B2F] border border-slate-200 dark:border-brand-navy/30 rounded-2xl p-6 hover:shadow-lg hover:border-brand-blue/35 transition-all flex flex-col justify-between group shadow-sm"
+              >
+                <div className="space-y-4">
+                  <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 flex-none bg-brand-sky dark:bg-brand-navy/30">
+                    <img src={getSubjectIcon(subject.name)} alt={subject.name} className="w-7 h-7 object-contain flex-shrink-0" />
+                  </div>
+                  <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100 group-hover:text-brand-blue dark:group-hover:text-brand-cyan transition-colors">
+                    {subject.name}
+                  </h3>
+                  {subject.description && (
+                    <p className="text-xs text-slate-450 dark:text-slate-400 leading-relaxed font-medium">
+                      {subject.description}
+                    </p>
+                  )}
                 </div>
-                <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100 group-hover:text-brand-blue dark:group-hover:text-brand-cyan transition-colors">
-                  {subject.name}
-                </h3>
-                {subject.description && (
-                  <p className="text-xs text-slate-450 dark:text-slate-400 leading-relaxed font-medium">
-                    {subject.description}
-                  </p>
-                )}
+                
+                <div className="flex items-center justify-end mt-8 text-brand-blue dark:text-brand-cyan text-sm font-bold group-hover:translate-x-1 transition-transform">
+                  <span>Explorar temas</span>
+                  <ChevronRight size={16} className="ml-1" />
+                </div>
+              </Link>
+            ) : (
+              <div
+                key={subject.id}
+                className="bg-white/80 dark:bg-[#0E1B2F]/80 border border-slate-200/60 dark:border-brand-navy/20 rounded-2xl p-6 opacity-60 cursor-not-allowed flex flex-col justify-between shadow-sm relative overflow-hidden"
+              >
+                <div className="space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 flex-none opacity-60 bg-slate-100 dark:bg-[#1C2C42]/50">
+                      <img src={getSubjectIcon(subject.name)} alt={subject.name} className="w-7 h-7 object-contain flex-shrink-0" />
+                    </div>
+                    <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-[#12243B] border border-slate-200/40 dark:border-brand-navy/30 rounded-md">
+                      Próximamente
+                    </span>
+                  </div>
+                  <h3 className="font-extrabold text-lg text-slate-400 dark:text-slate-550">
+                    {subject.name}
+                  </h3>
+                  {subject.description && (
+                    <p className="text-xs text-slate-450/80 dark:text-slate-500 leading-relaxed font-medium">
+                      {subject.description}
+                    </p>
+                  )}
+                </div>
+                
+                <div className="flex items-center justify-end mt-8 text-slate-400 dark:text-slate-500 text-sm font-bold">
+                  <span>Próximamente</span>
+                </div>
               </div>
-              
-              <div className="flex items-center justify-end mt-8 text-brand-blue dark:text-brand-cyan text-sm font-bold group-hover:translate-x-1 transition-transform">
-                <span>Explorar temas</span>
-                <ChevronRight size={16} className="ml-1" />
-              </div>
-            </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,8 +1,7 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Bounds, Center, Environment, OrbitControls, useGLTF } from "@react-three/drei";
 import { Suspense, useMemo, useRef } from "react";
-import { Mesh, MeshPhysicalMaterial } from "three";
-import type { Group } from "three";
+import { Mesh, MeshPhysicalMaterial, Group, Box3 } from "three";
 
 function PlatinumParticles() {
   const groupRef = useRef<Group>(null);
@@ -89,10 +88,11 @@ function OpeningHalo() {
 function LogoModel() {
   const model = useGLTF("/models/base_basic_shaded.glb");
   const groupRef = useRef<Group>(null);
-  
-  // Usar la escena original con sus colores reales del modelo GLB con un toque metálico pulido
+  // Usar la escena original con sus colores reales del modelo GLB con un toque metálico pulido y espejo de cara en Z
   const colorScene = useMemo(() => {
     const scene = model.scene.clone(true);
+    
+    // Primero, hacemos que los materiales del modelo sean altamente metálicos y reflectantes
     scene.traverse((object) => {
       if (object instanceof Mesh) {
         object.castShadow = true;
@@ -104,27 +104,78 @@ function LogoModel() {
           
           if ("metalness" in mat) {
             // @ts-ignore
-            mat.metalness = 0.68;
+            mat.metalness = 0.95; // Brillo metálico cromado alto
           }
           if ("roughness" in mat) {
             // @ts-ignore
-            mat.roughness = 0.22;
+            mat.roughness = 0.14; // Superficie muy pulida para reflejos nítidos
           }
           if ("clearcoat" in mat) {
             // @ts-ignore
-            mat.clearcoat = 0.6;
+            mat.clearcoat = 0.9; // Capa de esmalte brillante tipo lacado
           }
           if ("clearcoatRoughness" in mat) {
             // @ts-ignore
-            mat.clearcoatRoughness = 0.15;
+            mat.clearcoatRoughness = 0.08;
           }
           
           object.material = mat;
         }
       }
     });
-    return scene;
+
+    // Calcular la caja delimitadora del modelo para obtener la coordenada de la base plana
+    const box = new Box3().setFromObject(scene);
+    // El relieve del GLB apunta naturalmente hacia +Z, por lo que la base plana está en box.min.z
+    const zFlat = Math.abs(box.min.z); // Profundidad desde el centro hasta la base plana
+
+    // Creamos un contenedor Group para albergar y fusionar ambas caras
+    const container = new Group();
+
+    // ── CARA DELANTERA ──────────────────────────────────────────────────────
+    // El relieve original del GLB apunta hacia +Z (hacia el espectador).
+    // Mantenemos la escala original (sin invertir) para que el relieve quede hacia adelante.
+    const frontScene = scene.clone(true);
+    frontScene.scale.set(1, 1, 1); // Relieve → +Z (hacia adelante) ✓
+    
+    // Nos acercamos al centro quedando solo un 20% del grosor separadas,
+    // de modo que los relieves sobresalen por ambos lados pero las bases casi se tocan.
+    frontScene.position.z = zFlat * 0.5;
+
+    // ── CARA TRASERA ────────────────────────────────────────────────────────
+    // Invertimos la escala en Z para reflejar el modelo.
+    // Después de la inversión, el relieve (antes en +Z) ahora apunta hacia -Z (hacia atrás). ✓
+    const backScene = scene.clone(true);
+    backScene.scale.set(1, 1, -1); // Relieve → -Z (hacia atrás) ✓
+    
+    // Simétrico: misma distancia al centro en dirección -Z.
+    backScene.position.z = -(zFlat * 0.5);
+
+    // Habilitamos DoubleSide en ambas caras para evitar problemas de caras ocultas (backface culling)
+    const applyDoubleSide = (s: any) => {
+      s.traverse((object: any) => {
+        if (object instanceof Mesh && object.material) {
+          if (Array.isArray(object.material)) {
+            object.material.forEach((mat) => {
+              mat.side = 2; // THREE.DoubleSide
+            });
+          } else {
+            object.material.side = 2; // THREE.DoubleSide
+          }
+        }
+      });
+    };
+
+    applyDoubleSide(frontScene);
+    applyDoubleSide(backScene);
+
+    container.add(frontScene);
+    container.add(backScene);
+
+    return container;
   }, [model.scene]);
+
+
 
   useFrame((state) => {
     if (!groupRef.current) {

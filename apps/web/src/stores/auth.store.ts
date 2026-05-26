@@ -9,6 +9,16 @@ export interface User {
   displayName?: string | null;
   photoUrl?: string | null;
   role: "STUDENT" | "ADMIN";
+  profile?: {
+    id: string;
+    username: string;
+    bio: string | null;
+    targetUniversity: string | null;
+    level: number;
+    experience: number;
+    currentStreakDays: number;
+    longestStreakDays: number;
+  } | null;
 }
 
 /**

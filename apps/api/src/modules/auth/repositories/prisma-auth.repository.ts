@@ -60,6 +60,91 @@ export class PrismaAuthRepository implements AuthRepository {
     return user;
   }
 
+  async updatePreferences(
+    userId: string,
+    data: {
+      preferredSubjects?: string[];
+      weeklyStudyHours?: string | null;
+      referralSource?: string | null;
+      onboardingCompleted?: boolean;
+    }
+  ): Promise<AuthenticatedUserEntity> {
+    await this.prismaService.getClient().userPreferences.update({
+      where: { userId },
+      data: {
+        preferredSubjects: data.preferredSubjects ? (data.preferredSubjects as any) : undefined,
+        weeklyStudyHours: data.weeklyStudyHours !== undefined ? data.weeklyStudyHours : undefined,
+        referralSource: data.referralSource !== undefined ? data.referralSource : undefined,
+        onboardingCompleted: data.onboardingCompleted !== undefined ? data.onboardingCompleted : undefined,
+      }
+    });
+
+    const user = await this.prismaService.getClient().user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: true,
+        preferences: true,
+        progress: true
+      }
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return user;
+  }
+
+  async updateProfile(
+    userId: string,
+    data: {
+      displayName?: string;
+      username?: string;
+      bio?: string;
+      targetUniversity?: string;
+      photoUrl?: string;
+    }
+  ): Promise<AuthenticatedUserEntity> {
+    await this.prismaService.getClient().user.update({
+      where: { id: userId },
+      data: {
+        displayName: data.displayName !== undefined ? data.displayName : undefined,
+        photoUrl: data.photoUrl !== undefined ? data.photoUrl : undefined,
+        profile: {
+          update: {
+            username: data.username !== undefined ? data.username : undefined,
+            bio: data.bio !== undefined ? data.bio : undefined,
+            targetUniversity: data.targetUniversity !== undefined ? data.targetUniversity : undefined
+          }
+        }
+      }
+    });
+
+    const user = await this.prismaService.getClient().user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: true,
+        preferences: true,
+        progress: true
+      }
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return user;
+  }
+
+  async isUsernameAvailable(username: string, currentUserId: string): Promise<boolean> {
+    const existingProfile = await this.prismaService.getClient().userProfile.findUnique({
+      where: { username },
+      select: { userId: true }
+    });
+
+    return !existingProfile || existingProfile.userId === currentUserId;
+  }
+
   private createUsername(email: string, firebaseUid: string): string {
     const base = email.split("@")[0]?.toLowerCase().replace(/[^a-z0-9_]/g, "_") || "student";
     const suffix = firebaseUid.slice(0, 8).toLowerCase().replace(/[^a-z0-9]/g, "");
