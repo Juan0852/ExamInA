@@ -117,7 +117,7 @@ function LogoModel() {
       return;
     }
 
-    groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.35) * 0.12;
+    groupRef.current.rotation.y = state.clock.elapsedTime * 0.14;
     groupRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.25) * 0.05;
   });
 
@@ -127,6 +127,18 @@ function LogoModel() {
         <primitive object={platinumScene} />
       </Center>
     </group>
+  );
+}
+
+function SceneLights() {
+  return (
+    <>
+      <ambientLight intensity={0.58} />
+      <directionalLight position={[3, 4, 5]} intensity={2.05} color="#e0f2fe" />
+      <directionalLight position={[-4, 1, 3]} intensity={0.82} color="#7dd3fc" />
+      <pointLight position={[-3, -2, 4]} intensity={1.05} color="#0ea5e9" />
+      <pointLight position={[2.5, 0.5, 2]} intensity={0.45} color="#bfdbfe" />
+    </>
   );
 }
 
@@ -141,41 +153,67 @@ export function LogoScene3D({
   showEffects = true,
   showModel = true
 }: LogoScene3DProps) {
+  if (!showModel) {
+    return (
+      <div className={className}>
+        <Canvas
+          camera={{ position: [0, 0, 5], fov: 38 }}
+          dpr={[1, 1.75]}
+          gl={{ antialias: true, alpha: true }}
+        >
+          <SceneLights />
+          <Suspense fallback={null}>
+            {showEffects ? (
+              <>
+                <OpeningHalo />
+                <PlatinumParticles />
+              </>
+            ) : null}
+            <Environment preset="city" />
+          </Suspense>
+        </Canvas>
+      </div>
+    );
+  }
+
   return (
     <div className={className}>
+      {showEffects ? (
+        <div className="pointer-events-none absolute -inset-x-28 -inset-y-20 z-0 sm:-inset-x-40 sm:-inset-y-28 lg:-inset-x-56 lg:-inset-y-36">
+          <Canvas
+            camera={{ position: [0, 0, 5], fov: 38 }}
+            dpr={[1, 1.75]}
+            gl={{ antialias: true, alpha: true }}
+          >
+            <SceneLights />
+            <Suspense fallback={null}>
+              <OpeningHalo />
+              <PlatinumParticles />
+              <Environment preset="city" />
+            </Suspense>
+          </Canvas>
+        </div>
+      ) : null}
       <Canvas
+        className="relative z-10"
         camera={{ position: [0, 0, 5], fov: 38 }}
         dpr={[1, 1.75]}
         gl={{ antialias: true, alpha: true }}
       >
-        <ambientLight intensity={0.58} />
-        <directionalLight position={[3, 4, 5]} intensity={2.05} color="#e0f2fe" />
-        <directionalLight position={[-4, 1, 3]} intensity={0.82} color="#7dd3fc" />
-        <pointLight position={[-3, -2, 4]} intensity={1.05} color="#0ea5e9" />
-        <pointLight position={[2.5, 0.5, 2]} intensity={0.45} color="#bfdbfe" />
+        <SceneLights />
         <Suspense fallback={null}>
-          {showEffects ? (
-            <>
-              <OpeningHalo />
-              <PlatinumParticles />
-            </>
-          ) : null}
-          {showModel ? (
-            <>
-              <Bounds fit clip observe margin={1.2}>
-                <LogoModel />
-              </Bounds>
-              <OrbitControls
-                enableDamping
-                enablePan={false}
-                enableZoom={false}
-                rotateSpeed={0.6}
-                dampingFactor={0.08}
-                minPolarAngle={Math.PI / 2.8}
-                maxPolarAngle={Math.PI / 1.8}
-              />
-            </>
-          ) : null}
+          <Bounds fit clip observe margin={1.2}>
+            <LogoModel />
+          </Bounds>
+          <OrbitControls
+            enableDamping
+            enablePan={false}
+            enableZoom={false}
+            rotateSpeed={0.6}
+            dampingFactor={0.08}
+            minPolarAngle={Math.PI / 2.8}
+            maxPolarAngle={Math.PI / 1.8}
+          />
           <Environment preset="city" />
         </Suspense>
       </Canvas>

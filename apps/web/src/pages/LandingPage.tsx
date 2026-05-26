@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { Link } from "react-router-dom";
+import { lazy, Suspense, useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Award,
   Brain,
@@ -16,6 +16,7 @@ import {
   UploadCloud,
   Users
 } from "lucide-react";
+import { LoginModal } from "../shared/components/LoginModal";
 
 const LogoScene3D = lazy(() =>
   import("../shared/components/LogoScene3D").then((module) => ({
@@ -28,6 +29,20 @@ const LogoScene3D = lazy(() =>
  * Diseñada con colores de marca profundos y efectos visuales de alta gama.
  */
 export function LandingPage() {
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("login") === "true") {
+      setIsLoginOpen(true);
+    }
+  }, [searchParams]);
+
+  const handleCloseLogin = () => {
+    setIsLoginOpen(false);
+    setSearchParams({});
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#07111F] text-slate-800 dark:text-slate-200 transition-colors duration-200">
       
@@ -38,16 +53,16 @@ export function LandingPage() {
             <img
               src="/brand/examina-logo-transparent-cropped.png"
               alt="ExamInA"
-              className="h-24 w-auto sm:h-28"
+              className="h-16 w-auto sm:h-28"
             />
           </div>
           <div>
-            <Link
-              to="/login"
-              className="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-brand-navy/50 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-slate-700 dark:text-slate-300"
+            <button
+              onClick={() => setIsLoginOpen(true)}
+              className="inline-flex min-w-[116px] items-center justify-center text-center px-4 py-2 border border-slate-300 dark:border-brand-navy/50 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-slate-700 dark:text-slate-300 sm:min-w-0 cursor-pointer"
             >
               Iniciar sesión
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -63,9 +78,13 @@ export function LandingPage() {
 
           {/* Título Principal */}
           <h1 className="relative z-10 text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-brand-navy dark:text-white leading-[1.1] mb-6">
-            Estudia. Practica.<br />
+            <span className="hero-word-rotator mb-1">
+              <span>Estudia</span>
+              <span>Practica</span>
+              <span>Aprueba</span>
+            </span>
             <span className="bg-gradient-to-r from-brand-blue to-brand-cyan bg-clip-text text-transparent">
-              Aprueba con Inteligencia Artificial.
+              con Inteligencia Artificial.
             </span>
           </h1>
 
@@ -76,13 +95,13 @@ export function LandingPage() {
 
           {/* CTAs */}
           <div className="relative z-20 flex flex-col sm:flex-row justify-center items-center gap-4">
-            <Link
-              to="/login"
-              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 bg-brand-blue hover:bg-brand-blue/90 text-white font-bold rounded-xl shadow-lg shadow-brand-blue/20 transition-all hover:-translate-y-0.5"
+            <button
+              onClick={() => setIsLoginOpen(true)}
+              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 bg-brand-blue hover:bg-brand-blue/90 text-white font-bold rounded-xl shadow-lg shadow-brand-blue/20 transition-all hover:-translate-y-0.5 cursor-pointer"
             >
               <span>Comenzar a estudiar</span>
               <ChevronRight size={18} className="ml-1" />
-            </Link>
+            </button>
             <a
               href="#caracteristicas"
               className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-brand-navy/40 hover:bg-slate-50 dark:hover:bg-slate-750 font-semibold rounded-xl transition-all"
@@ -94,7 +113,7 @@ export function LandingPage() {
           <div className="relative z-10 mt-10 flex justify-center sm:mt-12">
             <Suspense fallback={<div className="h-[260px] w-full max-w-[430px] sm:h-[330px] lg:h-[390px]" />}>
               <LogoScene3D
-                className="relative h-[280px] w-full max-w-[520px] [mask-image:radial-gradient(circle_at_center,black_58%,transparent_86%)] sm:h-[360px] lg:h-[430px] lg:max-w-[620px]"
+                className="relative h-[280px] w-full max-w-[520px] sm:h-[360px] lg:h-[430px] lg:max-w-[620px]"
               />
             </Suspense>
           </div>
@@ -115,7 +134,7 @@ export function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Card 1 */}
-            <div className="bg-slate-50 dark:bg-brand-navy/10 border border-slate-200 dark:border-brand-navy/20 p-8 rounded-2xl hover:shadow-lg transition-all">
+            <div className="bg-slate-50 dark:bg-brand-navy/10 border border-slate-200 dark:border-brand-navy/20 p-8 rounded-2xl hover:shadow-lg transition-all flex flex-col items-center text-center">
               <div className="w-12 h-12 rounded-xl bg-brand-blue/10 text-brand-blue flex items-center justify-center mb-6">
                 <GraduationCap size={24} />
               </div>
@@ -128,7 +147,7 @@ export function LandingPage() {
             </div>
 
             {/* Card 2 */}
-            <div className="bg-slate-50 dark:bg-brand-navy/10 border border-slate-200 dark:border-brand-navy/20 p-8 rounded-2xl hover:shadow-lg transition-all">
+            <div className="bg-slate-50 dark:bg-brand-navy/10 border border-slate-200 dark:border-brand-navy/20 p-8 rounded-2xl hover:shadow-lg transition-all flex flex-col items-center text-center">
               <div className="w-12 h-12 rounded-xl bg-brand-cyan/10 text-brand-cyan flex items-center justify-center mb-6">
                 <Brain size={24} />
               </div>
@@ -141,7 +160,7 @@ export function LandingPage() {
             </div>
 
             {/* Card 3 */}
-            <div className="bg-slate-50 dark:bg-brand-navy/10 border border-slate-200 dark:border-brand-navy/20 p-8 rounded-2xl hover:shadow-lg transition-all">
+            <div className="bg-slate-50 dark:bg-brand-navy/10 border border-slate-200 dark:border-brand-navy/20 p-8 rounded-2xl hover:shadow-lg transition-all flex flex-col items-center text-center">
               <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-6">
                 <Award size={24} />
               </div>
@@ -154,7 +173,7 @@ export function LandingPage() {
             </div>
 
             {/* Card 4 */}
-            <div className="bg-slate-50 dark:bg-brand-navy/10 border border-slate-200 dark:border-brand-navy/20 p-8 rounded-2xl hover:shadow-lg transition-all">
+            <div className="bg-slate-50 dark:bg-brand-navy/10 border border-slate-200 dark:border-brand-navy/20 p-8 rounded-2xl hover:shadow-lg transition-all flex flex-col items-center text-center">
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-6">
                 <Users size={24} />
               </div>
@@ -235,7 +254,7 @@ export function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-slate-50 dark:bg-brand-navy/10 p-6">
+            <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-slate-50 dark:bg-brand-navy/10 p-6 flex flex-col items-center text-center">
               <div className="h-11 w-11 rounded-lg bg-brand-blue/10 text-brand-blue flex items-center justify-center mb-5">
                 <Brain size={22} />
               </div>
@@ -245,7 +264,7 @@ export function LandingPage() {
               </p>
             </div>
 
-            <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-slate-50 dark:bg-brand-navy/10 p-6">
+            <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-slate-50 dark:bg-brand-navy/10 p-6 flex flex-col items-center text-center">
               <div className="h-11 w-11 rounded-lg bg-brand-cyan/10 text-brand-cyan flex items-center justify-center mb-5">
                 <Target size={22} />
               </div>
@@ -255,7 +274,7 @@ export function LandingPage() {
               </p>
             </div>
 
-            <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-slate-50 dark:bg-brand-navy/10 p-6">
+            <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-slate-50 dark:bg-brand-navy/10 p-6 flex flex-col items-center text-center">
               <div className="h-11 w-11 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center mb-5">
                 <Route size={22} />
               </div>
@@ -288,7 +307,7 @@ export function LandingPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-white dark:bg-brand-navy/10 p-6">
+              <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-white dark:bg-brand-navy/10 p-6 flex flex-col items-center text-center">
                 <MessageCircle size={24} className="text-brand-blue mb-4" />
                 <h3 className="text-lg font-bold text-brand-navy dark:text-white mb-2">Posts y dudas</h3>
                 <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
@@ -296,7 +315,7 @@ export function LandingPage() {
                 </p>
               </div>
 
-              <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-white dark:bg-brand-navy/10 p-6">
+              <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-white dark:bg-brand-navy/10 p-6 flex flex-col items-center text-center">
                 <Users size={24} className="text-emerald-500 mb-4" />
                 <h3 className="text-lg font-bold text-brand-navy dark:text-white mb-2">Conecta con estudiantes</h3>
                 <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
@@ -304,7 +323,7 @@ export function LandingPage() {
                 </p>
               </div>
 
-              <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-white dark:bg-brand-navy/10 p-6">
+              <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-white dark:bg-brand-navy/10 p-6 flex flex-col items-center text-center">
                 <FileText size={24} className="text-amber-500 mb-4" />
                 <h3 className="text-lg font-bold text-brand-navy dark:text-white mb-2">Exámenes oficiales</h3>
                 <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
@@ -312,7 +331,7 @@ export function LandingPage() {
                 </p>
               </div>
 
-              <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-white dark:bg-brand-navy/10 p-6">
+              <div className="rounded-lg border border-slate-200 dark:border-brand-navy/20 bg-white dark:bg-brand-navy/10 p-6 flex flex-col items-center text-center">
                 <Share2 size={24} className="text-brand-cyan mb-4" />
                 <h3 className="text-lg font-bold text-brand-navy dark:text-white mb-2">Exámenes compartidos</h3>
                 <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
@@ -336,15 +355,18 @@ export function LandingPage() {
           <p className="max-w-2xl mx-auto text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-8">
             Organiza tus materias, continúa tests pendientes, sube soluciones, recibe correcciones y mide tu progreso con una experiencia diseñada para estudiar todos los días sin perder el rumbo.
           </p>
-          <Link
-            to="/login"
-            className="inline-flex items-center justify-center px-8 py-3.5 bg-brand-blue hover:bg-brand-blue/90 text-white font-bold rounded-lg shadow-lg shadow-brand-blue/20 transition-all hover:-translate-y-0.5"
+          <button
+            onClick={() => setIsLoginOpen(true)}
+            className="inline-flex items-center justify-center px-8 py-3.5 bg-brand-blue hover:bg-brand-blue/90 text-white font-bold rounded-lg shadow-lg shadow-brand-blue/20 transition-all hover:-translate-y-0.5 cursor-pointer"
           >
             <span>Entrar a ExamInA</span>
             <ChevronRight size={18} className="ml-1" />
-          </Link>
+          </button>
         </div>
       </section>
+
+      {/* Lightbox / Modal de Login */}
+      <LoginModal isOpen={isLoginOpen} onClose={handleCloseLogin} />
     </div>
   );
 }
