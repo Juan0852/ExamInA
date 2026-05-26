@@ -87,28 +87,42 @@ function OpeningHalo() {
 }
 
 function LogoModel() {
-  const model = useGLTF("/models/examina-logo-3d.glb");
+  const model = useGLTF("/models/base_basic_shaded.glb");
   const groupRef = useRef<Group>(null);
-  const platinumScene = useMemo(() => {
+  
+  // Usar la escena original con sus colores reales del modelo GLB con un toque metálico pulido
+  const colorScene = useMemo(() => {
     const scene = model.scene.clone(true);
-    const platinumMaterial = new MeshPhysicalMaterial({
-      color: "#b8cde7",
-      metalness: 0.92,
-      roughness: 0.2,
-      clearcoat: 0.65,
-      clearcoatRoughness: 0.16,
-      reflectivity: 0.7,
-      envMapIntensity: 1.55
-    });
-
     scene.traverse((object) => {
       if (object instanceof Mesh) {
-        object.material = platinumMaterial;
         object.castShadow = true;
         object.receiveShadow = true;
+        
+        // Modificar ligeramente el material existente para darle brillo metálico sin perder color
+        if (object.material) {
+          const mat = object.material.clone();
+          
+          if ("metalness" in mat) {
+            // @ts-ignore
+            mat.metalness = 0.68;
+          }
+          if ("roughness" in mat) {
+            // @ts-ignore
+            mat.roughness = 0.22;
+          }
+          if ("clearcoat" in mat) {
+            // @ts-ignore
+            mat.clearcoat = 0.6;
+          }
+          if ("clearcoatRoughness" in mat) {
+            // @ts-ignore
+            mat.clearcoatRoughness = 0.15;
+          }
+          
+          object.material = mat;
+        }
       }
     });
-
     return scene;
   }, [model.scene]);
 
@@ -124,7 +138,7 @@ function LogoModel() {
   return (
     <group ref={groupRef}>
       <Center>
-        <primitive object={platinumScene} />
+        <primitive object={colorScene} />
       </Center>
     </group>
   );
@@ -221,4 +235,4 @@ export function LogoScene3D({
   );
 }
 
-useGLTF.preload("/models/examina-logo-3d.glb");
+useGLTF.preload("/models/base_basic_shaded.glb");
