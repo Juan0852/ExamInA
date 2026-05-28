@@ -29,4 +29,9 @@ export interface QuestionEntity {
     id: string;
     keyword: string;
   }[];
+  attempts?: {
+    id: string;
+    score: number | null;
+    status: string;
+  }[];
 }

@@ -4,9 +4,12 @@ import { join } from "node:path";
 import { AchievementsModule } from "./modules/achievements/achievements.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { CommunityModule } from "./modules/community/community.module";
+import { CorrectionsModule } from "./modules/corrections/corrections.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
+import { ExamSessionsModule } from "./modules/exam-sessions/exam-sessions.module";
 import { HealthModule } from "./modules/health/health.module";
 import { QuestionsModule } from "./modules/questions/questions.module";
+import { SharedExamsModule } from "./modules/shared-exams/shared-exams.module";
 import { SubjectsModule } from "./modules/subjects/subjects.module";
 import { TopicsModule } from "./modules/topics/topics.module";
 
@@ -19,9 +22,12 @@ import { TopicsModule } from "./modules/topics/topics.module";
     AuthModule,
     AchievementsModule,
     CommunityModule,
+    CorrectionsModule,
     DashboardModule,
+    ExamSessionsModule,
     HealthModule,
     QuestionsModule,
+    SharedExamsModule,
     SubjectsModule,
     TopicsModule
   ]

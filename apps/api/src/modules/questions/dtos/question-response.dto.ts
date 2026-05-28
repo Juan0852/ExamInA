@@ -26,4 +26,5 @@ export interface QuestionResponseDto {
     gradingCriteria: unknown;
   } | null;
   keywords?: string[];
+  isAnswered?: boolean;
 }

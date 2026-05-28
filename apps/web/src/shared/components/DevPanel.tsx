@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PlayCircle, Code2, X, ChevronDown, Trophy, Sparkles } from "lucide-react";
-import { useLoginViewModel } from "../../viewmodels/useLoginViewModel";
 import { apiService } from "../services/api.service";
 import { useAchievementToasts } from "../achievements/achievement-toast.store";
 import type { Achievement, AchievementCode, AchievementsResponse } from "../achievements/types";
@@ -102,7 +101,6 @@ export function DevPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedAchievementCode, setSelectedAchievementCode] = useState<AchievementCode>("PROFILE_80");
   const [isEvaluatingAchievements, setIsEvaluatingAchievements] = useState(false);
-  const { handleMockLogin, isLoading } = useLoginViewModel();
   const pushAchievementToasts = useAchievementToasts();
 
   if (!DEV_PANEL_ENABLED) return null;
@@ -125,34 +123,17 @@ export function DevPanel() {
             </button>
           </div>
 
-          {/* Mock Login */}
-          <button
-            type="button"
-            onClick={() => {
-              handleMockLogin();
-              setIsOpen(false);
-            }}
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-300/60 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all cursor-pointer disabled:opacity-50"
-          >
-            <PlayCircle size={14} />
-            Mock Login
-          </button>
-          
           <button
             type="button"
             onClick={() => {
               navigate("/onboarding");
               setIsOpen(false);
             }}
-            className="w-full mt-2 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-300/60 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-300/60 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all cursor-pointer"
           >
             <PlayCircle size={14} />
             Ir a Onboarding
           </button>
-          <p className="text-[9px] text-center text-slate-400 mt-1.5">
-            Sin requerir Firebase Auth
-          </p>
 
           <div className="my-4 h-px bg-amber-200/70 dark:bg-amber-500/20" />
 
@@ -194,7 +175,7 @@ export function DevPanel() {
               className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-300/60 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all cursor-pointer"
             >
               <Sparkles size={14} />
-              Lanzar toast mock
+              Lanzar toast debug
             </button>
 
             <button

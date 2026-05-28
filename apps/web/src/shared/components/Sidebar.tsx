@@ -82,7 +82,7 @@ export function Sidebar() {
       disabled: false,
     },
     {
-      label: "Asignaturas",
+      label: "Temario",
       path: "/subjects",
       icon: BookOpen,
       disabled: false,
@@ -94,11 +94,10 @@ export function Sidebar() {
       disabled: false,
     },
     {
-      label: "Simulacros",
-      path: "/mock-exams",
+      label: "Exámenes oficiales",
+      path: "/official-exams",
       icon: GraduationCap,
-      disabled: true,
-      badge: "Paso 9",
+      disabled: false,
     },
     {
       label: "Comunidad / Feed",
@@ -109,7 +108,7 @@ export function Sidebar() {
     },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   // Contenido interno del sidebar (se reutiliza para desktop y mobile drawer)
   const SidebarContent = () => (
@@ -174,7 +173,7 @@ export function Sidebar() {
         {/* Toggle de Tema */}
         <button
           onClick={toggleTheme}
-          className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-55 dark:hover:bg-slate-900/50 border border-slate-200/50 dark:border-brand-navy/20 transition-all cursor-pointer"
+          className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-100 dark:hover:bg-slate-900/50 border border-slate-200/50 dark:border-brand-navy/20 transition-all cursor-pointer"
         >
           <div className="flex items-center space-x-2.5">
             {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}

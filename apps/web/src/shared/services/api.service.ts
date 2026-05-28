@@ -12,7 +12,7 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
 
 /**
  * Wrapper genérico sobre fetch para centralizar llamadas HTTP, manejo de errores,
- * y la inyección transparente del Bearer Token de autenticación de Firebase/Mock.
+ * y la inyección transparente del Bearer Token de autenticación de Firebase.
  */
 async function httpRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const url = `${BASE_URL}${path}`;
@@ -47,12 +47,17 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
     let errorMessage = "Ocurrió un error inesperado.";
     try {
       const errorData = await response.json();
-      if (errorData?.error?.message) {
+      if (typeof errorData?.message === "string") {
+        errorMessage = errorData.message;
+      } else if (Array.isArray(errorData?.message)) {
+        errorMessage = errorData.message.join(", ");
+      } else if (errorData?.error?.message) {
         errorMessage = errorData.error.message;
+      } else if (typeof errorData?.error === "string") {
+        errorMessage = errorData.message || errorData.error;
       }
     } catch {
-      // Si la respuesta no es JSON válido, usamos el texto de estado
-      errorMessage = response.statusText;
+      errorMessage = response.statusText || "Error de red o servidor offline.";
     }
     
     // Si la sesión expiró (401), deslogueamos automáticamente

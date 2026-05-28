@@ -27,9 +27,9 @@ interface QuestionsApiResponse {
  * Controla el listado de temas y permite realizar filtros interactivos sobre el banco
  * de preguntas de la asignatura seleccionada (por ejemplo, al pinchar sobre un tema).
  */
-export function useTopicsQuestionsViewModel(subjectId: string | undefined) {
+export function useTopicsQuestionsViewModel(subjectId: string | undefined, initialTopicId: string | null = null) {
   // Estado local para el tema seleccionado para filtros
-  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(initialTopicId);
 
   // 1. Fetch de los temas de la asignatura
   const topicsQuery = useQuery<TopicsApiResponse, Error>({

@@ -31,18 +31,25 @@ const getSubjectIcon = (name: string): string => {
  * SubjectsPage: Vista de catálogo de asignaturas.
  * Consume useSubjectsViewModel enlazando datos a la interfaz.
  */
-export function SubjectsPage() {
+type SubjectsPageProps = {
+  mode?: "syllabus" | "official-exams";
+};
+
+export function SubjectsPage({ mode = "syllabus" }: SubjectsPageProps) {
   const { subjects, isLoading, error, handleRetry } = useSubjectsViewModel();
+  const isOfficialExamMode = mode === "official-exams";
 
   return (
     <div className="space-y-8">
       {/* Cabecera de Página */}
       <div className="text-left">
         <h1 className="text-3xl font-black text-brand-navy dark:text-white tracking-tight">
-          Asignaturas PAU / Selectividad
+          {isOfficialExamMode ? "Exámenes oficiales por asignatura" : "Temario PAU / Selectividad"}
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base font-medium mt-1">
-          Selecciona una asignatura para explorar sus temas y comenzar a practicar.
+          {isOfficialExamMode
+            ? "Selecciona una asignatura para ver los simulacros oficiales disponibles."
+            : "Selecciona una asignatura para explorar sus temas y comenzar a practicar."}
         </p>
       </div>
 
@@ -91,7 +98,7 @@ export function SubjectsPage() {
             return enabled ? (
               <Link
                 key={subject.id}
-                to={`/subjects/${subject.id}/topics`}
+                to={isOfficialExamMode ? `/official-exams/${subject.id}` : `/subjects/${subject.id}/topics`}
                 className="bg-white dark:bg-[#0E1B2F] border border-slate-200 dark:border-brand-navy/30 rounded-2xl p-6 hover:shadow-lg hover:border-brand-blue/35 transition-all flex flex-col justify-between group shadow-sm"
               >
                 <div className="space-y-4">
@@ -109,7 +116,7 @@ export function SubjectsPage() {
                 </div>
                 
                 <div className="flex items-center justify-end mt-8 text-brand-blue dark:text-brand-cyan text-sm font-bold group-hover:translate-x-1 transition-transform">
-                  <span>Explorar temas</span>
+                  <span>{isOfficialExamMode ? "Ver exámenes oficiales" : "Explorar temario"}</span>
                   <ChevronRight size={16} className="ml-1" />
                 </div>
               </Link>
@@ -127,7 +134,7 @@ export function SubjectsPage() {
                       Próximamente
                     </span>
                   </div>
-                  <h3 className="font-extrabold text-lg text-slate-400 dark:text-slate-550">
+                  <h3 className="font-extrabold text-lg text-slate-400 dark:text-slate-500">
                     {subject.name}
                   </h3>
                   {subject.description && (

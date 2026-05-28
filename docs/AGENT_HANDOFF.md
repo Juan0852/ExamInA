@@ -252,6 +252,78 @@ El logo 3D solo va en web landing, no en mobile.
 
 ## Historial de handoff
 
+### 2026-05-29 - Codex
+
+Branch:
+
+`feature/exams-llm`
+
+Cambios realizados:
+
+- Se implemento el flujo real de correccion IA con provider LLM configurable (`LLM_PROVIDER`) y provider OpenAI-compatible para LM Studio/Gemma.
+- Se eliminaron providers mock de auth/correccion del flujo principal y el login web usa Firebase real via backend.
+- Se implementaron modulos backend Spring-style para `corrections`, `exam-sessions` y `shared-exams`.
+- Se agregaron examenes oficiales compartidos mediante `SharedExam` y `SharedExamQuestion`.
+- Se agrego seed oficial de Matematicas II: Limites y Continuidad con enunciados en LaTeX/KaTeX.
+- Se agrego listado de examenes oficiales filtrable por asignatura usando `/shared-exams?subjectId=...`.
+- Se separo la navegacion web entre `Temario` y `Examenes oficiales`; ambos flujos empiezan por pantalla de asignaturas.
+- Se agrego pagina de sesion de examen resumible con progreso, timer, evaluacion IA, historial de intentos y eliminacion de intentos.
+- Se agrego heartbeat de tiempo de estudio con `PATCH /exam-sessions/:examSessionId/activity`; el backend calcula delta contra `examSession.totalTimeSeconds` para evitar duplicar minutos.
+- El boton de evaluar ya no es el unico disparador de tiempo; el frontend sincroniza cada 15 segundos y tambien al cambiar pregunta, evaluar, salir, ocultar pestana y finalizar.
+- Se agrego KaTeX en web y `MathText` para renderizar formulas en enunciados y feedback.
+- Se agrego UI de adjuntos de respuesta: subir imagen, tomar foto, tablero tipo paint y boton de voz deshabilitado como proximo paso. Los adjuntos son previews locales todavia, no se suben a S3.
+- Se agrego informacion de creador con avatar en cards de examenes oficiales y temario (`CreatorBadge`).
+- Se agregaron metricas de dashboard para tiempo de estudio diario/total, lightboxes de racha/tiempo, historial de examenes y estados de intentos.
+- Se agrego sistema MVP de logros, medallas SVG y toasts.
+
+Endpoints importantes agregados o usados:
+
+- `GET /api/v1/shared-exams`
+- `GET /api/v1/shared-exams?subjectId=:subjectId`
+- `POST /api/v1/shared-exams/:sharedExamId/start`
+- `GET /api/v1/exam-sessions/me`
+- `GET /api/v1/exam-sessions/:examSessionId`
+- `POST /api/v1/exam-sessions`
+- `PATCH /api/v1/exam-sessions/:examSessionId/activity`
+- `PATCH /api/v1/exam-sessions/:examSessionId/finish`
+- `DELETE /api/v1/exam-sessions/:examSessionId`
+- `POST /api/v1/corrections/evaluate-written-answer`
+- `POST /api/v1/corrections/reset-attempts`
+
+Archivos y areas tocadas:
+
+- `apps/api/src/modules/corrections/`
+- `apps/api/src/modules/exam-sessions/`
+- `apps/api/src/modules/shared-exams/`
+- `apps/api/src/shared/providers/ai/`
+- `apps/api/src/seed-official-exams.ts`
+- `apps/web/src/pages/ExamSessionPage.tsx`
+- `apps/web/src/pages/OfficialExamsPage.tsx`
+- `apps/web/src/pages/TopicsPage.tsx`
+- `apps/web/src/pages/DashboardPage.tsx`
+- `apps/web/src/shared/components/AnswerAttachmentComposer.tsx`
+- `apps/web/src/shared/components/CreatorBadge.tsx`
+- `apps/web/src/shared/components/MathText.tsx`
+- `apps/web/src/viewmodels/useExamSessionViewModel.ts`
+- `apps/web/src/viewmodels/useOfficialExamsViewModel.ts`
+- `pnpm-lock.yaml`
+
+Validacion ejecutada:
+
+- `corepack pnpm --filter api typecheck`
+- `corepack pnpm --filter web typecheck`
+- `corepack pnpm --filter api build`
+- `corepack pnpm --filter web build`
+
+Pendientes:
+
+- Implementar subida real de archivos con S3 mediante presigned URLs.
+- Persistir adjuntos de respuesta en `FileAsset`/`AttemptAsset` y conectarlos a la correccion IA multimodal.
+- Activar envio de imagenes al provider LLM cuando el provider soporte vision.
+- Reemplazar los placeholders de reportar error por endpoint real usando `ContentReport`.
+- Evaluar si se necesita tabla de logs de tiempo por sesion (`exam_session_time_logs`) para auditoria fina; el MVP actual usa delta sobre `exam_sessions.totalTimeSeconds`.
+- Revisar documentacion de endpoints/entidades si se quiere dejar trazabilidad formal del bloque.
+
 ### 2026-05-25 - Antigravity
 
 Branch:

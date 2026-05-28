@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiService } from "../shared/services/api.service";
 
@@ -14,6 +14,7 @@ export interface Question {
   difficulty: "EASY" | "MEDIUM" | "HARD";
   sourceYear?: number | null;
   sourceExam?: string | null;
+  isAnswered?: boolean;
 }
 
 /**
@@ -26,10 +27,9 @@ interface QuestionApiResponse {
 }
 
 /**
- * Simulación local del resultado de corrección para el Paso 6.
- * Esto permite testear la UI de respuesta antes de construir el backend del Paso 7.
+ * Resultado de corrección devuelto por el backend.
  */
-export interface SimulatedCorrection {
+export interface CorrectionFeedback {
   score: number;
   isCorrect: boolean;
   summary: string;
@@ -37,6 +37,25 @@ export interface SimulatedCorrection {
   detectedErrors: string[];
   missingKeywords: string[];
   suggestions: string[];
+  recommendedTopics: string[];
+}
+
+interface EvaluateWrittenAnswerApiResponse {
+  data: {
+    attempt: {
+      id: string;
+      questionId: string;
+      examSessionId: string | null;
+      userAnswer: string;
+      score: number | null;
+      status: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+    correction: CorrectionFeedback;
+  };
+  meta: any;
+  error: any;
 }
 
 import { answerSchema } from "../shared/validation/schemas";
@@ -44,13 +63,14 @@ import { answerSchema } from "../shared/validation/schemas";
 /**
  * Hook de ViewModel para la pantalla de detalle y respuesta de pregunta (QuestionPage).
  * Controla la carga de la pregunta, almacena la respuesta redactada del estudiante
- * y simula el flujo de corrección interactiva.
+ * y envía la respuesta al backend para corrección con el provider LLM configurado.
  */
 export function useQuestionViewModel(questionId: string | undefined) {
   const [userAnswer, setUserAnswer] = useState("");
-  const [correction, setCorrection] = useState<SimulatedCorrection | null>(null);
+  const [correction, setCorrection] = useState<CorrectionFeedback | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
 
   // Obtener detalles de la pregunta mediante react-query
   const { data, isLoading, error, refetch } = useQuery<QuestionApiResponse, Error>({
@@ -62,9 +82,16 @@ export function useQuestionViewModel(questionId: string | undefined) {
     enabled: !!questionId,
   });
 
+  // Resetear el temporizador cuando la pregunta cargue
+  useEffect(() => {
+    if (data) {
+      setQuestionStartTime(Date.now());
+    }
+  }, [data]);
+
   /**
    * Procesa el envío de la respuesta escrita.
-   * Simula la llamada de corrección agregando un retraso y respondiendo un mock realista de IA.
+   * Crea un Attempt y una Correction persistida desde el backend.
    */
   const handleSubmitAnswer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,37 +108,31 @@ export function useQuestionViewModel(questionId: string | undefined) {
     setCorrection(null);
 
     try {
-      // Simulamos la latencia de procesamiento de la red y la IA
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (!questionId) {
+        throw new Error("ID de pregunta inválido.");
+      }
 
-      // Simulamos una corrección basada en la longitud de la respuesta
-      const isMath = data?.data?.statement.toLowerCase().includes("calcula") || false;
-      const score = Math.min(Math.floor(userAnswer.trim().length / 10) + 3, 10);
-      const isCorrect = score >= 5;
+      const timeSpentSeconds = Math.floor((Date.now() - questionStartTime) / 1000);
+
+      const response = await apiService.post<EvaluateWrittenAnswerApiResponse>(
+        "/corrections/evaluate-written-answer",
+        {
+          questionId,
+          userAnswer: userAnswer.trim(),
+          timeSpentSeconds
+        }
+      );
 
       setCorrection({
-        score,
-        isCorrect,
-        summary: isCorrect 
-          ? "Respuesta aprobada con corrección menor." 
-          : "La respuesta presenta errores conceptuales importantes.",
-        feedback: isMath
-          ? `Has obtenido un ${score}/10. Tu procedimiento de cálculo parece ir en la dirección correcta, pero asegúrate de comprobar los signos en la sustitución y simplificar la fracción final.`
-          : `Has obtenido un ${score}/10. Mencionas parte del concepto, pero necesitas profundizar en el vocabulario académico y estructurar mejor tu desarrollo teórico.`,
-        detectedErrors: isCorrect 
-          ? ["Cálculo del último término redondeado con imprecisión."] 
-          : ["Error de signos en la ecuación principal.", "Falta justificar el paso intermedio."],
-        missingKeywords: isMath 
-          ? ["Límite lateral", "Indeterminación"] 
-          : ["Genotipo", "Cariotipo", "Cromosoma homólogo"],
-        suggestions: [
-          "Revisa de nuevo la teoría asociada a este tema.",
-          "Realiza un ejercicio más simple para afianzar el procedimiento.",
-          "Presta especial atención a la formulación y la nomenclatura."
-        ],
+        ...response.data.correction,
+        detectedErrors: response.data.correction.detectedErrors ?? [],
+        missingKeywords: response.data.correction.missingKeywords ?? [],
+        suggestions: response.data.correction.suggestions ?? [],
+        recommendedTopics: response.data.correction.recommendedTopics ?? []
       });
+      setQuestionStartTime(Date.now());
     } catch (err: any) {
-      setSubmitError("No se pudo procesar la corrección. Inténtalo de nuevo.");
+      setSubmitError(err.message || "No se pudo procesar la corrección. Inténtalo de nuevo.");
     } finally {
       setIsSubmitting(false);
     }
@@ -133,6 +154,7 @@ export function useQuestionViewModel(questionId: string | undefined) {
     userAnswer,
     setUserAnswer,
     correction,
+    setCorrection,
     isSubmitting,
     submitError,
     handleSubmitAnswer,

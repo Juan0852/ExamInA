@@ -34,23 +34,26 @@ export class DashboardService {
     const windowTo = this.addDays(today, 2);
     const weekFrom = this.startOfWeek(today);
 
-    const [progress, streakActivities, weeklyActivities, recentExamSessions] = await Promise.all([
-      this.dashboardRepository.findProgressByUserId(user.id),
-      this.dashboardRepository.findStudyActivitiesByRange(user.id, this.addDays(today, -60), today),
-      this.dashboardRepository.findStudyActivitiesByRange(user.id, weekFrom, today),
-      this.dashboardRepository.findRecentExamSessions(user.id, 10)
-    ]);
+    const [progress, streakActivities, weeklyActivities, recentExamSessions, userCreatedAt] =
+      await Promise.all([
+        this.dashboardRepository.findProgressByUserId(user.id),
+        this.dashboardRepository.findStudyActivitiesByRange(user.id, this.addDays(today, -60), today),
+        this.dashboardRepository.findStudyActivitiesByRange(user.id, weekFrom, today),
+        this.dashboardRepository.findRecentExamSessions(user.id, 10),
+        this.dashboardRepository.findUserCreatedAt(user.id)
+      ]);
 
     const streakActivityMap = this.toActivityMap(streakActivities);
     const weeklyDaily = this.fillStudyTimeRange(weekFrom, today, weeklyActivities);
     const todayKey = this.toDateKey(today);
     const todayActivity = weeklyDaily.find((day) => day.date === todayKey);
+    const accountStartedAt = userCreatedAt ? this.startOfDay(userCreatedAt) : null;
 
     return {
       data: {
         streak: {
           currentCount: this.calculateCurrentStreak(today, streakActivityMap),
-          window: this.buildStreakWindow(windowFrom, windowTo, streakActivityMap, today)
+          window: this.buildStreakWindow(windowFrom, windowTo, streakActivityMap, today, accountStartedAt)
         },
         studyTime: {
           weekStudySeconds: weeklyDaily.reduce((total, day) => total + day.studySeconds, 0),
@@ -75,15 +78,19 @@ export class DashboardService {
     const newestMonth = cursorDate;
     const from = this.startOfMonth(oldestMonth);
     const to = this.endOfMonth(newestMonth);
-    const activities = await this.dashboardRepository.findStudyActivitiesByRange(user.id, from, to);
+    const [activities, userCreatedAt] = await Promise.all([
+      this.dashboardRepository.findStudyActivitiesByRange(user.id, from, to),
+      this.dashboardRepository.findUserCreatedAt(user.id)
+    ]);
     const activityMap = this.toActivityMap(activities);
+    const accountStartedAt = userCreatedAt ? this.startOfDay(userCreatedAt) : null;
     const months: DashboardStreakMonthEntity[] = [];
 
     for (let index = 0; index < query.limit; index += 1) {
       const monthDate = this.addMonths(newestMonth, -index);
       months.push({
         month: this.toMonthKey(monthDate),
-        days: this.buildMonthDays(monthDate, activityMap)
+        days: this.buildMonthDays(monthDate, activityMap, accountStartedAt)
       });
     }
 
@@ -113,6 +120,7 @@ export class DashboardService {
     const activities = await this.dashboardRepository.findStudyActivitiesByRange(user.id, from, to);
     const days = this.fillStudyTimeRange(from, to, activities);
     const totalStudySeconds = days.reduce((total, day) => total + day.studySeconds, 0);
+    const activeDaysCount = days.filter((d) => d.studySeconds > 0).length;
     const bestDay = days.reduce<DashboardStudyTimePointEntity | null>((best, day) => {
       if (!best || day.studySeconds > best.studySeconds) {
         return day;
@@ -124,7 +132,7 @@ export class DashboardService {
     return {
       data: {
         totalStudySeconds,
-        averageDailyStudySeconds: days.length > 0 ? Math.round(totalStudySeconds / days.length) : 0,
+        averageDailyStudySeconds: activeDaysCount > 0 ? Math.round(totalStudySeconds / activeDaysCount) : 0,
         bestDay,
         days
       },
@@ -157,12 +165,13 @@ export class DashboardService {
     from: Date,
     to: Date,
     activityMap: Map<string, DashboardStudyActivityRecord>,
-    today: Date
+    today: Date,
+    accountStartedAt: Date | null
   ): DashboardStreakDayEntity[] {
     const days: DashboardStreakDayEntity[] = [];
 
     for (let day = new Date(from); day <= to; day = this.addDays(day, 1)) {
-      days.push(this.toStreakDay(day, activityMap, today));
+      days.push(this.toStreakDay(day, activityMap, today, accountStartedAt));
     }
 
     return days;
@@ -170,7 +179,8 @@ export class DashboardService {
 
   private buildMonthDays(
     monthDate: Date,
-    activityMap: Map<string, DashboardStudyActivityRecord>
+    activityMap: Map<string, DashboardStudyActivityRecord>,
+    accountStartedAt: Date | null
   ): DashboardStreakDayEntity[] {
     const today = this.startOfDay(new Date());
     const from = this.startOfMonth(monthDate);
@@ -178,7 +188,7 @@ export class DashboardService {
     const days: DashboardStreakDayEntity[] = [];
 
     for (let day = new Date(from); day <= to; day = this.addDays(day, 1)) {
-      days.push(this.toStreakDay(day, activityMap, today));
+      days.push(this.toStreakDay(day, activityMap, today, accountStartedAt));
     }
 
     return days;
@@ -237,10 +247,19 @@ export class DashboardService {
   private toStreakDay(
     day: Date,
     activityMap: Map<string, DashboardStudyActivityRecord>,
-    today: Date
+    today: Date,
+    accountStartedAt: Date | null
   ): DashboardStreakDayEntity {
     const activity = activityMap.get(this.toDateKey(day));
     const studySeconds = activity?.studyTimeSeconds ?? 0;
+
+    if (accountStartedAt && day < accountStartedAt) {
+      return {
+        date: this.toDateKey(day),
+        status: "inactive",
+        studySeconds
+      };
+    }
 
     if (this.hasCompletedActivity(activity)) {
       return {

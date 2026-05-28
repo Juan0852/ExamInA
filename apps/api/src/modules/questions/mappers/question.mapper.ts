@@ -36,7 +36,8 @@ export class QuestionMapper {
             gradingCriteria: question.solution.gradingCriteria
           }
         : question.solution,
-      keywords: question.keywords?.map((keyword) => keyword.keyword)
+      keywords: question.keywords?.map((keyword) => keyword.keyword),
+      isAnswered: question.attempts ? question.attempts.length > 0 : false
     };
   }
 }
