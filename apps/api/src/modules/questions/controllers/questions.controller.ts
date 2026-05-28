@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Param, Query } from "@nestjs/common";
+import { Controller, Get, Inject, Param, Query, Headers } from "@nestjs/common";
 import { ZodValidationPipe } from "../../../shared/validation/zod-validation.pipe";
 import {
   findQuestionsQuerySchema,
@@ -11,8 +11,11 @@ export class QuestionsController {
   constructor(@Inject(QuestionsService) private readonly questionsService: QuestionsService) {}
 
   @Get()
-  findAll(@Query(new ZodValidationPipe(findQuestionsQuerySchema)) query: FindQuestionsQueryDto) {
-    return this.questionsService.findAll(query);
+  findAll(
+    @Headers("authorization") authorizationHeader: string | undefined,
+    @Query(new ZodValidationPipe(findQuestionsQuerySchema)) query: FindQuestionsQueryDto
+  ) {
+    return this.questionsService.findAll(authorizationHeader, query);
   }
 
   @Get(":id")

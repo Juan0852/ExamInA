@@ -1,108 +1,51 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
-import { Trophy, Flame, Clock, Brain, ArrowRight, CheckCircle2, XCircle, X, FileText, CalendarClock } from "lucide-react";
+import { useDashboardViewModel, DashboardStudyTimePoint } from "../viewmodels/useDashboardViewModel";
 
-const streakDays = [
-  { label: "Lun", relative: "-2", completed: true, isToday: false },
-  { label: "Mar", relative: "-1", completed: true, isToday: false },
-  { label: "Hoy", relative: "0", completed: true, isToday: true },
-  { label: "Jue", relative: "+1", completed: false, isToday: false },
-  { label: "Vie", relative: "+2", completed: false, isToday: false },
-];
-
-const monthNames = [
-  "Enero",
-  "Febrero",
-  "Marzo",
-  "Abril",
-  "Mayo",
-  "Junio",
-  "Julio",
-  "Agosto",
-  "Septiembre",
-  "Octubre",
-  "Noviembre",
-  "Diciembre",
-];
+import {
+  Trophy,
+  Flame,
+  Clock,
+  Brain,
+  ArrowRight,
+  CheckCircle2,
+  XCircle,
+  Minus,
+  X,
+  FileText,
+  CalendarClock,
+  Loader2,
+  AlertCircle
+} from "lucide-react";
 
 const weekDays = ["L", "M", "X", "J", "V", "S", "D"];
 
-const weeklyStudyTime = [
-  { label: "Lun", minutes: 20 },
-  { label: "Mar", minutes: 35 },
-  { label: "Mié", minutes: 45 },
-  { label: "Jue", minutes: 15 },
-  { label: "Vie", minutes: 60 },
-  { label: "Sáb", minutes: 25 },
-  { label: "Dom", minutes: 10 },
-];
-
-const maxStudyMinutes = Math.max(...weeklyStudyTime.map((day) => day.minutes));
-
-const recentExams = [
-  { id: "exam-1", title: "Matemáticas II - Derivadas PAU 2023", subject: "Matemáticas II", status: "En progreso", progress: 68, lastOpened: "Hoy", time: "42 min", href: "/subjects" },
-  { id: "exam-2", title: "Biología - Genética molecular", subject: "Biología", status: "Por continuar", progress: 35, lastOpened: "Ayer", time: "21 min", href: "/subjects" },
-  { id: "exam-3", title: "Matemáticas II - Integrales completas", subject: "Matemáticas II", status: "Terminado", progress: 100, lastOpened: "Hace 2 días", time: "58 min", href: "/subjects" },
-  { id: "exam-4", title: "Biología - Inmunología", subject: "Biología", status: "Sin corregir", progress: 82, lastOpened: "Hace 3 días", time: "47 min", href: "/subjects" },
-  { id: "exam-5", title: "Matemáticas II - Álgebra lineal", subject: "Matemáticas II", status: "En progreso", progress: 50, lastOpened: "Hace 4 días", time: "33 min", href: "/subjects" },
-  { id: "exam-6", title: "Biología - Metabolismo celular", subject: "Biología", status: "Por continuar", progress: 18, lastOpened: "Hace 5 días", time: "12 min", href: "/subjects" },
-  { id: "exam-7", title: "Matemáticas II - Probabilidad", subject: "Matemáticas II", status: "Terminado", progress: 100, lastOpened: "Hace 1 semana", time: "51 min", href: "/subjects" },
-  { id: "exam-8", title: "Biología - Evolución y biodiversidad", subject: "Biología", status: "En progreso", progress: 44, lastOpened: "Hace 1 semana", time: "29 min", href: "/subjects" },
-  { id: "exam-9", title: "Matemáticas II - Geometría", subject: "Matemáticas II", status: "Por continuar", progress: 22, lastOpened: "Hace 8 días", time: "16 min", href: "/subjects" },
-  { id: "exam-10", title: "Biología - Fisiología vegetal", subject: "Biología", status: "Terminado", progress: 100, lastOpened: "Hace 9 días", time: "46 min", href: "/subjects" },
-];
-
-function buildStreakMonth(today = new Date()) {
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay = new Date(year, month, 1);
-  const mondayBasedOffset = (firstDay.getDay() + 6) % 7;
-  const completedDays = new Set([1, 2, 3, 5, 6, 8, 9, 10, 12, 15, 16, 17, 18, 19, 20, 21, today.getDate()]);
-  const missedDays = new Set([4, 7, 11, 13, 14]);
-
-  return {
-    label: `${monthNames[month]} ${year}`,
-    days: [
-      ...Array.from({ length: mondayBasedOffset }, (_, index) => ({
-        key: `empty-${index}`,
-        day: null,
-        status: "empty" as const,
-        isToday: false,
-      })),
-      ...Array.from({ length: daysInMonth }, (_, index) => {
-        const day = index + 1;
-        const isFuture = day > today.getDate();
-        const isToday = day === today.getDate();
-        const status = isFuture
-          ? "future"
-          : completedDays.has(day)
-          ? "completed"
-          : missedDays.has(day)
-          ? "missed"
-          : "empty";
-
-        return {
-          key: `day-${day}`,
-          day,
-          isToday,
-          status,
-        };
-      }),
-    ],
-  };
-}
-
 /**
  * DashboardPage: Panel de control principal del estudiante autenticado.
- * Muestra métricas de estudio mockeadas y accesos rápidos al catálogo de asignaturas.
+ * Muestra métricas de estudio y simulacros consumidos de forma dinámica del backend.
  */
 export function DashboardPage() {
   const user = useAuthStore((state) => state.user);
   const [isStreakLightboxOpen, setIsStreakLightboxOpen] = useState(false);
   const [isStudyTimeLightboxOpen, setIsStudyTimeLightboxOpen] = useState(false);
-  const streakMonth = useMemo(() => buildStreakMonth(), []);
+  const [studyTimeMode, setStudyTimeMode] = useState<"total" | "average">("total");
+
+  const {
+    summary,
+    streakMonth,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    getMappedStreakDays,
+    formatSecondsToHours,
+    formatSecondsToMinutes,
+    formatSecondsSmart,
+    formatRelativeDate,
+    formatExamStatus,
+    formatMonthLabel
+  } = useDashboardViewModel();
 
   useEffect(() => {
     if (!isStreakLightboxOpen && !isStudyTimeLightboxOpen) {
@@ -120,7 +63,35 @@ export function DashboardPage() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isStreakLightboxOpen, isStudyTimeLightboxOpen]);
 
-  // Estadísticas mockeadas temporalmente hasta implementar el Paso 10
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-4">
+        <Loader2 size={44} className="animate-spin text-brand-blue dark:text-brand-cyan" />
+        <span className="text-sm font-black text-slate-450 uppercase tracking-widest">
+          Cargando tu progreso académico...
+        </span>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-md mx-auto my-16 bg-white dark:bg-[#0E1B2F] border border-red-200 dark:border-red-900/30 rounded-2xl p-6 text-center space-y-4 shadow-xl">
+        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-650 mx-auto">
+          <AlertCircle size={24} />
+        </div>
+        <h3 className="font-bold text-red-650 dark:text-red-400 text-base">Error al cargar estadísticas</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{error || "No se pudo conectar al servidor."}</p>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-brand-blue hover:bg-brand-blue/90 text-white rounded-xl text-xs font-black transition cursor-pointer"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-fade-in">
       
@@ -140,7 +111,9 @@ export function DashboardPage() {
           </div>
           <div>
             <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Nivel actual</div>
-            <div className="text-sm font-black text-slate-800 dark:text-slate-200">Nivel 4 (1,250 XP)</div>
+            <div className="text-sm font-black text-slate-800 dark:text-slate-200">
+              Nivel {summary?.progress.level ?? 1} ({summary?.progress.experience ?? 0} XP)
+            </div>
           </div>
         </div>
       </div>
@@ -158,8 +131,12 @@ export function DashboardPage() {
                 Racha de Estudio
               </span>
               <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-slate-800 dark:text-slate-150">5 días</span>
-                <span className="text-xs font-bold text-orange-500">activa</span>
+                <span className="text-2xl font-black text-slate-800 dark:text-slate-150">
+                  {summary?.streak.currentCount ?? 0} {summary?.streak.currentCount === 1 ? "día" : "días"}
+                </span>
+                <span className="text-xs font-bold text-orange-500">
+                  {(summary?.streak.currentCount ?? 0) > 0 ? "activa" : "inactiva"}
+                </span>
               </div>
             </div>
             <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-tr from-orange-400 to-red-500 text-white shadow-lg shadow-orange-500/20">
@@ -169,29 +146,32 @@ export function DashboardPage() {
 
           <div className="relative">
             <div className="absolute left-[10%] right-[10%] top-[22px] h-1 rounded-full bg-slate-100 dark:bg-slate-800" />
-            <div className="absolute left-[10%] right-1/2 top-[22px] h-1 rounded-full bg-gradient-to-r from-orange-400 to-brand-cyan" />
             <div className="relative grid grid-cols-5 gap-2">
-              {streakDays.map((day) => (
-                <div key={day.relative} className="flex flex-col items-center gap-2">
+              {getMappedStreakDays(summary?.streak.window).map((day) => (
+                <div key={day.date} className="flex flex-col items-center gap-2">
                   <div
                     className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 text-xs font-black transition-all ${
                       day.completed
                         ? "border-orange-400 bg-orange-50 text-orange-500 dark:bg-orange-950/20"
-                        : "border-slate-200 bg-white text-slate-300 dark:border-slate-700 dark:bg-[#0E1B2F] dark:text-slate-600"
+                        : day.status === "inactive"
+                        ? "border-slate-200 bg-slate-100 text-slate-300 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-600 opacity-50"
+                        : day.status === "missed"
+                        ? "border-red-400 bg-red-50 text-red-500 dark:bg-red-950/20"
+                        : "border-slate-200 bg-white text-slate-350 dark:border-slate-700 dark:bg-[#0E1B2F] dark:text-slate-650"
                     } ${
                       day.isToday
                         ? "ring-4 ring-brand-cyan/20 shadow-lg shadow-brand-cyan/10"
                         : ""
                     }`}
                   >
-                    {day.completed ? <CheckCircle2 size={18} /> : <XCircle size={17} />}
+                    {day.completed ? <CheckCircle2 size={18} /> : day.status === "inactive" ? <Minus size={17} /> : <XCircle size={17} />}
                   </div>
                   <div className="text-center">
                     <div className={`text-[11px] font-black ${day.isToday ? "text-brand-blue dark:text-brand-cyan" : "text-slate-500 dark:text-slate-400"}`}>
                       {day.label}
                     </div>
                     <div className="text-[10px] font-semibold text-slate-400">
-                      {day.completed ? "Hecho" : day.relative.startsWith("+") ? "Pend." : "Corte"}
+                      {day.completed ? "Hecho" : day.status === "inactive" ? "—" : day.status === "pending" ? "Pend." : "Corte"}
                     </div>
                   </div>
                 </div>
@@ -207,21 +187,42 @@ export function DashboardPage() {
         <button
           type="button"
           onClick={() => setIsStudyTimeLightboxOpen(true)}
-          className="text-left bg-white dark:bg-[#0E1B2F] border border-slate-200 dark:border-brand-navy/30 rounded-2xl p-6 flex items-center justify-between shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-500/10 focus:outline-none focus:ring-4 focus:ring-blue-400/15 cursor-pointer"
+          className="text-left bg-white dark:bg-[#0E1B2F] border border-slate-200 dark:border-brand-navy/30 rounded-2xl p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-500/10 focus:outline-none focus:ring-4 focus:ring-blue-400/15 cursor-pointer"
         >
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-slate-450 dark:text-slate-400">
-              Tiempo de Estudio
-            </span>
-            <div className="text-2xl font-black text-slate-800 dark:text-slate-150">
-              3.5 hrs
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <span className="text-xs font-semibold text-slate-450 dark:text-slate-400">
+                Tiempo de Estudio
+              </span>
+              <div className="mt-1 text-2xl font-black text-slate-800 dark:text-slate-150">
+                {formatSecondsSmart(summary?.studyTime.todayStudySeconds ?? 0)}
+              </div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Tiempo total del día.
+              </p>
             </div>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-              Tiempo acumulado esta semana.
-            </p>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-tr from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/20">
+              <Clock size={22} />
+            </div>
           </div>
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-tr from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/20">
-            <Clock size={22} />
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-slate-50 px-3 py-3 dark:bg-[#12243B]">
+              <div className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                Hoy
+              </div>
+              <div className="mt-1 text-sm font-black text-brand-navy dark:text-white">
+                {formatSecondsSmart(summary?.studyTime.todayStudySeconds ?? 0)}
+              </div>
+            </div>
+            <div className="rounded-xl bg-slate-50 px-3 py-3 dark:bg-[#12243B]">
+              <div className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                Total
+              </div>
+              <div className="mt-1 text-sm font-black text-brand-navy dark:text-white">
+                {formatSecondsSmart(summary?.progress.totalStudyTimeSeconds ?? 0)}
+              </div>
+            </div>
           </div>
         </button>
       </div>
@@ -247,59 +248,66 @@ export function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-          {recentExams.map((exam) => (
-            <Link
-              key={exam.id}
-              to={exam.href}
-              className="group rounded-xl border border-slate-200 bg-slate-50 p-4 transition-all hover:-translate-y-0.5 hover:border-brand-blue/35 hover:bg-white hover:shadow-md dark:border-brand-navy/30 dark:bg-[#12243B] dark:hover:bg-[#0E1B2F]"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-blue/10 text-brand-blue dark:text-brand-cyan">
-                  <FileText size={21} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-md px-2 py-0.5 text-[10px] font-black uppercase ${
-                      exam.status === "Terminado"
-                        ? "bg-green-500/10 text-green-500"
-                        : exam.status === "Sin corregir"
-                        ? "bg-amber-500/10 text-amber-500"
-                        : "bg-brand-blue/10 text-brand-blue dark:text-brand-cyan"
-                    }`}>
-                      {exam.status}
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-400">{exam.subject}</span>
+          {summary?.recentExams && summary.recentExams.length > 0 ? (
+            summary.recentExams.map((exam) => (
+              <Link
+                key={exam.id}
+                to={`/subjects`}
+                className="group rounded-xl border border-slate-200 bg-slate-50 p-4 transition-all hover:-translate-y-0.5 hover:border-brand-blue/35 hover:bg-white hover:shadow-md dark:border-brand-navy/30 dark:bg-[#12243B] dark:hover:bg-[#0E1B2F]"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-blue/10 text-brand-blue dark:text-brand-cyan">
+                    <FileText size={21} />
                   </div>
-                  <h3 className="mt-2 truncate text-sm font-black text-slate-800 transition-colors group-hover:text-brand-blue dark:text-slate-100 dark:group-hover:text-brand-cyan">
-                    {exam.title}
-                  </h3>
-                  <div className="mt-3 grid grid-cols-[1fr_auto_auto] items-center gap-3">
-                    <div className="h-2 overflow-hidden rounded-full bg-white dark:bg-slate-900">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-brand-blue to-brand-cyan"
-                        style={{ width: `${exam.progress}%` }}
-                      />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-md px-2 py-0.5 text-[10px] font-black uppercase ${
+                        exam.status === "COMPLETED"
+                          ? "bg-green-500/10 text-green-500"
+                          : exam.status === "ABANDONED"
+                          ? "bg-red-500/10 text-red-500"
+                          : "bg-brand-blue/10 text-brand-blue dark:text-brand-cyan"
+                      }`}>
+                        {formatExamStatus(exam.status)}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-450 dark:text-slate-400">{exam.subjectName || "General"}</span>
                     </div>
-                    <span className="text-[11px] font-black text-slate-500 dark:text-slate-300">{exam.progress}%</span>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400">
-                      <Clock size={12} />
-                      {exam.time}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-slate-400">
-                    <CalendarClock size={12} />
-                    Última vez: {exam.lastOpened}
+                    <h3 className="mt-2 truncate text-sm font-black text-slate-800 transition-colors group-hover:text-brand-blue dark:text-slate-100 dark:group-hover:text-brand-cyan">
+                      {exam.title}
+                    </h3>
+                    <div className="mt-3 grid grid-cols-[1fr_auto_auto] items-center gap-3">
+                      <div className="h-2 overflow-hidden rounded-full bg-white dark:bg-slate-900">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-brand-blue to-brand-cyan"
+                          style={{ width: `${exam.progressPercentage}%` }}
+                        />
+                      </div>
+                      <span className="text-[11px] font-black text-slate-500 dark:text-slate-350">{exam.progressPercentage}%</span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-450 dark:text-slate-450">
+                        <Clock size={12} />
+                        {formatSecondsToMinutes(exam.totalTimeSeconds)}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-slate-400">
+                      <CalendarClock size={12} />
+                      Última vez: {formatRelativeDate(exam.lastOpenedAt)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))
+          ) : (
+            <div className="col-span-1 xl:col-span-2 py-12 text-center text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-[#12243B]/30 rounded-xl border border-dashed border-slate-200 dark:border-brand-navy/15">
+              <FileText size={32} className="mx-auto mb-2 opacity-50 text-brand-blue dark:text-brand-cyan" />
+              <p className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-350">No hay exámenes recientes</p>
+              <p className="text-[11px] text-slate-450 mt-1 font-medium">Contesta exámenes en el catálogo de asignaturas para ver tu historial aquí.</p>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Enlaces de Acción Rápida */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Card de Flashcards / Práctica Libre */}
         <div className="bg-white dark:bg-[#0E1B2F] border border-slate-200 dark:border-brand-navy/30 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-sm md:col-span-2">
           <div className="space-y-4">
             <div className="w-12 h-12 rounded-xl bg-brand-cyan/10 text-brand-cyan flex items-center justify-center">
@@ -312,11 +320,10 @@ export function DashboardPage() {
               Pon a prueba tus conocimientos en un simulacro real contrarreloj. Los resultados históricos quedarán registrados en tu perfil para que repases tus errores.
             </p>
           </div>
-          <div className="mt-8 text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-brand-navy/20 inline-block px-3 py-1.5 rounded-lg border border-slate-100 dark:border-brand-navy/40">
+          <div className="mt-8 text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-brand-navy/20 inline-block px-3 py-1.5 rounded-lg border border-slate-100 dark:border-brand-navy/40 w-fit">
             Próximamente (Paso 9)
           </div>
         </div>
-
       </div>
 
       {isStreakLightboxOpen && (
@@ -347,7 +354,7 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setIsStreakLightboxOpen(false)}
-                className="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 dark:border-brand-navy/30 dark:text-slate-400 dark:hover:bg-slate-900/40 dark:hover:text-white"
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 dark:border-brand-navy/30 dark:text-slate-400 dark:hover:bg-slate-900/40 dark:hover:text-white cursor-pointer"
                 aria-label="Cerrar vista mensual de racha"
               >
                 <X size={18} />
@@ -357,7 +364,7 @@ export function DashboardPage() {
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-brand-navy/30 dark:bg-[#07111F]">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <h3 className="text-sm font-black uppercase tracking-wide text-slate-700 dark:text-slate-200">
-                  {streakMonth.label}
+                  {formatMonthLabel(streakMonth?.month)}
                 </h3>
                 <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500 dark:text-slate-400">
                   <span className="inline-flex items-center gap-1">
@@ -369,7 +376,11 @@ export function DashboardPage() {
                     Corte
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-slate-200 dark:bg-slate-700" />
+                    Inactivo
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="h-2.5 w-2.5 rounded-full bg-slate-350" />
                     Pend.
                   </span>
                 </div>
@@ -381,22 +392,39 @@ export function DashboardPage() {
                     {day}
                   </div>
                 ))}
-                {streakMonth.days.map((day) => (
-                  <div
-                    key={day.key}
-                    className={`flex aspect-square items-center justify-center rounded-xl border text-sm font-black transition ${
-                      day.status === "completed"
-                        ? "border-orange-300 bg-orange-50 text-orange-500 dark:bg-orange-950/20"
-                        : day.status === "missed"
-                        ? "border-red-200 bg-red-50 text-red-500 dark:border-red-950/40 dark:bg-red-950/20"
-                        : day.status === "future"
-                        ? "border-slate-200 bg-white text-slate-300 dark:border-slate-800 dark:bg-[#0E1B2F] dark:text-slate-600"
-                        : "border-transparent bg-transparent text-transparent"
-                    } ${day.isToday ? "ring-4 ring-brand-cyan/20" : ""}`}
-                  >
-                    {day.day}
-                  </div>
-                ))}
+                {(() => {
+                  if (!streakMonth || streakMonth.days.length === 0) return null;
+                  const firstDayDate = new Date(streakMonth.days[0].date + "T00:00:00");
+                  const dayOfWeek = firstDayDate.getDay();
+                  const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                  
+                  return Array.from({ length: offset }).map((_, idx) => (
+                    <div key={`empty-${idx}`} className="border-transparent bg-transparent text-transparent" />
+                  ));
+                })()}
+                {streakMonth?.days.map((day) => {
+                  const dateObj = new Date(day.date + "T00:00:00");
+                  const isToday = day.date === new Date().toISOString().split("T")[0];
+                  
+                  return (
+                    <div
+                      key={day.date}
+                      className={`flex aspect-square items-center justify-center rounded-xl border text-sm font-black transition ${
+                        day.status === "completed"
+                          ? "border-orange-300 bg-orange-50 text-orange-500 dark:bg-orange-950/20"
+                          : day.status === "inactive"
+                          ? "border-slate-200 bg-slate-100 text-slate-300 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-600 opacity-50"
+                          : day.status === "missed"
+                          ? "border-red-200 bg-red-50 text-red-500 dark:border-red-950/40 dark:bg-red-950/20"
+                          : day.status === "pending"
+                          ? "border-slate-200 bg-white text-slate-350 dark:border-slate-800 dark:bg-[#0E1B2F] dark:text-slate-650"
+                          : "border-slate-200 bg-white text-slate-200 dark:border-slate-800 dark:bg-[#0E1B2F]/20 dark:text-slate-700"
+                      } ${isToday ? "ring-4 ring-brand-cyan/20" : ""}`}
+                    >
+                      {dateObj.getDate()}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -431,58 +459,134 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setIsStudyTimeLightboxOpen(false)}
-                className="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 dark:border-brand-navy/30 dark:text-slate-400 dark:hover:bg-slate-900/40 dark:hover:text-white"
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 dark:border-brand-navy/30 dark:text-slate-400 dark:hover:bg-slate-900/40 dark:hover:text-white cursor-pointer"
                 aria-label="Cerrar gráfica de tiempo de estudio"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-brand-navy/30 dark:bg-[#07111F]">
-                <span className="text-xs font-bold text-slate-400">Total semanal</span>
-                <div className="mt-1 text-2xl font-black text-brand-navy dark:text-white">3.5 hrs</div>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-brand-navy/30 dark:bg-[#07111F]">
-                <span className="text-xs font-bold text-slate-400">Mejor día</span>
-                <div className="mt-1 text-2xl font-black text-brand-navy dark:text-white">Vie</div>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-brand-navy/30 dark:bg-[#07111F]">
-                <span className="text-xs font-bold text-slate-400">Promedio</span>
-                <div className="mt-1 text-2xl font-black text-brand-navy dark:text-white">30 min</div>
-              </div>
-            </div>
+            {(() => {
+              const dailyPoints = summary?.studyTime.daily || [];
+              const todaySecs = summary?.studyTime.todayStudySeconds ?? 0;
+              const totalSecs = summary?.studyTime.weekStudySeconds ?? 0;
+              const lifetimeSecs = summary?.progress.totalStudyTimeSeconds ?? 0;
+              const activeDays = dailyPoints.filter((d) => d.studySeconds > 0).length;
+              const avgWeekSecs = dailyPoints.length > 0 ? Math.round(totalSecs / dailyPoints.length) : 0;
+              const avgActiveSecs = activeDays > 0 ? Math.round(totalSecs / activeDays) : 0;
+              
+              const bestPoint = dailyPoints.reduce<DashboardStudyTimePoint | null>((best, point) => {
+                if (!best || point.studySeconds > best.studySeconds) return point;
+                return best;
+              }, null);
+              
+              const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+              const bestDayLabel = bestPoint && bestPoint.studySeconds > 0 
+                ? dayNames[new Date(bestPoint.date + "T00:00:00").getDay()] 
+                : "Ninguno";
+                
+              const maxMinutes = Math.max(1, ...dailyPoints.map(d => Math.round(d.studySeconds / 60)));
+              const avgWeekMinutes = Math.round(avgWeekSecs / 60);
+              const modeIsTotal = studyTimeMode === "total";
 
-            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-brand-navy/30 dark:bg-[#07111F]">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h3 className="text-sm font-black uppercase tracking-wide text-slate-700 dark:text-slate-200">
-                  Minutos por día
-                </h3>
-                <span className="text-[11px] font-bold text-slate-400">Semana actual</span>
-              </div>
+              return (
+                <>
+                  <div className="mb-5 flex rounded-2xl border border-slate-200 bg-slate-50 p-1 dark:border-brand-navy/30 dark:bg-[#07111F]">
+                    {[
+                      { id: "total", label: "Total" },
+                      { id: "average", label: "Promedio" }
+                    ].map((mode) => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => setStudyTimeMode(mode.id as "total" | "average")}
+                        className={`h-10 flex-1 rounded-xl text-xs font-black transition cursor-pointer ${
+                          studyTimeMode === mode.id
+                            ? "bg-brand-blue text-white shadow-lg shadow-brand-blue/15 dark:bg-brand-cyan dark:text-brand-navy"
+                            : "text-slate-500 hover:bg-white dark:text-slate-400 dark:hover:bg-[#0E1B2F]"
+                        }`}
+                      >
+                        {mode.label}
+                      </button>
+                    ))}
+                  </div>
 
-              <div className="flex h-56 items-end gap-3 sm:gap-4">
-                {weeklyStudyTime.map((day) => {
-                  const height = Math.max(8, (day.minutes / maxStudyMinutes) * 100);
-
-                  return (
-                    <div key={day.label} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-                      <div className="flex h-44 w-full items-end rounded-xl bg-white px-1.5 py-2 dark:bg-[#0E1B2F]">
-                        <div
-                          className="w-full rounded-lg bg-gradient-to-t from-brand-blue to-brand-cyan shadow-lg shadow-brand-blue/10 transition-all"
-                          style={{ height: `${height}%` }}
-                          title={`${day.minutes} minutos`}
-                        />
-                      </div>
-                      <div className="text-center">
-                        <div className="text-[11px] font-black text-slate-600 dark:text-slate-300">{day.label}</div>
-                        <div className="text-[10px] font-bold text-slate-400">{day.minutes}m</div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-brand-navy/30 dark:bg-[#07111F]">
+                      <span className="text-xs font-bold text-slate-400">
+                        {modeIsTotal ? "Total de hoy" : "Promedio diario"}
+                      </span>
+                      <div className="mt-1 text-2xl font-black text-brand-navy dark:text-white">
+                        {modeIsTotal ? formatSecondsSmart(todaySecs) : formatSecondsSmart(avgWeekSecs)}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-brand-navy/30 dark:bg-[#07111F]">
+                      <span className="text-xs font-bold text-slate-400">
+                        {modeIsTotal ? "Total semanal" : "Promedio activo"}
+                      </span>
+                      <div className="mt-1 text-2xl font-black text-brand-navy dark:text-white">
+                        {modeIsTotal ? formatSecondsSmart(totalSecs) : formatSecondsSmart(avgActiveSecs)}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-brand-navy/30 dark:bg-[#07111F]">
+                      <span className="text-xs font-bold text-slate-400">
+                        {modeIsTotal ? "Total acumulado" : "Días con estudio"}
+                      </span>
+                      <div className="mt-1 text-2xl font-black text-brand-navy dark:text-white">
+                        {modeIsTotal ? formatSecondsSmart(lifetimeSecs) : `${activeDays}/${dailyPoints.length || 7}`}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-brand-navy/30 dark:bg-[#07111F]">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-black uppercase tracking-wide text-slate-700 dark:text-slate-200">
+                        {modeIsTotal ? "Minutos por día" : "Comparación contra promedio diario"}
+                      </h3>
+                      <span className="text-[11px] font-bold text-slate-400">
+                        {modeIsTotal ? "Semana actual" : `Promedio: ${avgWeekMinutes}m`}
+                      </span>
+                    </div>
+
+                    <div className="relative flex h-56 items-end gap-3 sm:gap-4">
+                      {!modeIsTotal && (
+                        <div
+                          className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-brand-cyan/60"
+                          style={{
+                            bottom: `${Math.max(18, (avgWeekMinutes / maxMinutes) * 176 + 34)}px`
+                          }}
+                        />
+                      )}
+                      {dailyPoints.map((day) => {
+                        const mins = Math.round(day.studySeconds / 60);
+                        const height = (mins / maxMinutes) * 100;
+                        const diff = mins - avgWeekMinutes;
+                        const dateObj = new Date(day.date + "T00:00:00");
+                        const label = dayNames[dateObj.getDay()];
+
+                        return (
+                          <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+                            <div className="flex h-44 w-full items-end rounded-xl bg-white px-1.5 py-2 dark:bg-[#0E1B2F]">
+                              <div
+                                className="w-full rounded-lg bg-gradient-to-t from-brand-blue to-brand-cyan shadow-lg shadow-brand-blue/10 transition-all"
+                                style={{ height: `${Math.max(5, height)}%` }}
+                                title={`${mins} minutos`}
+                              />
+                            </div>
+                            <div className="text-center">
+                              <div className="text-[11px] font-black text-slate-650 dark:text-slate-350">{label}</div>
+                              <div className="text-[10px] font-bold text-slate-450">
+                                {modeIsTotal ? `${mins}m` : diff === 0 ? "0m" : `${diff > 0 ? "+" : ""}${diff}m`}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

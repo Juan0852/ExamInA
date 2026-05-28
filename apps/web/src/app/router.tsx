@@ -9,6 +9,8 @@ import { TopicsPage } from "../pages/TopicsPage";
 import { QuestionPage } from "../pages/QuestionPage";
 import { OnboardingPage } from "../pages/OnboardingPage";
 import { ProfilePage } from "../pages/ProfilePage";
+import { ExamSessionPage } from "../pages/ExamSessionPage";
+import { OfficialExamsPage } from "../pages/OfficialExamsPage";
 import { DevPanel } from "../shared/components/DevPanel";
 
 /**
@@ -43,9 +45,12 @@ export function AppRouter() {
         {/* Rutas Privadas / Autenticadas (envueltas en el AppLayout) */}
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/subjects" element={<SubjectsPage />} />
+          <Route path="/subjects" element={<SubjectsPage mode="syllabus" />} />
           <Route path="/subjects/:subjectId/topics" element={<TopicsPage />} />
           <Route path="/questions/:questionId" element={<QuestionPage />} />
+          <Route path="/exam-sessions/:examSessionId" element={<ExamSessionPage />} />
+          <Route path="/official-exams" element={<SubjectsPage mode="official-exams" />} />
+          <Route path="/official-exams/:subjectId" element={<OfficialExamsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
 

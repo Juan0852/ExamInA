@@ -16,7 +16,7 @@ export function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-slate-55 dark:bg-[#07111F] text-slate-800 dark:text-slate-200 transition-colors duration-200">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-[#07111F] text-slate-800 dark:text-slate-200 transition-colors duration-200">
       {/* Sidebar Lateral responsivo */}
       <Sidebar />
 

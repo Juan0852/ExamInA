@@ -12,6 +12,7 @@
     "@react-three/fiber": "^9.6.1",
     "@tanstack/react-query": "^5.100.11",
     "firebase": "^12.13.0",
+    "katex": "^0.17.0",
     "lucide-react": "^1.16.0",
     "motion": "^12.40.0",
     "react": "^19.2.6",

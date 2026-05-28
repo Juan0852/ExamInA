@@ -43,4 +43,5 @@ export interface DashboardRepository {
     to: Date
   ): Promise<DashboardStudyActivityRecord[]>;
   findRecentExamSessions(userId: string, limit: number): Promise<DashboardExamSessionRecord[]>;
+  findUserCreatedAt(userId: string): Promise<Date | null>;
 }

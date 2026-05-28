@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { DatabaseModule } from "../../shared/database/database.module";
 import { FirebaseAuthProvider } from "../../shared/providers/auth/firebase-auth.provider";
-import { MockAuthProvider } from "../../shared/providers/auth/mock-auth.provider";
 import { AuthController } from "./controllers/auth.controller";
 import { PrismaAuthRepository } from "./repositories/prisma-auth.repository";
 import { AUTH_PROVIDER, AUTH_REPOSITORY, AuthService } from "./services/auth.service";
@@ -13,13 +12,7 @@ import { AUTH_PROVIDER, AUTH_REPOSITORY, AuthService } from "./services/auth.ser
     AuthService,
     {
       provide: AUTH_PROVIDER,
-      useFactory: () => {
-        if (process.env.AUTH_PROVIDER === "firebase") {
-          return new FirebaseAuthProvider();
-        }
-
-        return new MockAuthProvider();
-      }
+      useFactory: () => new FirebaseAuthProvider()
     },
     {
       provide: AUTH_REPOSITORY,

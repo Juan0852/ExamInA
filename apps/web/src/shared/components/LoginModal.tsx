@@ -9,7 +9,6 @@ interface LoginModalProps {
   onClose: () => void;
 }
 
-/** Icono SVG oficial de Google */
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="w-4 h-4 mr-2 flex-shrink-0" aria-hidden="true">
@@ -162,18 +161,16 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             </div>
           )}
 
-          {/* Botón Google */}
           <button
             type="button"
             disabled={isLoading}
-            onClick={view === "login" ? loginVm.handleMockLogin : registerVm.handleGoogleRegister}
+            onClick={view === "login" ? loginVm.handleGoogleLogin : registerVm.handleGoogleRegister}
             className="w-full flex justify-center items-center py-2.5 px-4 border border-slate-200 dark:border-brand-navy/30 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#12243B] hover:bg-slate-50 dark:hover:bg-[#1a2f4a] transition-all cursor-pointer mb-5 disabled:opacity-50 shadow-sm"
           >
             <GoogleIcon />
             {view === "login" ? "Continuar con Google" : "Registrarse con Google"}
           </button>
 
-          {/* Separador */}
           <div className="relative flex items-center mb-4">
             <div className="flex-grow border-t border-slate-200 dark:border-brand-navy/20" />
             <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">

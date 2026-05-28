@@ -79,4 +79,13 @@ export class PrismaDashboardRepository implements DashboardRepository {
       }
     });
   }
+
+  async findUserCreatedAt(userId: string): Promise<Date | null> {
+    const user = await this.prismaService.getClient().user.findUnique({
+      where: { id: userId },
+      select: { createdAt: true }
+    });
+
+    return user?.createdAt ?? null;
+  }
 }

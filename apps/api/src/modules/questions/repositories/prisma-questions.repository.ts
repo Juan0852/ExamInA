@@ -8,7 +8,7 @@ import type { QuestionsRepository } from "./questions.repository";
 export class PrismaQuestionsRepository implements QuestionsRepository {
   constructor(@Inject(PrismaService) private readonly prismaService: PrismaService) {}
 
-  async findAll(filters: FindQuestionsQueryDto): Promise<QuestionEntity[]> {
+  async findAll(filters: FindQuestionsQueryDto, userId?: string): Promise<QuestionEntity[]> {
     return this.prismaService.getClient().question.findMany({
       where: {
         subjectId: filters.subjectId,
@@ -34,9 +34,21 @@ export class PrismaQuestionsRepository implements QuestionsRepository {
         },
         keywords: {
           orderBy: { keyword: "asc" }
-        }
+        },
+        attempts: userId
+          ? {
+              where: { userId },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: {
+                id: true,
+                score: true,
+                status: true
+              }
+            }
+          : false
       }
-    });
+    }) as unknown as Promise<QuestionEntity[]>;
   }
 
   async findById(id: string): Promise<QuestionEntity | null> {

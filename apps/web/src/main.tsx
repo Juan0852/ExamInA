@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AppProviders } from "./app/providers";
 import { AppRouter } from "./app/router";
+import { AppErrorBoundary } from "./shared/components/AppErrorBoundary";
 import "./index.css";
 
 // Buscamos el nodo contenedor del DOM definido en index.html
@@ -14,8 +15,10 @@ if (!rootElement) {
 // Montamos la aplicación React envuelta en StrictMode para detectar fallas tempranas
 createRoot(rootElement).render(
   <StrictMode>
-    <AppProviders>
-      <AppRouter />
-    </AppProviders>
+    <AppErrorBoundary>
+      <AppProviders>
+        <AppRouter />
+      </AppProviders>
+    </AppErrorBoundary>
   </StrictMode>
 );
