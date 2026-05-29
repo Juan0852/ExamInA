@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { S3StorageProvider } from "../../../shared/providers/storage/s3-storage.provider";
+import { STORAGE_PROVIDER } from "../../../shared/providers/storage/storage-provider.constants";
+import type { StorageProvider } from "../../../shared/providers/storage/storage-provider.interface";
 import { AuthService } from "../../auth/services/auth.service";
 import type { ConfirmUploadRequestDto, FileAssetResponseDto, PresignUploadRequestDto, PresignUploadResponseDto } from "../dtos/file-upload.dto";
 import { FileAssetMapper } from "../mappers/file-asset.mapper";
@@ -9,7 +10,7 @@ import { FILES_REPOSITORY } from "./files.service.constants";
 @Injectable()
 export class FilesService {
   constructor(
-    private readonly storageProvider: S3StorageProvider,
+    @Inject(STORAGE_PROVIDER) private readonly storageProvider: StorageProvider,
     @Inject(FILES_REPOSITORY) private readonly filesRepository: FilesRepository,
     private readonly authService: AuthService
   ) {}
