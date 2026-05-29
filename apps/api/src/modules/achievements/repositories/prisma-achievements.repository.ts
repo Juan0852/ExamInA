@@ -79,7 +79,8 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
               username: true,
               bio: true,
               avatarFileId: true,
-              currentStreakDays: true
+              currentStreakDays: true,
+              longestStreakDays: true
             }
           }
         }
@@ -125,11 +126,83 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
     const hasAvatar = Boolean(user?.photoUrl || user?.profile?.avatarFileId);
     const profileCompletion = (hasName ? 40 : 0) + (hasBio ? 40 : 0) + (hasAvatar ? 20 : 0);
 
+    // Calculate current streak dynamically based on studyActivity
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const sixtyDaysAgo = new Date(today);
+    sixtyDaysAgo.setUTCDate(sixtyDaysAgo.getUTCDate() - 60);
+
+    const studyActivities = await prisma.studyActivity.findMany({
+      where: {
+        userId,
+        activityDate: {
+          gte: sixtyDaysAgo,
+          lte: today
+        }
+      },
+      select: {
+        activityDate: true,
+        studyTimeSeconds: true,
+        questionsAnswered: true,
+        examsCompleted: true
+      }
+    });
+
+    const activityMap = new Map<string, typeof studyActivities[0]>();
+    for (const activity of studyActivities) {
+      const key = activity.activityDate.toISOString().slice(0, 10);
+      activityMap.set(key, activity);
+    }
+
+    const hasCompletedActivity = (activity?: typeof studyActivities[0]): boolean => {
+      if (!activity) return false;
+      return (
+        activity.studyTimeSeconds >= 60 ||
+        activity.questionsAnswered > 0 ||
+        activity.examsCompleted > 0
+      );
+    };
+
+    let calculatedStreak = 0;
+    let cursor = new Date(today);
+    if (!hasCompletedActivity(activityMap.get(cursor.toISOString().slice(0, 10)))) {
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
+    }
+
+    for (let index = 0; index < 60; index += 1) {
+      const key = cursor.toISOString().slice(0, 10);
+      const activity = activityMap.get(key);
+
+      if (!hasCompletedActivity(activity)) {
+        break;
+      }
+
+      calculatedStreak += 1;
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
+    }
+
+    const currentLongest = user?.profile?.longestStreakDays ?? 0;
+    const calculatedLongest = Math.max(calculatedStreak, currentLongest);
+
+    if (
+      user?.profile &&
+      (user.profile.currentStreakDays !== calculatedStreak ||
+        user.profile.longestStreakDays !== calculatedLongest)
+    ) {
+      await prisma.userProfile.update({
+        where: { userId },
+        data: {
+          currentStreakDays: calculatedStreak,
+          longestStreakDays: calculatedLongest
+        }
+      });
+    }
+
     return {
       profileCompletion,
       completedExamSessions,
       createdSharedExams,
-      currentStreakDays: user?.profile?.currentStreakDays ?? 0,
+      currentStreakDays: calculatedStreak,
       attempts,
       examAnswers,
       communityPosts,
