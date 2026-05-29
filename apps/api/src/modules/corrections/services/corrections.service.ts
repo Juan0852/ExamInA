@@ -6,6 +6,7 @@ import type { EvaluateWrittenAnswerResponseDto } from "../dtos/correction-respon
 import type { ResetAttemptsRequestDto } from "../dtos/reset-attempts-request.dto";
 import { CorrectionMapper } from "../mappers/correction.mapper";
 import type { CorrectionsRepository } from "../repositories/corrections.repository";
+import { AchievementsService } from "../../achievements/services/achievements.service";
 
 import type { FilesRepository } from "../../files/repositories/files.repository";
 import { FILES_REPOSITORY } from "../../files/services/files.service.constants";
@@ -19,7 +20,8 @@ export class CorrectionsService {
     @Inject(AuthService) private readonly authService: AuthService,
     @Inject(CORRECTION_PROVIDER) private readonly correctionProvider: CorrectionProvider,
     @Inject(CORRECTIONS_REPOSITORY) private readonly correctionsRepository: CorrectionsRepository,
-    @Inject(FILES_REPOSITORY) private readonly filesRepository: FilesRepository
+    @Inject(FILES_REPOSITORY) private readonly filesRepository: FilesRepository,
+    @Inject(AchievementsService) private readonly achievementsService: AchievementsService
   ) {}
 
   async evaluateWrittenAnswer(
@@ -57,7 +59,15 @@ export class CorrectionsService {
       topicId: question.topicId
     });
 
-    return CorrectionMapper.toEvaluateWrittenAnswerResponse(attempt);
+    const newlyUnlockedAchievements = await this.achievementsService.evaluateForUser(user.id);
+
+    const response = CorrectionMapper.toEvaluateWrittenAnswerResponse(attempt);
+    return {
+      ...response,
+      meta: {
+        newlyUnlockedAchievements
+      }
+    };
   }
 
   private buildExpectedAnswer(finalAnswer?: string, explanation?: string): string {

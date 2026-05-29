@@ -5,6 +5,7 @@ import type { ExamSessionEnvelopeDto, ExamSessionResponseDto } from "../dtos/exa
 import type { SyncExamSessionActivityRequestDto } from "../dtos/sync-exam-session-activity-request.dto";
 import { ExamSessionMapper } from "../mappers/exam-session.mapper";
 import type { ExamSessionsRepository } from "../repositories/exam-sessions.repository";
+import { AchievementsService } from "../../achievements/services/achievements.service";
 
 export const EXAM_SESSIONS_REPOSITORY = Symbol("EXAM_SESSIONS_REPOSITORY");
 
@@ -13,7 +14,8 @@ export class ExamSessionsService {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
     @Inject(EXAM_SESSIONS_REPOSITORY)
-    private readonly examSessionsRepository: ExamSessionsRepository
+    private readonly examSessionsRepository: ExamSessionsRepository,
+    @Inject(AchievementsService) private readonly achievementsService: AchievementsService
   ) {}
 
   async findById(
@@ -74,7 +76,15 @@ export class ExamSessionsService {
       syncedActivity.totalTimeSeconds
     );
 
-    return ExamSessionMapper.toEnvelope(examSession);
+    const newlyUnlockedAchievements = await this.achievementsService.evaluateForUser(user.id);
+
+    const response = ExamSessionMapper.toEnvelope(examSession);
+    return {
+      ...response,
+      meta: {
+        newlyUnlockedAchievements
+      }
+    };
   }
 
   async syncActivity(

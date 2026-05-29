@@ -1,3 +1,5 @@
+import type { AchievementResponseDto } from "../../achievements/dtos/achievement-response.dto";
+
 export type CorrectionResponseDto = {
   id: string;
   attemptId: string;
@@ -26,6 +28,8 @@ export type EvaluateWrittenAnswerResponseDto = {
     };
     correction: CorrectionResponseDto;
   };
-  meta: {};
+  meta: {
+    newlyUnlockedAchievements?: AchievementResponseDto[];
+  };
   error: null;
 };

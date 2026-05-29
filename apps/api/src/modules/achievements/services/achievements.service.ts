@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
 import { AuthService } from "../../auth/services/auth.service";
 import type {
   AchievementEvaluationResponseDto,
+  AchievementResponseDto,
   AchievementsResponseDto
 } from "../dtos/achievement-response.dto";
 import type { AchievementCode } from "../entities/achievement.entity";
@@ -23,9 +24,27 @@ export class AchievementsService implements OnModuleInit {
     await this.achievementsRepository.syncCatalog(ACHIEVEMENT_CATALOG);
   }
 
-  async findMine(authorizationHeader?: string): Promise<AchievementsResponseDto> {
+  async evaluateForUser(userId: string): Promise<AchievementResponseDto[]> {
     await this.achievementsRepository.syncCatalog(ACHIEVEMENT_CATALOG);
+    const [existingCodes, stats] = await Promise.all([
+      this.achievementsRepository.findExistingUserAchievementCodes(userId),
+      this.achievementsRepository.findEvaluationStats(userId)
+    ]);
+    const existingCodeSet = new Set(existingCodes);
+    const eligibleCodes = this.getEligibleCodes(stats).filter((code) => !existingCodeSet.has(code));
+    const newlyUnlockedAchievements = await this.achievementsRepository.unlockAchievements(
+      userId,
+      eligibleCodes
+    );
+    return newlyUnlockedAchievements.map(AchievementMapper.toResponse);
+  }
+
+  async findMine(authorizationHeader?: string): Promise<AchievementsResponseDto> {
     const user = await this.authService.resolveAuthenticatedUser(authorizationHeader);
+    
+    // Evaluate achievements so stats are updated before retrieving them (e.g. visiting ProfilePage)
+    await this.evaluateForUser(user.id);
+
     const achievements = await this.achievementsRepository.findAllForUser(user.id);
 
     return {
@@ -38,24 +57,14 @@ export class AchievementsService implements OnModuleInit {
   }
 
   async evaluateMine(authorizationHeader?: string): Promise<AchievementEvaluationResponseDto> {
-    await this.achievementsRepository.syncCatalog(ACHIEVEMENT_CATALOG);
     const user = await this.authService.resolveAuthenticatedUser(authorizationHeader);
-    const [existingCodes, stats] = await Promise.all([
-      this.achievementsRepository.findExistingUserAchievementCodes(user.id),
-      this.achievementsRepository.findEvaluationStats(user.id)
-    ]);
-    const existingCodeSet = new Set(existingCodes);
-    const eligibleCodes = this.getEligibleCodes(stats).filter((code) => !existingCodeSet.has(code));
-    const newlyUnlockedAchievements = await this.achievementsRepository.unlockAchievements(
-      user.id,
-      eligibleCodes
-    );
+    const newlyUnlockedAchievements = await this.evaluateForUser(user.id);
     const achievements = await this.achievementsRepository.findAllForUser(user.id);
 
     return {
       data: achievements.map(AchievementMapper.toResponse),
       meta: {
-        newlyUnlockedAchievements: newlyUnlockedAchievements.map(AchievementMapper.toResponse)
+        newlyUnlockedAchievements
       },
       error: null
     };

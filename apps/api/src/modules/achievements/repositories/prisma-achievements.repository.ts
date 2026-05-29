@@ -191,7 +191,7 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
       }
 
       if (totalExperienceReward > 0) {
-        await transaction.userProgress.upsert({
+        const updatedProgress = await transaction.userProgress.upsert({
           where: { userId },
           update: {
             experience: {
@@ -201,6 +201,22 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
           create: {
             userId,
             experience: totalExperienceReward
+          },
+          select: {
+            experience: true
+          }
+        });
+
+        const newExperience = updatedProgress.experience;
+        let newLevel = 1;
+        while (50 * newLevel * (newLevel + 1) <= newExperience) {
+          newLevel++;
+        }
+
+        await transaction.userProgress.update({
+          where: { userId },
+          data: {
+            level: newLevel
           }
         });
 
@@ -209,7 +225,8 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
           data: {
             experience: {
               increment: totalExperienceReward
-            }
+            },
+            level: newLevel
           }
         });
       }

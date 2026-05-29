@@ -1,3 +1,5 @@
+import type { AchievementResponseDto } from "../../achievements/dtos/achievement-response.dto";
+
 export type ExamSessionResponseDto = {
   id: string;
   title: string;
@@ -33,6 +35,8 @@ export type ExamSessionResponseDto = {
 
 export type ExamSessionEnvelopeDto = {
   data: ExamSessionResponseDto;
-  meta: {};
+  meta: {
+    newlyUnlockedAchievements?: AchievementResponseDto[];
+  };
   error: null;
 };

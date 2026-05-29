@@ -1,4 +1,5 @@
 import { useAuthStore } from "../../stores/auth.store";
+import { useAchievementToastStore } from "../achievements/achievement-toast.store";
 
 // Base URL de la API obtenida desde variables de entorno de Vite o fallback de desarrollo
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
@@ -73,7 +74,14 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
     return {} as T;
   }
 
-  return response.json() as Promise<T>;
+  const result = await response.json();
+
+  // Interceptar respuesta para mostrar toasts de logros desbloqueados globalmente
+  if (result && typeof result === "object" && (result as any).meta && Array.isArray((result as any).meta.newlyUnlockedAchievements)) {
+    useAchievementToastStore.getState().pushAchievements((result as any).meta.newlyUnlockedAchievements);
+  }
+
+  return result as T;
 }
 
 /**
