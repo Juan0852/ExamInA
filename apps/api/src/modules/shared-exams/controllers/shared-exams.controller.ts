@@ -31,5 +31,13 @@ export class SharedExamsController {
   ) {
     return this.sharedExamsService.start(sharedExamId, authorizationHeader);
   }
+
+  @Post()
+  create(
+    @Body() body: any,
+    @Headers("authorization") authorizationHeader?: string
+  ) {
+    return this.sharedExamsService.create(body, authorizationHeader);
+  }
 }
 

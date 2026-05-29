@@ -19,7 +19,8 @@ import {
   UserCircle,
   ChevronLeft,
   ChevronRight,
-  Bell
+  Bell,
+  DraftingCompass
 } from "lucide-react";
 
 /**
@@ -106,6 +107,13 @@ export function Sidebar() {
       path: "/profile",
       icon: UserCircle,
       disabled: false,
+    },
+    {
+      label: "Modo Arquitecto",
+      path: "/architect",
+      icon: DraftingCompass,
+      disabled: true,
+      badge: "Próximamente",
     },
     {
       label: "Exámenes oficiales",

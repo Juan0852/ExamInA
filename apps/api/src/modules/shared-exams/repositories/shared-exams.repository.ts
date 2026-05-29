@@ -39,4 +39,22 @@ export interface SharedExamsRepository {
     sharedExam: SharedExamStartRecord;
     userId: string;
   }): Promise<{ examSessionId: string }>;
+  create(input: {
+    ownerId: string;
+    title: string;
+    description?: string;
+    visibility?: CommunityVisibility;
+    allowCloning?: boolean;
+    questions: {
+      questionId?: string;
+      customQuestion?: {
+        subjectId: string;
+        topicId: string;
+        statement: string;
+        difficulty: string;
+        finalAnswer: string;
+        explanation: string;
+      };
+    }[];
+  }): Promise<SharedExamSummaryRecord>;
 }

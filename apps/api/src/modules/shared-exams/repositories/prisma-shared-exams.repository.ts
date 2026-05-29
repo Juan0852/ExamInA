@@ -181,5 +181,147 @@ export class PrismaSharedExamsRepository implements SharedExamsRepository {
       }
     });
   }
+
+  async create(input: {
+    ownerId: string;
+    title: string;
+    description?: string;
+    visibility?: CommunityVisibility;
+    allowCloning?: boolean;
+    questions: {
+      questionId?: string;
+      customQuestion?: {
+        subjectId: string;
+        topicId: string;
+        statement: string;
+        difficulty: string;
+        finalAnswer: string;
+        explanation: string;
+      };
+    }[];
+  }): Promise<SharedExamSummaryRecord> {
+    const prisma = this.prismaService.getClient();
+
+    return prisma.$transaction(async (tx) => {
+      // 1. Create the SharedExam
+      const sharedExam = await tx.sharedExam.create({
+        data: {
+          ownerId: input.ownerId,
+          title: input.title,
+          description: input.description,
+          visibility: input.visibility ?? CommunityVisibility.PRIVATE,
+          status: input.visibility === CommunityVisibility.PUBLIC ? SharedExamStatus.PUBLISHED : SharedExamStatus.DRAFT,
+          allowCloning: input.allowCloning ?? true
+        }
+      });
+
+      // 2. Map and create questions / connections
+      for (let i = 0; i < input.questions.length; i++) {
+        const qInput = input.questions[i];
+        let qId = qInput.questionId;
+        let questionSnapshot: any = {};
+        let solutionSnapshot: any = {};
+
+        if (qId) {
+          // Fetch existing question to clone snapshot
+          const existingQ = await tx.question.findUnique({
+            where: { id: qId },
+            include: { solution: true }
+          });
+          if (!existingQ) {
+            throw new Error(`Question with ID ${qId} not found`);
+          }
+          questionSnapshot = {
+            statement: existingQ.statement,
+            type: existingQ.type,
+            difficulty: existingQ.difficulty,
+            sourceYear: existingQ.sourceYear,
+            sourceExam: existingQ.sourceExam
+          };
+          solutionSnapshot = existingQ.solution
+            ? {
+                finalAnswer: existingQ.solution.finalAnswer,
+                explanation: existingQ.solution.explanation
+              }
+            : null;
+        } else if (qInput.customQuestion) {
+          const custom = qInput.customQuestion;
+          // Create new question in database
+          const newQ = await tx.question.create({
+            data: {
+              subjectId: custom.subjectId,
+              topicId: custom.topicId,
+              statement: custom.statement,
+              difficulty: custom.difficulty as any,
+              type: "OPEN_ANSWER",
+              solution: {
+                create: {
+                  finalAnswer: custom.finalAnswer,
+                  explanation: custom.explanation,
+                  gradingCriteria: {
+                    maxScore: 10,
+                    criteria: [
+                      "Identifica correctamente la respuesta.",
+                      "Aplica el procedimiento adecuado.",
+                      "Justifica el resultado final con claridad."
+                    ]
+                  }
+                }
+              }
+            }
+          });
+          qId = newQ.id;
+          questionSnapshot = {
+            statement: custom.statement,
+            type: "OPEN_ANSWER",
+            difficulty: custom.difficulty,
+            sourceYear: new Date().getFullYear(),
+            sourceExam: "Examen Creado por Usuario"
+          };
+          solutionSnapshot = {
+            finalAnswer: custom.finalAnswer,
+            explanation: custom.explanation
+          };
+        } else {
+          throw new Error("Each question must have either questionId or customQuestion");
+        }
+
+        // Create SharedExamQuestion
+        await tx.sharedExamQuestion.create({
+          data: {
+            sharedExamId: sharedExam.id,
+            questionId: qId,
+            sortOrder: i + 1,
+            questionSnapshot,
+            solutionSnapshot
+          }
+        });
+      }
+
+      // 3. Return the full summary record
+      return tx.sharedExam.findUniqueOrThrow({
+        where: { id: sharedExam.id },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              displayName: true,
+              photoUrl: true,
+              profile: {
+                select: {
+                  username: true
+                }
+              }
+            }
+          },
+          _count: {
+            select: {
+              questions: true
+            }
+          }
+        }
+      });
+    });
+  }
 }
 

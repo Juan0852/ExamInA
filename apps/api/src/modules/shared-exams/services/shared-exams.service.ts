@@ -104,5 +104,61 @@ export class SharedExamsService {
       error: null
     };
   }
+
+  async create(
+    input: {
+      title: string;
+      description?: string;
+      visibility?: string;
+      allowCloning?: boolean;
+      questions: {
+        questionId?: string;
+        customQuestion?: {
+          subjectId: string;
+          topicId: string;
+          statement: string;
+          difficulty: string;
+          finalAnswer: string;
+          explanation: string;
+        };
+      }[];
+    },
+    authorizationHeader?: string
+  ): Promise<any> {
+    const user = await this.authService.resolveAuthenticatedUser(authorizationHeader);
+
+    let prismaVisibility: CommunityVisibility = CommunityVisibility.PRIVATE;
+    if (input.visibility) {
+      if (input.visibility !== "PUBLIC" && input.visibility !== "PRIVATE" && input.visibility !== "FRIENDS_ONLY") {
+        throw new BadRequestException("Valor de visibilidad inválido");
+      }
+      prismaVisibility = input.visibility as CommunityVisibility;
+    }
+
+    const created = await this.sharedExamsRepository.create({
+      ownerId: user.id,
+      title: input.title,
+      description: input.description,
+      visibility: prismaVisibility,
+      allowCloning: input.allowCloning,
+      questions: input.questions
+    });
+
+    if (prismaVisibility === CommunityVisibility.PUBLIC) {
+      await this.notificationsService.createNotification(
+        user.id,
+        "EXAM_CREATED",
+        "Examen compartido publicado",
+        `Tu examen "${created.title}" ya está disponible públicamente en la plataforma.`,
+        { sharedExamId: created.id }
+      );
+    }
+
+    return {
+      data: SharedExamMapper.toSummaryResponse(created),
+      meta: {},
+      error: null
+    };
+  }
 }
 

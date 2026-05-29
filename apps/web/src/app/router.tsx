@@ -11,6 +11,7 @@ import { OnboardingPage } from "../pages/OnboardingPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { ExamSessionPage } from "../pages/ExamSessionPage";
 import { OfficialExamsPage } from "../pages/OfficialExamsPage";
+import { ArchitectPage } from "../pages/ArchitectPage";
 import { DevPanel } from "../shared/components/DevPanel";
 
 /**
@@ -52,6 +53,7 @@ export function AppRouter() {
           <Route path="/official-exams" element={<SubjectsPage mode="official-exams" />} />
           <Route path="/official-exams/:subjectId" element={<OfficialExamsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/architect" element={<ArchitectPage />} />
         </Route>
 
         {/* Fallback para cualquier ruta inexistente */}
