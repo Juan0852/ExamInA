@@ -147,22 +147,12 @@ export function ProfilePage() {
           No se pudieron cargar tus medallas.
         </div>
       ) : (
-        <>
-          <AchievementSection
-            title="Medallas desbloqueadas"
-            description="Tus logros activos y la experiencia que ya sumaste."
-            achievements={unlockedAchievements}
-            emptyText="Todavía no has desbloqueado medallas. Completa tu perfil para conseguir la primera."
-          />
-
-          <AchievementSection
-            title="Próximas medallas"
-            description="Retos pendientes para seguir subiendo de nivel."
-            achievements={lockedAchievements}
-            locked
-            emptyText="Ya tienes todas las medallas del MVP."
-          />
-        </>
+        <AchievementSection
+          title="Tus Medallas"
+          description="Visualiza tu progreso, medallas desbloqueadas y retos pendientes."
+          achievements={achievements}
+          emptyText="No se encontraron medallas."
+        />
       )}
     </div>
   );
@@ -173,21 +163,19 @@ interface AchievementSectionProps {
   description: string;
   achievements: AchievementsResponse["data"];
   emptyText: string;
-  locked?: boolean;
 }
 
 function AchievementSection({
   title,
   description,
   achievements,
-  emptyText,
-  locked = false
+  emptyText
 }: AchievementSectionProps) {
   return (
     <section className="space-y-4">
       <div>
         <div className="flex items-center gap-2 text-brand-blue dark:text-brand-cyan">
-          {locked ? <CalendarDays size={18} /> : <Trophy size={18} />}
+          <Trophy size={18} />
           <h2 className="text-xl font-black text-brand-navy dark:text-white">{title}</h2>
         </div>
         <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">{description}</p>
@@ -200,37 +188,44 @@ function AchievementSection({
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {achievements.map((achievement) => (
-            <article
-              key={achievement.id}
-              className={`rounded-3xl border bg-white p-5 shadow-lg shadow-brand-blue/5 transition dark:bg-[#0E1B2F] ${
-                locked
-                  ? "border-slate-200 opacity-85 dark:border-brand-navy/25"
-                  : "border-brand-blue/15 hover:-translate-y-1 hover:shadow-brand-blue/15 dark:border-brand-cyan/20"
-              }`}
-            >
-              <div className="flex items-start gap-4">
-                <AchievementMedal code={achievement.code} locked={locked} size="lg" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <Medal size={15} className={locked ? "text-slate-400" : "text-brand-blue dark:text-brand-cyan"} />
-                    <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">
-                      {locked ? "Bloqueada" : "Desbloqueada"}
-                    </span>
-                  </div>
-                  <h3 className="mt-2 text-base font-black text-brand-navy dark:text-white">
-                    {achievement.title}
-                  </h3>
-                  <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
-                    {achievement.description}
-                  </p>
-                  <div className="mt-4 inline-flex rounded-full bg-brand-sky px-3 py-1 text-[11px] font-black text-brand-blue dark:bg-brand-blue/15 dark:text-brand-cyan">
-                    +{achievement.experienceReward} XP
+          {achievements.map((achievement) => {
+            const isLocked = !achievement.unlocked;
+            const isSecret = achievement.code.startsWith("SECRET_");
+            const displayTitle = isSecret && isLocked ? "🔒 Logro Secreto" : achievement.title;
+            const displayDescription = isSecret && isLocked ? "?? (Sigue estudiando para descubrir este secreto...)" : achievement.description;
+
+            return (
+              <article
+                key={achievement.id}
+                className={`rounded-3xl border bg-white p-5 shadow-lg shadow-brand-blue/5 transition dark:bg-[#0E1B2F] ${
+                  isLocked
+                    ? "border-slate-200 opacity-75 dark:border-brand-navy/25"
+                    : "border-brand-blue/15 hover:-translate-y-1 hover:shadow-brand-blue/15 dark:border-brand-cyan/20"
+                }`}
+              >
+                <div className="flex items-start gap-4">
+                  <AchievementMedal code={achievement.code} locked={isLocked} size="lg" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Medal size={15} className={isLocked ? "text-slate-400" : "text-brand-blue dark:text-brand-cyan"} />
+                      <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                        {isLocked ? "Bloqueada" : "Desbloqueada"}
+                      </span>
+                    </div>
+                    <h3 className="mt-2 text-base font-black text-brand-navy dark:text-white truncate">
+                      {displayTitle}
+                    </h3>
+                    <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400 min-h-[32px]">
+                      {displayDescription}
+                    </p>
+                    <div className="mt-4 inline-flex rounded-full bg-brand-sky px-3 py-1 text-[11px] font-black text-brand-blue dark:bg-brand-blue/15 dark:text-brand-cyan">
+                      +{achievement.experienceReward} XP
+                    </div>
                   </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

@@ -14,6 +14,14 @@ export type AchievementEvaluationStats = {
   examAnswers: number;
   communityPosts: number;
   acceptedFriendships: number;
+  
+  totalStudyTimeSeconds: number;
+  perfectExamsCount: number;
+  hasPerfectAnswer: boolean;
+  hasGreatAnswer: boolean;
+  hasMathPerfectAnswer: boolean;
+  hasNightOwl: boolean;
+  hasSundayStudy: boolean;
 };
 
 export interface AchievementsRepository {

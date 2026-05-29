@@ -66,11 +66,95 @@ const medalThemes: Record<AchievementCode, { from: string; via: string; to: stri
     via: "#06B6D4",
     to: "#2563EB",
     ring: "#99F6E4"
+  },
+  CONNECTION_10: {
+    from: "#10B981",
+    via: "#059669",
+    to: "#047857",
+    ring: "#A7F3D0"
+  },
+  EXAMS_10: {
+    from: "#FB923C",
+    via: "#F97316",
+    to: "#EA580C",
+    ring: "#FFEDD5"
+  },
+  EXAMS_50: {
+    from: "#94A3B8",
+    via: "#64748B",
+    to: "#475569",
+    ring: "#E2E8F0"
+  },
+  EXAMS_100: {
+    from: "#FBBF24",
+    via: "#F59E0B",
+    to: "#D97706",
+    ring: "#FEF3C7"
+  },
+  EXAMS_CREATED_10: {
+    from: "#EC4899",
+    via: "#DB2777",
+    to: "#9D174D",
+    ring: "#FCE7F3"
+  },
+  STUDY_1_HOUR: {
+    from: "#6EE7B7",
+    via: "#10B981",
+    to: "#047857",
+    ring: "#D1FAE5"
+  },
+  STUDY_10_HOURS: {
+    from: "#60A5FA",
+    via: "#3B82F6",
+    to: "#1D4ED8",
+    ring: "#DBEAFE"
+  },
+  STUDY_50_HOURS: {
+    from: "#C084FC",
+    via: "#A855F7",
+    to: "#7E22CE",
+    ring: "#F3E8FF"
+  },
+  PERFECT_EXAM: {
+    from: "#F472B6",
+    via: "#EC4899",
+    to: "#E11D48",
+    ring: "#FFE4E6"
+  },
+  PERFECT_ANSWER: {
+    from: "#34D399",
+    via: "#059669",
+    to: "#064E3B",
+    ring: "#D1FAE5"
+  },
+  GREAT_ANSWER: {
+    from: "#60A5FA",
+    via: "#2563EB",
+    to: "#1E40AF",
+    ring: "#DBEAFE"
+  },
+  SECRET_NIGHT_OWL: {
+    from: "#312E81",
+    via: "#1E1B4B",
+    to: "#0F172A",
+    ring: "#818CF8"
+  },
+  SECRET_SUNDAY_STUDY: {
+    from: "#FDBA74",
+    via: "#F97316",
+    to: "#C2410C",
+    ring: "#FEF3C7"
+  },
+  SECRET_PERFECTIONIST: {
+    from: "#F87171",
+    via: "#EF4444",
+    to: "#B91C1C",
+    ring: "#FEE2E2"
   }
 };
 
 export function AchievementMedal({ code, locked = false, size = "md" }: AchievementMedalProps) {
-  const theme = medalThemes[code];
+  const theme = medalThemes[code] || medalThemes.FIRST_ANSWER;
 
   return (
     <div
@@ -115,6 +199,34 @@ function MedalIllustration({ code }: { code: AchievementCode }) {
       return <CommunityPostMedalSvg />;
     case "FIRST_CONNECTION":
       return <ConnectionMedalSvg />;
+    case "CONNECTION_10":
+      return <Connection10MedalSvg />;
+    case "EXAMS_10":
+      return <Exams10MedalSvg />;
+    case "EXAMS_50":
+      return <Exams50MedalSvg />;
+    case "EXAMS_100":
+      return <Exams100MedalSvg />;
+    case "EXAMS_CREATED_10":
+      return <ExamsCreated10MedalSvg />;
+    case "STUDY_1_HOUR":
+      return <Study1HourMedalSvg />;
+    case "STUDY_10_HOURS":
+      return <Study10HoursMedalSvg />;
+    case "STUDY_50_HOURS":
+      return <Study50HoursMedalSvg />;
+    case "PERFECT_EXAM":
+      return <PerfectExamMedalSvg />;
+    case "PERFECT_ANSWER":
+      return <PerfectAnswerMedalSvg />;
+    case "GREAT_ANSWER":
+      return <GreatAnswerMedalSvg />;
+    case "SECRET_NIGHT_OWL":
+      return <SecretNightOwlMedalSvg />;
+    case "SECRET_SUNDAY_STUDY":
+      return <SecretSundayStudyMedalSvg />;
+    case "SECRET_PERFECTIONIST":
+      return <SecretPerfectionistMedalSvg />;
   }
 }
 
@@ -237,6 +349,165 @@ function ConnectionMedalSvg() {
       <circle cx="20" cy="32" r="4" fill="#06265F" opacity="0.55" />
       <circle cx="44" cy="32" r="4" fill="#06265F" opacity="0.55" />
       <Spark x={32} y={32} size={0.7} />
+    </SvgShell>
+  );
+}
+
+function Connection10MedalSvg() {
+  return (
+    <SvgShell>
+      <circle cx="32" cy="32" r="16" fill="#10B981" />
+      <circle cx="32" cy="18" r="6" fill="#FFFFFF" />
+      <circle cx="18" cy="38" r="6" fill="#FFFFFF" />
+      <circle cx="46" cy="38" r="6" fill="#FFFFFF" />
+      <path d="M32 18l-14 20M32 18l14 20M18 38h28" stroke="#FFFFFF" strokeWidth="2.5" />
+      <text x="32" y="36" textAnchor="middle" fontSize="12" fontWeight="950" fill="#06265F">10</text>
+    </SvgShell>
+  );
+}
+
+function Exams10MedalSvg() {
+  return (
+    <SvgShell>
+      <rect x="18" y="14" width="28" height="36" rx="4" fill="#FFFFFF" />
+      <path d="M24 24h16M24 30h16M24 36h10" stroke="#06265F" strokeWidth="2.5" strokeLinecap="round" opacity="0.45" />
+      <circle cx="32" cy="42" r="11" fill="#EA580C" />
+      <text x="32" y="47" textAnchor="middle" fontSize="12" fontWeight="950" fill="#FFFFFF">10</text>
+    </SvgShell>
+  );
+}
+
+function Exams50MedalSvg() {
+  return (
+    <SvgShell>
+      <rect x="18" y="14" width="28" height="36" rx="4" fill="#FFFFFF" />
+      <path d="M24 24h16M24 30h16M24 36h10" stroke="#06265F" strokeWidth="2.5" strokeLinecap="round" opacity="0.45" />
+      <circle cx="32" cy="42" r="11" fill="#475569" />
+      <text x="32" y="47" textAnchor="middle" fontSize="12" fontWeight="950" fill="#FFFFFF">50</text>
+    </SvgShell>
+  );
+}
+
+function Exams100MedalSvg() {
+  return (
+    <SvgShell>
+      <rect x="18" y="14" width="28" height="36" rx="4" fill="#FFFFFF" />
+      <path d="M24 24h16M24 30h16M24 36h10" stroke="#06265F" strokeWidth="2.5" strokeLinecap="round" opacity="0.45" />
+      <circle cx="32" cy="42" r="12" fill="#D97706" />
+      <text x="32" y="46" textAnchor="middle" fontSize="9" fontWeight="950" fill="#FFFFFF">100</text>
+    </SvgShell>
+  );
+}
+
+function ExamsCreated10MedalSvg() {
+  return (
+    <SvgShell>
+      <path d="M16 16h24l8 8v24H16z" fill="#FFFFFF" />
+      <path d="M22 28h20M22 34h12" stroke="#06265F" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
+      <circle cx="44" cy="44" r="10" fill="#EC4899" />
+      <path d="M41 44h6M44 41v6" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
+      <text x="32" y="22" textAnchor="middle" fontSize="8" fontWeight="950" fill="#06265F">10</text>
+    </SvgShell>
+  );
+}
+
+function Study1HourMedalSvg() {
+  return (
+    <SvgShell>
+      <circle cx="32" cy="32" r="18" fill="#FFFFFF" />
+      <path d="M32 18v14l8 4" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="32" y="47" textAnchor="middle" fontSize="12" fontWeight="950" fill="#06265F">1h</text>
+    </SvgShell>
+  );
+}
+
+// Fixed study 10 hours spelling in SVG name to match MedallIllustration
+function Study10HoursMedalSvg() {
+  return (
+    <SvgShell>
+      <circle cx="32" cy="32" r="18" fill="#FFFFFF" />
+      <path d="M32 18v14l8 4" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="32" y="47" textAnchor="middle" fontSize="11" fontWeight="950" fill="#06265F">10h</text>
+    </SvgShell>
+  );
+}
+
+function Study50HoursMedalSvg() {
+  return (
+    <SvgShell>
+      <circle cx="32" cy="32" r="18" fill="#FFFFFF" />
+      <path d="M32 18v14l8 4" stroke="#A855F7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="32" y="47" textAnchor="middle" fontSize="11" fontWeight="950" fill="#06265F">50h</text>
+    </SvgShell>
+  );
+}
+
+function PerfectExamMedalSvg() {
+  return (
+    <SvgShell>
+      <path d="M32 12l5 11 12 2-9 8 2 12-10-6-10 6 2-12-9-8 12-2z" fill="#FFFFFF" />
+      <circle cx="32" cy="31" r="7" fill="#E11D48" />
+      <text x="32" y="35" textAnchor="middle" fontSize="11" fontWeight="950" fill="#FFFFFF">10</text>
+    </SvgShell>
+  );
+}
+
+function PerfectAnswerMedalSvg() {
+  return (
+    <SvgShell>
+      <circle cx="32" cy="32" r="18" fill="#FFFFFF" />
+      <circle cx="32" cy="32" r="12" fill="#059669" />
+      <text x="32" y="36" textAnchor="middle" fontSize="12" fontWeight="950" fill="#FFFFFF">10</text>
+      <Spark x={18} y={18} size={0.5} />
+    </SvgShell>
+  );
+}
+
+// GreatAnswerMedalSvg matching switch block in MedallIllustration
+function GreatAnswerMedalSvg() {
+  return (
+    <SvgShell>
+      <path d="M32 14l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1z" fill="#FFFFFF" />
+      <text x="32" y="41" textAnchor="middle" fontSize="10" fontWeight="950" fill="#2563EB">7.5</text>
+    </SvgShell>
+  );
+}
+
+function SecretNightOwlMedalSvg() {
+  return (
+    <SvgShell>
+      <circle cx="32" cy="32" r="18" fill="#0F172A" />
+      <circle cx="24" cy="30" r="5" fill="#FFFFFF" />
+      <circle cx="40" cy="30" r="5" fill="#FFFFFF" />
+      <circle cx="24" cy="30" r="2.5" fill="#1D4ED8" />
+      <circle cx="40" cy="30" r="2.5" fill="#1D4ED8" />
+      <path d="M28 38s4 3 8 0" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M14 20a16 16 0 0 1 12-6" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+    </SvgShell>
+  );
+}
+
+function SecretSundayStudyMedalSvg() {
+  return (
+    <SvgShell>
+      <circle cx="32" cy="32" r="18" fill="#FFFBEB" />
+      <circle cx="32" cy="24" r="10" fill="#F97316" />
+      <rect x="20" y="36" width="24" height="12" rx="2" fill="#FFFFFF" stroke="#06265F" strokeWidth="2.5" />
+      <path d="M26 42h12" stroke="#06265F" strokeWidth="2" strokeLinecap="round" />
+      <Spark x={48} y={16} size={0.5} />
+    </SvgShell>
+  );
+}
+
+function SecretPerfectionistMedalSvg() {
+  return (
+    <SvgShell>
+      <circle cx="32" cy="32" r="18" fill="#FFFFFF" />
+      <circle cx="32" cy="32" r="14" fill="none" stroke="#EF4444" strokeWidth="2" />
+      <circle cx="32" cy="32" r="8" fill="none" stroke="#EF4444" strokeWidth="2.5" />
+      <circle cx="32" cy="32" r="3" fill="#EF4444" />
+      <path d="M20 44l8-8m10-10l6-6" stroke="#06265F" strokeWidth="2.5" strokeLinecap="round" />
+      <text x="32" y="27" textAnchor="middle" fontSize="7" fontWeight="950" fill="#06265F">MAT</text>
     </SvgShell>
   );
 }

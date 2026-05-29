@@ -198,6 +198,59 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
       });
     }
 
+    const userProgress = await prisma.userProgress.findUnique({
+      where: { userId },
+      select: { totalStudyTimeSeconds: true }
+    });
+
+    const perfectExamsCount = await prisma.examSession.count({
+      where: {
+        userId,
+        status: ExamSessionStatus.COMPLETED,
+        answers: {
+          some: {},
+          none: {
+            isCorrect: false
+          }
+        }
+      }
+    });
+
+    const userAttempts = await prisma.attempt.findMany({
+      where: { userId },
+      select: {
+        createdAt: true,
+        score: true,
+        question: {
+          select: {
+            subject: {
+              select: {
+                name: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const hasPerfectAnswer = userAttempts.some((att) => att.score !== null && att.score >= 10);
+    const hasGreatAnswer = userAttempts.some((att) => att.score !== null && att.score >= 7.5);
+    const hasMathPerfectAnswer = userAttempts.some(
+      (att) =>
+        att.score !== null &&
+        att.score >= 10 &&
+        att.question.subject.name
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .includes("matematica")
+    );
+    const hasNightOwl = userAttempts.some((att) => {
+      const hr = new Date(att.createdAt).getUTCHours();
+      return hr >= 0 && hr < 4;
+    });
+    const hasSundayStudy = userAttempts.some((att) => new Date(att.createdAt).getUTCDay() === 0);
+
     return {
       profileCompletion,
       completedExamSessions,
@@ -206,7 +259,14 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
       attempts,
       examAnswers,
       communityPosts,
-      acceptedFriendships: sentAcceptedFriendships + receivedAcceptedFriendships
+      acceptedFriendships: sentAcceptedFriendships + receivedAcceptedFriendships,
+      totalStudyTimeSeconds: userProgress?.totalStudyTimeSeconds ?? 0,
+      perfectExamsCount,
+      hasPerfectAnswer,
+      hasGreatAnswer,
+      hasMathPerfectAnswer,
+      hasNightOwl,
+      hasSundayStudy
     };
   }
 

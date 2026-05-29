@@ -105,6 +105,62 @@ export class AchievementsService implements OnModuleInit {
       eligibleCodes.push("FIRST_CONNECTION");
     }
 
+    if (stats.acceptedFriendships >= 10) {
+      eligibleCodes.push("CONNECTION_10");
+    }
+
+    if (stats.completedExamSessions >= 10) {
+      eligibleCodes.push("EXAMS_10");
+    }
+
+    if (stats.completedExamSessions >= 50) {
+      eligibleCodes.push("EXAMS_50");
+    }
+
+    if (stats.completedExamSessions >= 100) {
+      eligibleCodes.push("EXAMS_100");
+    }
+
+    if (stats.createdSharedExams >= 10) {
+      eligibleCodes.push("EXAMS_CREATED_10");
+    }
+
+    if (stats.totalStudyTimeSeconds >= 3600) {
+      eligibleCodes.push("STUDY_1_HOUR");
+    }
+
+    if (stats.totalStudyTimeSeconds >= 36000) {
+      eligibleCodes.push("STUDY_10_HOURS");
+    }
+
+    if (stats.totalStudyTimeSeconds >= 180000) {
+      eligibleCodes.push("STUDY_50_HOURS");
+    }
+
+    if (stats.perfectExamsCount > 0) {
+      eligibleCodes.push("PERFECT_EXAM");
+    }
+
+    if (stats.hasPerfectAnswer) {
+      eligibleCodes.push("PERFECT_ANSWER");
+    }
+
+    if (stats.hasGreatAnswer) {
+      eligibleCodes.push("GREAT_ANSWER");
+    }
+
+    if (stats.hasNightOwl) {
+      eligibleCodes.push("SECRET_NIGHT_OWL");
+    }
+
+    if (stats.hasSundayStudy) {
+      eligibleCodes.push("SECRET_SUNDAY_STUDY");
+    }
+
+    if (stats.hasMathPerfectAnswer) {
+      eligibleCodes.push("SECRET_PERFECTIONIST");
+    }
+
     return eligibleCodes;
   }
 }
