@@ -22,13 +22,43 @@ export function ProfilePage() {
     queryFn: () => apiService.get<AchievementsResponse>("/achievements/me")
   });
 
-  const achievements = achievementsQuery.data?.data ?? [];
-  const unlockedAchievements = achievements.filter((achievement) => achievement.unlocked);
-  const lockedAchievements = achievements.filter((achievement) => !achievement.unlocked);
+  const rawAchievements = achievementsQuery.data?.data ?? [];
+  const unlockedAchievements = rawAchievements.filter((achievement) => achievement.unlocked);
+  const lockedAchievements = rawAchievements.filter((achievement) => !achievement.unlocked);
   const totalXp = unlockedAchievements.reduce(
     (total, achievement) => total + achievement.experienceReward,
     0
   );
+
+  const achievements = [...rawAchievements].sort((a, b) => {
+    // 1. Unlocked first
+    if (a.unlocked && !b.unlocked) return -1;
+    if (!a.unlocked && b.unlocked) return 1;
+
+    // 2. Secrets go at the bottom
+    const aIsSecret = a.code.startsWith("SECRET_");
+    const bIsSecret = b.code.startsWith("SECRET_");
+
+    if (a.unlocked) {
+      // Both unlocked: sort by experience reward ascending (easiest to hardest)
+      if (a.experienceReward !== b.experienceReward) {
+        return a.experienceReward - b.experienceReward;
+      }
+      return a.title.localeCompare(b.title);
+    } else {
+      // Both locked
+      // Locked secrets go to the absolute bottom
+      if (aIsSecret && !bIsSecret) return 1;
+      if (!aIsSecret && bIsSecret) return -1;
+
+      // Within locked groups: sort by experience reward ascending (easiest to hardest)
+      if (a.experienceReward !== b.experienceReward) {
+        return a.experienceReward - b.experienceReward;
+      }
+      return a.title.localeCompare(b.title);
+    }
+  });
+
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

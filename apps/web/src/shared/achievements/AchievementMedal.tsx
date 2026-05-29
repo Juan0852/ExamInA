@@ -233,6 +233,94 @@ function MedalIllustration({ code }: { code: AchievementCode }) {
 function SvgShell({ children }: { children: React.ReactNode }) {
   return (
     <svg viewBox="0 0 64 64" className="h-full w-full" aria-hidden="true" focusable="false">
+      <defs>
+        {/* Shiny metallic gold gradient */}
+        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FFF8D6" />
+          <stop offset="20%" stopColor="#FBBF24" />
+          <stop offset="50%" stopColor="#D97706" />
+          <stop offset="85%" stopColor="#92400E" />
+          <stop offset="100%" stopColor="#78350F" />
+        </linearGradient>
+        {/* Shiny metallic silver gradient */}
+        <linearGradient id="silverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="25%" stopColor="#E2E8F0" />
+          <stop offset="50%" stopColor="#94A3B8" />
+          <stop offset="75%" stopColor="#475569" />
+          <stop offset="100%" stopColor="#1E293B" />
+        </linearGradient>
+        {/* Shiny metallic bronze gradient */}
+        <linearGradient id="bronzeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FFEDD5" />
+          <stop offset="30%" stopColor="#FB923C" />
+          <stop offset="70%" stopColor="#C2410C" />
+          <stop offset="100%" stopColor="#7C2D12" />
+        </linearGradient>
+        {/* Vivid flame gradients */}
+        <linearGradient id="flameInner" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#EF4444" />
+          <stop offset="50%" stopColor="#F97316" />
+          <stop offset="100%" stopColor="#FACC15" />
+        </linearGradient>
+        <linearGradient id="flameOuter" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#991B1B" />
+          <stop offset="60%" stopColor="#DC2626" />
+          <stop offset="100%" stopColor="#F97316" />
+        </linearGradient>
+        {/* Holographic / Cyber Punk Gradients */}
+        <linearGradient id="cyberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#00F5FF" />
+          <stop offset="50%" stopColor="#EC4899" />
+          <stop offset="100%" stopColor="#7C3AED" />
+        </linearGradient>
+        {/* Vibrant Neon gradients */}
+        <linearGradient id="neonCyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#A5F3FC" />
+          <stop offset="50%" stopColor="#06B6D4" />
+          <stop offset="100%" stopColor="#0891B2" />
+        </linearGradient>
+        <linearGradient id="neonPinkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FBCFE8" />
+          <stop offset="50%" stopColor="#EC4899" />
+          <stop offset="100%" stopColor="#BE185D" />
+        </linearGradient>
+        <linearGradient id="neonPurpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#E9D5FF" />
+          <stop offset="50%" stopColor="#A855F7" />
+          <stop offset="100%" stopColor="#7E22CE" />
+        </linearGradient>
+        {/* Soft paper/shield gradient */}
+        <linearGradient id="paperGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#E2E8F0" />
+        </linearGradient>
+        {/* Drop shadow filter for 3D look */}
+        <filter id="premiumShadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="3.5" stdDeviation="2.2" floodColor="#06265F" floodOpacity="0.4" />
+        </filter>
+        {/* Glow filter */}
+        <filter id="glowEffect" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="1.8" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        {/* Golden glow */}
+        <filter id="goldGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="2.2" result="blur" />
+          <feColorMatrix type="matrix" values="
+            1 0 0 0 0.98
+            0 1 0 0 0.74
+            0 0 1 0 0.18
+            0 0 0 1 0" in="blur" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
       {children}
     </svg>
   );
@@ -241,9 +329,10 @@ function SvgShell({ children }: { children: React.ReactNode }) {
 function Spark({ x, y, size = 1 }: { x: number; y: number; size?: number }) {
   return (
     <path
-      d={`M ${x} ${y - 6 * size} L ${x + 2 * size} ${y - 2 * size} L ${x + 6 * size} ${y} L ${x + 2 * size} ${y + 2 * size} L ${x} ${y + 6 * size} L ${x - 2 * size} ${y + 2 * size} L ${x - 6 * size} ${y} L ${x - 2 * size} ${y - 2 * size} Z`}
+      d={`M ${x} ${y - 6 * size} L ${x + 1.8 * size} ${y - 1.8 * size} L ${x + 6 * size} ${y} L ${x + 1.8 * size} ${y + 1.8 * size} L ${x} ${y + 6 * size} L ${x - 1.8 * size} ${y + 1.8 * size} L ${x - 6 * size} ${y} L ${x - 1.8 * size} ${y - 1.8 * size} Z`}
       fill="white"
-      opacity="0.92"
+      opacity="0.95"
+      filter="url(#glowEffect)"
     />
   );
 }
@@ -251,13 +340,17 @@ function Spark({ x, y, size = 1 }: { x: number; y: number; size?: number }) {
 function ProfileMedalSvg() {
   return (
     <SvgShell>
-      <Spark x={49} y={14} size={0.75} />
-      <path d="M18 50c2.3-9.4 8.2-13.7 14-13.7S43.7 40.6 46 50" fill="#FFFFFF" opacity="0.92" />
-      <circle cx="32" cy="25" r="9.5" fill="#E8F7FF" />
-      <path d="M17 51h30" stroke="#06265F" strokeWidth="4" strokeLinecap="round" opacity="0.35" />
-      <path d="M14 31a18 18 0 0 1 36-1" fill="none" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" opacity="0.7" />
-      <path d="M49 30a18 18 0 0 1-5 12" fill="none" stroke="#33D6D0" strokeWidth="5" strokeLinecap="round" />
-      <path d="M43 24l4 4 8-10" fill="none" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <Spark x={48} y={12} size={0.7} />
+      <g filter="url(#premiumShadow)">
+        <circle cx="32" cy="32" r="23" fill="url(#silverGrad)" />
+        <circle cx="32" cy="32" r="20" fill="#0F172A" />
+        <circle cx="32" cy="32" r="18" fill="url(#neonCyanGrad)" opacity="0.15" />
+        <path d="M18 45c1.5-6 6-9 14-9s12.5 3 14 9" fill="url(#neonCyanGrad)" />
+        <circle cx="32" cy="24" r="7.5" fill="url(#neonCyanGrad)" />
+        <path d="M26 15l2.5 3 3.5-3.5 3.5 3.5 2.5-3-1.5 5h-9z" fill="url(#goldGrad)" filter="url(#goldGlow)" />
+        <circle cx="45" cy="20" r="5" fill="#10B981" stroke="#FFFFFF" strokeWidth="1" />
+        <path d="M43 20l1.5 1.5 3-3" fill="none" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
     </SvgShell>
   );
 }
@@ -265,12 +358,18 @@ function ProfileMedalSvg() {
 function CompletedExamMedalSvg() {
   return (
     <SvgShell>
-      <path d="M20 9h22l7 8v36H20z" fill="#FFFFFF" />
-      <path d="M42 9v10h9" fill="#BEEBFF" />
-      <path d="M26 25h17M26 32h11M26 39h9" stroke="#06265F" strokeWidth="3" strokeLinecap="round" opacity="0.42" />
-      <circle cx="43" cy="42" r="13" fill="#16A34A" />
-      <path d="M36 42l5 5 10-12" fill="none" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      <Spark x={18} y={17} size={0.55} />
+      <Spark x={15} y={15} size={0.7} />
+      <g filter="url(#premiumShadow)">
+        <rect x="18" y="10" width="28" height="42" rx="4" fill="url(#bronzeGrad)" />
+        <rect x="20" y="12" width="24" height="38" rx="2" fill="url(#paperGrad)" />
+        <path d="M28 8h8v5h-8z" fill="url(#silverGrad)" />
+        <line x1="24" y1="20" x2="40" y2="20" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="24" y1="27" x2="36" y2="27" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="24" y1="34" x2="32" y2="34" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="38" cy="40" r="8" fill="#10B981" filter="url(#glowEffect)" />
+        <circle cx="38" cy="40" r="6" fill="url(#goldGrad)" />
+        <path d="M35.5 40l2 2 3.5-3.5" fill="none" stroke="#78350F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
     </SvgShell>
   );
 }
@@ -278,13 +377,16 @@ function CompletedExamMedalSvg() {
 function CreatedExamMedalSvg() {
   return (
     <SvgShell>
-      <path d="M18 14h28c3 0 5 2 5 5v31H18z" fill="#FFFFFF" />
-      <path d="M18 14c0 4 3 6 7 6h26" fill="none" stroke="#E0E7FF" strokeWidth="8" strokeLinecap="round" />
-      <path d="M25 29h19M25 37h13" stroke="#06265F" strokeWidth="3" strokeLinecap="round" opacity="0.45" />
-      <path d="M18 50h33" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" opacity="0.85" />
-      <path d="M38 46l14-24 5 5-24 14-5 10z" fill="#33D6D0" />
-      <path d="M52 22l5 5" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" />
-      <circle cx="33" cy="41" r="2.5" fill="#06265F" opacity="0.75" />
+      <g filter="url(#premiumShadow)">
+        <path d="M32 6 L50 14 V32 C50 43 43 51 32 56 C21 51 14 43 14 32 V14 Z" fill="url(#paperGrad)" stroke="url(#goldGrad)" strokeWidth="1.8" />
+        <path d="M22 18 h20 v22 h-20 z" fill="#FFFBEB" stroke="#B45309" strokeWidth="1.2" />
+        <line x1="25" y1="24" x2="39" y2="24" stroke="#D97706" strokeWidth="2" />
+        <line x1="25" y1="30" x2="35" y2="30" stroke="#D97706" strokeWidth="2" />
+        <path d="M44 14 L30 35 L33 37 L47 16 Z" fill="url(#cyberGrad)" filter="url(#glowEffect)" />
+        <path d="M30 35l-3 4 4-1z" fill="#FFFFFF" />
+      </g>
+      <Spark x={22} y={12} size={0.65} />
+      <Spark x={46} y={40} size={0.5} />
     </SvgShell>
   );
 }
@@ -292,11 +394,13 @@ function CreatedExamMedalSvg() {
 function FirstStreakMedalSvg() {
   return (
     <SvgShell>
-      <path d="M33 55c-11 0-18-7-18-17 0-8 5-13 10-17 1 7 5 9 5 9 0-11 8-17 8-17 2 9 11 13 11 24 0 10-6 18-16 18z" fill="#FFFFFF" />
-      <path d="M34 51c-6 0-10-4-10-10 0-5 3-8 6-11 1 5 4 6 4 6 0-7 5-11 5-11 1 6 7 9 7 16 0 6-5 10-12 10z" fill="#F97316" />
-      <path d="M14 16h13v13H14z" fill="#E8F7FF" />
-      <path d="M17 20h7M17 25h4" stroke="#06265F" strokeWidth="2.5" strokeLinecap="round" opacity="0.55" />
-      <Spark x={49} y={16} size={0.65} />
+      <Spark x={48} y={15} size={0.6} />
+      <g filter="url(#premiumShadow)">
+        <circle cx="32" cy="32" r="23" fill="none" stroke="url(#bronzeGrad)" strokeWidth="3" />
+        <path d="M32 50 C22 50 16 42 16 33 C16 23 24 16 27 10 C27 20 30 22 32 18 C34 22 37 20 37 10 C40 16 48 23 48 33 C48 42 42 50 32 50 Z" fill="url(#flameOuter)" />
+        <path d="M32 47 C25 47 21 41 21 34 C21 26 27 21 29 16 C29 24 31 25 32 22 C33 25 35 24 35 16 C37 21 43 26 43 34 C43 41 39 47 32 47 Z" fill="url(#flameInner)" />
+        <circle cx="32" cy="36" r="3" fill="#FFFBEB" filter="url(#glowEffect)" />
+      </g>
     </SvgShell>
   );
 }
@@ -304,11 +408,14 @@ function FirstStreakMedalSvg() {
 function SevenDayStreakMedalSvg() {
   return (
     <SvgShell>
-      <path d="M33 57c-12 0-20-7-20-18 0-9 6-14 11-19 1 8 6 10 6 10 0-12 9-19 9-19 2 10 12 15 12 27 0 11-7 19-18 19z" fill="#FFFFFF" />
-      <path d="M33 52c-7 0-12-4-12-11 0-6 4-9 7-13 1 6 5 7 5 7 0-8 6-13 6-13 1 7 8 10 8 18 0 7-5 12-14 12z" fill="#22C55E" />
-      <path d="M24 12l8-5 8 5-2 9H26z" fill="#FDE047" />
-      <text x="32" y="45" textAnchor="middle" fontSize="18" fontWeight="900" fill="#06265F">7</text>
-      <Spark x={50} y={17} size={0.55} />
+      <Spark x={15} y={12} size={0.7} />
+      <Spark x={49} y={12} size={0.7} />
+      <g filter="url(#premiumShadow)">
+        <path d="M32 6 L50 14 V32 C50 43 43 51 32 56 C21 51 14 43 14 32 V14 Z" fill="none" stroke="url(#goldGrad)" strokeWidth="3" />
+        <path d="M32 48 C24 48 18 40 18 31 C18 20 28 14 32 8 C36 14 46 20 46 31 C46 40 40 48 32 48 Z" fill="url(#flameOuter)" />
+        <path d="M32 45 C26 45 21 38 21 30 C21 21 29 16 32 11 C35 16 43 21 43 30 C43 38 38 45 32 45 Z" fill="url(#flameInner)" />
+        <text x="32.5" y="37.5" textAnchor="middle" fontSize="20" fontWeight="950" fill="#FFFFFF" stroke="#78350F" strokeWidth="2.2" filter="url(#glowEffect)">7</text>
+      </g>
     </SvgShell>
   );
 }
@@ -316,11 +423,15 @@ function SevenDayStreakMedalSvg() {
 function FirstAnswerMedalSvg() {
   return (
     <SvgShell>
-      <path d="M14 16h36c3 0 5 2 5 5v18c0 3-2 5-5 5H34l-12 9 3-9H14c-3 0-5-2-5-5V21c0-3 2-5 5-5z" fill="#FFFFFF" />
-      <path d="M20 28h22M20 35h13" stroke="#06265F" strokeWidth="3" strokeLinecap="round" opacity="0.48" />
-      <path d="M39 42l13-13 5 5-13 13-7 2z" fill="#33D6D0" />
-      <circle cx="48" cy="17" r="5" fill="#FACC15" />
-      <path d="M47 14h2v5h-2zM47 21h2v2h-2z" fill="#06265F" opacity="0.75" />
+      <Spark x={48} y={12} size={0.6} />
+      <g filter="url(#premiumShadow)">
+        <path d="M12 18c0-4.4 3.6-8 8-8h24c4.4 0 8 3.6 8 8v16c0 4.4-3.6 8-8 8H26l-10 8v-8h-4c-4.4 0-8-3.6-8-8V18z" fill="url(#neonCyanGrad)" />
+        <path d="M14 19c0-3.3 2.7-6 6-6h24c3.3 0 6 2.7 6 6v14c0 3.3-2.7 6-6 6H25.2L18 39.8v-4.8h-4c-3.3 0-6-2.7-6-6V19z" fill="#0F172A" opacity="0.85" />
+        <path d="M36 16 L48 28 L28 48 L16 48 L16 36 Z" fill="none" stroke="url(#goldGrad)" strokeWidth="2.5" />
+        <path d="M16 48l6-1.5L17.5 42z" fill="url(#goldGrad)" />
+        <circle cx="32" cy="24" r="8" fill="#10B981" filter="url(#glowEffect)" />
+        <path d="M29 24l2 2 4-4" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
     </SvgShell>
   );
 }
@@ -328,11 +439,14 @@ function FirstAnswerMedalSvg() {
 function CommunityPostMedalSvg() {
   return (
     <SvgShell>
-      <rect x="14" y="13" width="36" height="39" rx="8" fill="#FFFFFF" />
-      <circle cx="24" cy="25" r="5" fill="#F472B6" />
-      <path d="M33 22h10M33 28h7M21 38h22M21 44h15" stroke="#06265F" strokeWidth="3" strokeLinecap="round" opacity="0.42" />
-      <path d="M51 18c5 3 7 8 5 14M12 18c-5 3-7 8-5 14" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" opacity="0.82" />
-      <Spark x={47} y={46} size={0.6} />
+      <Spark x={49} y={14} size={0.65} />
+      <g filter="url(#premiumShadow)">
+        <circle cx="32" cy="32" r="23" fill="none" stroke="url(#neonPinkGrad)" strokeWidth="2.5" />
+        <path d="M18 26 h8 l10 -8 v28 l-10 -8 h-8 z" fill="url(#neonPinkGrad)" />
+        <path d="M36 18 c4 0 7 6 7 14 s-3 14 -7 14" fill="none" stroke="url(#goldGrad)" strokeWidth="3.2" strokeLinecap="round" />
+        <path d="M43 22 c3 3 3 7 0 10 M47 18 c5 5 5 13 0 18" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" filter="url(#glowEffect)" />
+        <path d="M22 34 v6 a2 2 0 0 0 2 2 h1 v-8 z" fill="#64748B" />
+      </g>
     </SvgShell>
   );
 }
@@ -340,15 +454,13 @@ function CommunityPostMedalSvg() {
 function ConnectionMedalSvg() {
   return (
     <SvgShell>
-      <path d="M19 33h26" stroke="#FFFFFF" strokeWidth="7" strokeLinecap="round" />
-      <path d="M21 31l10-12M43 31L33 19M21 33l10 12M43 33L33 45" stroke="#E8F7FF" strokeWidth="4" strokeLinecap="round" opacity="0.86" />
-      <circle cx="20" cy="32" r="10" fill="#FFFFFF" />
-      <circle cx="44" cy="32" r="10" fill="#FFFFFF" />
-      <circle cx="32" cy="18" r="8" fill="#33D6D0" />
-      <circle cx="32" cy="46" r="8" fill="#0879F2" />
-      <circle cx="20" cy="32" r="4" fill="#06265F" opacity="0.55" />
-      <circle cx="44" cy="32" r="4" fill="#06265F" opacity="0.55" />
-      <Spark x={32} y={32} size={0.7} />
+      <Spark x={32} y={18} size={0.8} />
+      <Spark x={32} y={46} size={0.5} />
+      <g filter="url(#premiumShadow)">
+        <circle cx="25" cy="32" r="12" fill="none" stroke="url(#neonCyanGrad)" strokeWidth="4.5" filter="url(#glowEffect)" />
+        <circle cx="39" cy="32" r="12" fill="none" stroke="url(#goldGrad)" strokeWidth="4.5" />
+        <circle cx="32" cy="32" r="4" fill="#FFFFFF" filter="url(#glowEffect)" />
+      </g>
     </SvgShell>
   );
 }
@@ -356,12 +468,17 @@ function ConnectionMedalSvg() {
 function Connection10MedalSvg() {
   return (
     <SvgShell>
-      <circle cx="32" cy="32" r="16" fill="#10B981" />
-      <circle cx="32" cy="18" r="6" fill="#FFFFFF" />
-      <circle cx="18" cy="38" r="6" fill="#FFFFFF" />
-      <circle cx="46" cy="38" r="6" fill="#FFFFFF" />
-      <path d="M32 18l-14 20M32 18l14 20M18 38h28" stroke="#FFFFFF" strokeWidth="2.5" />
-      <text x="32" y="36" textAnchor="middle" fontSize="12" fontWeight="950" fill="#06265F">10</text>
+      <Spark x={46} y={15} size={0.55} />
+      <g filter="url(#premiumShadow)">
+        <circle cx="32" cy="32" r="23" fill="none" stroke="#10B981" strokeWidth="3" />
+        <path d="M14 36c-2-6 0-14 6-18 M50 36c2-6 0-14-6-18" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+        <path d="M22 38 l10 -15 l10 15 Z M32 15 v15" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" opacity="0.8" />
+        <circle cx="32" cy="15" r="4" fill="url(#goldGrad)" />
+        <circle cx="22" cy="38" r="4" fill="url(#neonCyanGrad)" />
+        <circle cx="42" cy="38" r="4" fill="url(#neonCyanGrad)" />
+        <circle cx="32" cy="30" r="8" fill="#0F172A" stroke="url(#goldGrad)" strokeWidth="1.5" />
+        <text x="32" y="34.5" textAnchor="middle" fontSize="12.5" fontWeight="950" fill="#FFFFFF" filter="url(#glowEffect)">10</text>
+      </g>
     </SvgShell>
   );
 }
@@ -369,10 +486,16 @@ function Connection10MedalSvg() {
 function Exams10MedalSvg() {
   return (
     <SvgShell>
-      <rect x="18" y="14" width="28" height="36" rx="4" fill="#FFFFFF" />
-      <path d="M24 24h16M24 30h16M24 36h10" stroke="#06265F" strokeWidth="2.5" strokeLinecap="round" opacity="0.45" />
-      <circle cx="32" cy="42" r="11" fill="#EA580C" />
-      <text x="32" y="47" textAnchor="middle" fontSize="12" fontWeight="950" fill="#FFFFFF">10</text>
+      <Spark x={46} y={18} size={0.6} />
+      <g filter="url(#premiumShadow)">
+        <path d="M32 6 L52 14 V30 C52 42 43 51 32 56 C21 51 12 42 12 30 V14 Z" fill="url(#bronzeGrad)" />
+        <path d="M32 9 L49 16 V29 C49 40 40 48 32 53 C24 48 15 40 15 29 V16 Z" fill="#1E293B" />
+        <rect x="22" y="18" width="20" height="22" rx="2" fill="url(#paperGrad)" />
+        <line x1="26" y1="24" x2="38" y2="24" stroke="#94A3B8" strokeWidth="2" />
+        <line x1="26" y1="30" x2="34" y2="30" stroke="#94A3B8" strokeWidth="2" />
+        <circle cx="32" cy="40" r="11" fill="url(#bronzeGrad)" stroke="#FFFFFF" strokeWidth="1" />
+        <text x="32" y="44" textAnchor="middle" fontSize="11" fontWeight="950" fill="#FFFFFF" filter="url(#glowEffect)">10</text>
+      </g>
     </SvgShell>
   );
 }
@@ -380,10 +503,17 @@ function Exams10MedalSvg() {
 function Exams50MedalSvg() {
   return (
     <SvgShell>
-      <rect x="18" y="14" width="28" height="36" rx="4" fill="#FFFFFF" />
-      <path d="M24 24h16M24 30h16M24 36h10" stroke="#06265F" strokeWidth="2.5" strokeLinecap="round" opacity="0.45" />
-      <circle cx="32" cy="42" r="11" fill="#475569" />
-      <text x="32" y="47" textAnchor="middle" fontSize="12" fontWeight="950" fill="#FFFFFF">50</text>
+      <Spark x={16} y={16} size={0.6} />
+      <Spark x={48} y={16} size={0.6} />
+      <g filter="url(#premiumShadow)">
+        <path d="M32 6 L52 14 V30 C52 42 43 51 32 56 C21 51 12 42 12 30 V14 Z" fill="url(#silverGrad)" />
+        <path d="M32 9 L49 16 V29 C49 40 40 48 32 53 C24 48 15 40 15 29 V16 Z" fill="#0F172A" />
+        <rect x="22" y="18" width="20" height="22" rx="2" fill="url(#paperGrad)" />
+        <line x1="26" y1="24" x2="38" y2="24" stroke="#94A3B8" strokeWidth="2" />
+        <line x1="26" y1="30" x2="34" y2="30" stroke="#94A3B8" strokeWidth="2" />
+        <circle cx="32" cy="40" r="11" fill="url(#silverGrad)" stroke="#FFFFFF" strokeWidth="1" />
+        <text x="32" y="44" textAnchor="middle" fontSize="11" fontWeight="950" fill="#0F172A" filter="url(#glowEffect)">50</text>
+      </g>
     </SvgShell>
   );
 }
@@ -391,10 +521,19 @@ function Exams50MedalSvg() {
 function Exams100MedalSvg() {
   return (
     <SvgShell>
-      <rect x="18" y="14" width="28" height="36" rx="4" fill="#FFFFFF" />
-      <path d="M24 24h16M24 30h16M24 36h10" stroke="#06265F" strokeWidth="2.5" strokeLinecap="round" opacity="0.45" />
-      <circle cx="32" cy="42" r="12" fill="#D97706" />
-      <text x="32" y="46" textAnchor="middle" fontSize="9" fontWeight="950" fill="#FFFFFF">100</text>
+      <Spark x={32} y={8} size={0.7} />
+      <Spark x={15} y={15} size={0.55} />
+      <Spark x={49} y={15} size={0.55} />
+      <g filter="url(#premiumShadow)">
+        <path d="M32 6 L52 14 V30 C52 42 43 51 32 56 C21 51 12 42 12 30 V14 Z" fill="url(#goldGrad)" />
+        <path d="M32 9 L49 16 V29 C49 40 40 48 32 53 C24 48 15 40 15 29 V16 Z" fill="#07111F" />
+        <path d="M18 36c-2-6 0-14 6-18 M46 36c2-6 0-14-6-18" fill="none" stroke="url(#goldGrad)" strokeWidth="2.5" strokeLinecap="round" />
+        <rect x="22" y="18" width="20" height="22" rx="2" fill="url(#paperGrad)" />
+        <line x1="26" y1="24" x2="38" y2="24" stroke="url(#goldGrad)" strokeWidth="2" />
+        <line x1="26" y1="30" x2="34" y2="30" stroke="url(#goldGrad)" strokeWidth="2" />
+        <circle cx="32" cy="40" r="12.5" fill="url(#goldGrad)" stroke="#FFFFFF" strokeWidth="1" filter="url(#goldGlow)" />
+        <text x="32" y="43.5" textAnchor="middle" fontSize="9.5" fontWeight="950" fill="#78350F" filter="url(#glowEffect)">100</text>
+      </g>
     </SvgShell>
   );
 }
@@ -402,11 +541,16 @@ function Exams100MedalSvg() {
 function ExamsCreated10MedalSvg() {
   return (
     <SvgShell>
-      <path d="M16 16h24l8 8v24H16z" fill="#FFFFFF" />
-      <path d="M22 28h20M22 34h12" stroke="#06265F" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
-      <circle cx="44" cy="44" r="10" fill="#EC4899" />
-      <path d="M41 44h6M44 41v6" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
-      <text x="32" y="22" textAnchor="middle" fontSize="8" fontWeight="950" fill="#06265F">10</text>
+      <Spark x={48} y={14} size={0.65} />
+      <g filter="url(#premiumShadow)">
+        <path d="M14 12 h16 l6 6 h14 a4 4 0 0 1 4 4 v22 a4 4 0 0 1 -4 4 h-36 a4 4 0 0 1 -4 -4 z" fill="url(#neonPinkGrad)" />
+        <path d="M16 16 h14 l4 4 h14 v20 h-32 z" fill="#0F172A" opacity="0.85" />
+        <rect x="20" y="22" width="16" height="12" rx="1.5" fill="url(#paperGrad)" />
+        <line x1="23" y1="26" x2="33" y2="26" stroke="#C084FC" strokeWidth="2" />
+        <line x1="23" y1="30" x2="29" y2="30" stroke="#C084FC" strokeWidth="2" />
+        <circle cx="42" cy="38" r="9" fill="url(#neonPurpleGrad)" filter="url(#glowEffect)" />
+        <text x="42" y="41.5" textAnchor="middle" fontSize="11" fontWeight="950" fill="#FFFFFF">+10</text>
+      </g>
     </SvgShell>
   );
 }
@@ -414,20 +558,34 @@ function ExamsCreated10MedalSvg() {
 function Study1HourMedalSvg() {
   return (
     <SvgShell>
-      <circle cx="32" cy="32" r="18" fill="#FFFFFF" />
-      <path d="M32 18v14l8 4" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      <text x="32" y="47" textAnchor="middle" fontSize="12" fontWeight="950" fill="#06265F">1h</text>
+      <Spark x={46} y={18} size={0.5} />
+      <g filter="url(#premiumShadow)">
+        <circle cx="32" cy="34" r="20" fill="url(#paperGrad)" stroke="#10B981" strokeWidth="3" />
+        <path d="M30 10 h4 v4 h-4 z" fill="#10B981" />
+        <path d="M32 14 v4" stroke="#10B981" strokeWidth="2" />
+        <circle cx="32" cy="34" r="16" fill="#0F172A" />
+        <circle cx="32" cy="34" r="14" fill="none" stroke="#A7F3D0" strokeWidth="1" strokeDasharray="3,3" />
+        <path d="M32 34 v-11 l6 3" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" filter="url(#glowEffect)" />
+        <text x="32" y="46" textAnchor="middle" fontSize="11" fontWeight="950" fill="#FFFFFF">1h</text>
+      </g>
     </SvgShell>
   );
 }
 
-// Fixed study 10 hours spelling in SVG name to match MedallIllustration
 function Study10HoursMedalSvg() {
   return (
     <SvgShell>
-      <circle cx="32" cy="32" r="18" fill="#FFFFFF" />
-      <path d="M32 18v14l8 4" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      <text x="32" y="47" textAnchor="middle" fontSize="11" fontWeight="950" fill="#06265F">10h</text>
+      <Spark x={16} y={20} size={0.5} />
+      <Spark x={48} y={20} size={0.5} />
+      <g filter="url(#premiumShadow)">
+        <circle cx="32" cy="34" r="20" fill="url(#paperGrad)" stroke="#3B82F6" strokeWidth="3" />
+        <path d="M30 10 h4 v4 h-4 z" fill="#3B82F6" />
+        <path d="M32 14 v4" stroke="#3B82F6" strokeWidth="2" />
+        <circle cx="32" cy="34" r="16" fill="#0F172A" />
+        <circle cx="32" cy="34" r="14" fill="none" stroke="#DBEAFE" strokeWidth="1" strokeDasharray="3,3" />
+        <path d="M32 34 v-12 l8 6" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" filter="url(#glowEffect)" />
+        <text x="32" y="46" textAnchor="middle" fontSize="11" fontWeight="950" fill="#FFFFFF">10h</text>
+      </g>
     </SvgShell>
   );
 }
@@ -435,9 +593,16 @@ function Study10HoursMedalSvg() {
 function Study50HoursMedalSvg() {
   return (
     <SvgShell>
-      <circle cx="32" cy="32" r="18" fill="#FFFFFF" />
-      <path d="M32 18v14l8 4" stroke="#A855F7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      <text x="32" y="47" textAnchor="middle" fontSize="11" fontWeight="950" fill="#06265F">50h</text>
+      <Spark x={32} y={8} size={0.65} />
+      <Spark x={49} y={18} size={0.6} />
+      <g filter="url(#premiumShadow)">
+        <path d="M12 34c-6-4-8-10-8-10s8 2 10 6M52 34c6-4 8-10 8-10s-8 2-10 6" stroke="url(#goldGrad)" strokeWidth="2" fill="none" strokeLinecap="round" />
+        <circle cx="32" cy="34" r="20" fill="url(#goldGrad)" stroke="#A855F7" strokeWidth="2" />
+        <circle cx="32" cy="34" r="17" fill="#07111F" />
+        <circle cx="32" cy="34" r="14" fill="none" stroke="#F3E8FF" strokeWidth="1" strokeDasharray="3,3" />
+        <path d="M32 34 v-13 l10 3" stroke="#A855F7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" filter="url(#glowEffect)" />
+        <text x="32" y="46" textAnchor="middle" fontSize="10" fontWeight="950" fill="#FFFFFF" filter="url(#glowEffect)">50h</text>
+      </g>
     </SvgShell>
   );
 }
@@ -445,9 +610,20 @@ function Study50HoursMedalSvg() {
 function PerfectExamMedalSvg() {
   return (
     <SvgShell>
-      <path d="M32 12l5 11 12 2-9 8 2 12-10-6-10 6 2-12-9-8 12-2z" fill="#FFFFFF" />
-      <circle cx="32" cy="31" r="7" fill="#E11D48" />
-      <text x="32" y="35" textAnchor="middle" fontSize="11" fontWeight="950" fill="#FFFFFF">10</text>
+      <Spark x={32} y={12} size={0.8} />
+      <Spark x={15} y={15} size={0.6} />
+      <Spark x={49} y={15} size={0.6} />
+      <g filter="url(#premiumShadow)">
+        <path d="M14 38c-3-6 0-16 8-20 M50 38c3-6 0-16-8-20" fill="none" stroke="url(#goldGrad)" strokeWidth="3" strokeLinecap="round" />
+        <path d="M18 42 L46 42 L42 22 L32 32 L22 22 Z" fill="url(#goldGrad)" stroke="#FFFFFF" strokeWidth="1" />
+        <circle cx="18" cy="42" r="2" fill="#FFFFFF" />
+        <circle cx="46" cy="42" r="2" fill="#FFFFFF" />
+        <circle cx="22" cy="22" r="2.5" fill="#FFFFFF" filter="url(#glowEffect)" />
+        <circle cx="32" cy="32" r="2.5" fill="#FFFFFF" filter="url(#glowEffect)" />
+        <circle cx="42" cy="22" r="2.5" fill="#FFFFFF" filter="url(#glowEffect)" />
+        <circle cx="32" cy="38" r="10" fill="#E11D48" stroke="url(#goldGrad)" strokeWidth="1.5" filter="url(#glowEffect)" />
+        <text x="32.5" y="41.5" textAnchor="middle" fontSize="11" fontWeight="950" fill="#FFFFFF">10</text>
+      </g>
     </SvgShell>
   );
 }
@@ -455,20 +631,34 @@ function PerfectExamMedalSvg() {
 function PerfectAnswerMedalSvg() {
   return (
     <SvgShell>
-      <circle cx="32" cy="32" r="18" fill="#FFFFFF" />
-      <circle cx="32" cy="32" r="12" fill="#059669" />
-      <text x="32" y="36" textAnchor="middle" fontSize="12" fontWeight="950" fill="#FFFFFF">10</text>
-      <Spark x={18} y={18} size={0.5} />
+      <Spark x={46} y={10} size={0.7} />
+      <g filter="url(#premiumShadow)">
+        <circle cx="32" cy="32" r="22" fill="url(#goldGrad)" />
+        <circle cx="32" cy="32" r="17" fill="#10B981" />
+        <circle cx="32" cy="32" r="12" fill="#FFFFFF" />
+        <circle cx="32" cy="32" r="7" fill="#E11D48" />
+        <path d="M12 48 L46 14" stroke="#78350F" strokeWidth="3" strokeLinecap="round" />
+        <path d="M46 14l2-6-6 2z" fill="url(#goldGrad)" />
+        <path d="M12 48l-4 4 1-5z M13 47l-5 2 3-4z" fill="#E2E8F0" />
+        <text x="32" y="35" textAnchor="middle" fontSize="9" fontWeight="950" fill="#FFFFFF" filter="url(#glowEffect)">10</text>
+      </g>
     </SvgShell>
   );
 }
 
-// GreatAnswerMedalSvg matching switch block in MedallIllustration
 function GreatAnswerMedalSvg() {
   return (
     <SvgShell>
-      <path d="M32 14l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1z" fill="#FFFFFF" />
-      <text x="32" y="41" textAnchor="middle" fontSize="10" fontWeight="950" fill="#2563EB">7.5</text>
+      <Spark x={45} y={12} size={0.55} />
+      <g filter="url(#premiumShadow)">
+        <circle cx="32" cy="32" r="22" fill="url(#silverGrad)" />
+        <circle cx="32" cy="32" r="17" fill="#3B82F6" />
+        <circle cx="32" cy="32" r="12" fill="#FFFFFF" />
+        <circle cx="32" cy="32" r="7.5" fill="url(#silverGrad)" />
+        <path d="M14 46 L44 16" stroke="#475569" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M44 16l1-5-5 1z" fill="url(#silverGrad)" />
+        <text x="32" y="34.5" textAnchor="middle" fontSize="8" fontWeight="950" fill="#0F172A">7.5</text>
+      </g>
     </SvgShell>
   );
 }
@@ -476,13 +666,21 @@ function GreatAnswerMedalSvg() {
 function SecretNightOwlMedalSvg() {
   return (
     <SvgShell>
-      <circle cx="32" cy="32" r="18" fill="#0F172A" />
-      <circle cx="24" cy="30" r="5" fill="#FFFFFF" />
-      <circle cx="40" cy="30" r="5" fill="#FFFFFF" />
-      <circle cx="24" cy="30" r="2.5" fill="#1D4ED8" />
-      <circle cx="40" cy="30" r="2.5" fill="#1D4ED8" />
-      <path d="M28 38s4 3 8 0" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M14 20a16 16 0 0 1 12-6" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+      <Spark x={22} y={15} size={0.5} />
+      <Spark x={45} y={15} size={0.65} />
+      <g filter="url(#premiumShadow)">
+        <circle cx="32" cy="32" r="21" fill="#0F172A" stroke="#818CF8" strokeWidth="2.2" />
+        <path d="M42 22 A15 15 0 0 1 20 40 A15 15 0 1 0 42 22 Z" fill="url(#goldGrad)" filter="url(#goldGlow)" />
+        <g transform="translate(18, 22)">
+          <path d="M6 18c0-3.3 2.7-6 6-6s6 2.7 6 6s-2.7 6-6 6s-6-2.7-6-6z" fill="url(#neonPurpleGrad)" />
+          <circle cx="9" cy="16" r="3.5" fill="#FFFFFF" />
+          <circle cx="15" cy="16" r="3.5" fill="#FFFFFF" />
+          <line x1="8" y1="16" x2="10" y2="16" stroke="#0F172A" strokeWidth="1.2" />
+          <line x1="14" y1="16" x2="16" y2="16" stroke="#0F172A" strokeWidth="1.2" />
+          <path d="M12 18l-1.5-2h3z" fill="url(#goldGrad)" />
+          <path d="M8 12l-2-3 4 1.5 M16 12l2-3-4 1.5" stroke="#FFFFFF" strokeWidth="1.2" fill="none" />
+        </g>
+      </g>
     </SvgShell>
   );
 }
@@ -490,11 +688,14 @@ function SecretNightOwlMedalSvg() {
 function SecretSundayStudyMedalSvg() {
   return (
     <SvgShell>
-      <circle cx="32" cy="32" r="18" fill="#FFFBEB" />
-      <circle cx="32" cy="24" r="10" fill="#F97316" />
-      <rect x="20" y="36" width="24" height="12" rx="2" fill="#FFFFFF" stroke="#06265F" strokeWidth="2.5" />
-      <path d="M26 42h12" stroke="#06265F" strokeWidth="2" strokeLinecap="round" />
-      <Spark x={48} y={16} size={0.5} />
+      <Spark x={48} y={18} size={0.6} />
+      <g filter="url(#premiumShadow)">
+        <path d="M32 8l4 6 7-3-2 7 7 1-5 5 4 6-7-1-2 7-4-6-4 6-2-7-7 1 4-6-5-5 7-1-2-7 7 3z" fill="url(#goldGrad)" filter="url(#goldGlow)" />
+        <circle cx="32" cy="32" r="16" fill="#F59E0B" stroke="#FFFFFF" strokeWidth="1.5" />
+        <rect x="22" y="24" width="20" height="16" rx="2" fill="url(#paperGrad)" stroke="#78350F" strokeWidth="1.5" />
+        <rect x="22" y="24" width="20" height="5" fill="#EF4444" />
+        <text x="32" y="34.5" textAnchor="middle" fontSize="8" fontWeight="950" fill="#78350F">DOM</text>
+      </g>
     </SvgShell>
   );
 }
@@ -502,12 +703,18 @@ function SecretSundayStudyMedalSvg() {
 function SecretPerfectionistMedalSvg() {
   return (
     <SvgShell>
-      <circle cx="32" cy="32" r="18" fill="#FFFFFF" />
-      <circle cx="32" cy="32" r="14" fill="none" stroke="#EF4444" strokeWidth="2" />
-      <circle cx="32" cy="32" r="8" fill="none" stroke="#EF4444" strokeWidth="2.5" />
-      <circle cx="32" cy="32" r="3" fill="#EF4444" />
-      <path d="M20 44l8-8m10-10l6-6" stroke="#06265F" strokeWidth="2.5" strokeLinecap="round" />
-      <text x="32" y="27" textAnchor="middle" fontSize="7" fontWeight="950" fill="#06265F">MAT</text>
+      <Spark x={32} y={6} size={0.7} />
+      <Spark x={16} y={42} size={0.5} />
+      <Spark x={48} y={42} size={0.5} />
+      <g filter="url(#premiumShadow)">
+        <path d="M32 8 L49 18 V38 L32 48 L15 38 V18 Z" fill="#EF4444" stroke="url(#goldGrad)" strokeWidth="2.5" />
+        <path d="M32 11 L46 20 V36 L32 45 L18 20 V20 Z" fill="#0F172A" opacity="0.85" />
+        <path d="M32 15 L24 35 M32 15 L40 35" stroke="url(#goldGrad)" strokeWidth="3" strokeLinecap="round" />
+        <circle cx="32" cy="15" r="3" fill="#FFFFFF" />
+        <circle cx="32" cy="32" r="8" fill="url(#goldGrad)" filter="url(#glowEffect)" />
+        <text x="32.5" y="35.5" textAnchor="middle" fontSize="10.5" fontWeight="950" fill="#78350F">10</text>
+      </g>
     </SvgShell>
   );
 }
+
