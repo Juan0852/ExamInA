@@ -67,6 +67,7 @@ export function ProfilePage() {
 
       setSession(token, response.data.user);
       setIsEditModalOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["achievements-me"] });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Error al guardar el perfil.");
     } finally {

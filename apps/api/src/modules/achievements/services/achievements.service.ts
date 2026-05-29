@@ -43,14 +43,15 @@ export class AchievementsService implements OnModuleInit {
     const user = await this.authService.resolveAuthenticatedUser(authorizationHeader);
     
     // Evaluate achievements so stats are updated before retrieving them (e.g. visiting ProfilePage)
-    await this.evaluateForUser(user.id);
+    const newlyUnlockedAchievements = await this.evaluateForUser(user.id);
 
     const achievements = await this.achievementsRepository.findAllForUser(user.id);
 
     return {
       data: achievements.map(AchievementMapper.toResponse),
       meta: {
-        total: achievements.length
+        total: achievements.length,
+        newlyUnlockedAchievements
       },
       error: null
     };

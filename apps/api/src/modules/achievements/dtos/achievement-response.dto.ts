@@ -6,6 +6,7 @@ export type AchievementsResponseDto = {
   data: AchievementResponseDto[];
   meta: {
     total: number;
+    newlyUnlockedAchievements?: AchievementResponseDto[];
   };
   error: null;
 };
