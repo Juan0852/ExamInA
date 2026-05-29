@@ -3,22 +3,37 @@ import type { PointerEvent } from "react";
 import {
   Camera,
   ImagePlus,
+  Loader2,
   Mic,
   Paintbrush,
   PenLine,
   Trash2,
   X
 } from "lucide-react";
+import { useFileUpload } from "../../viewmodels/useFileUploadViewModel";
+import type { UploadedImage } from "../../shared/services/file-upload.service";
+
+export interface AnswerAttachment {
+  id: string;
+  fileAssetId: string;
+  url: string;
+  name: string;
+  type: "image" | "canvas";
+}
 
 type AnswerAttachmentComposerProps = {
   disabled?: boolean;
+  onAttachmentsChange?: (attachments: AnswerAttachment[]) => void;
 };
 
 type AttachmentPreview = {
   id: string;
   type: "image" | "canvas";
   name: string;
-  url: string;
+  previewUrl: string;
+  fileAssetId?: string;
+  uploadedUrl?: string;
+  isUploading?: boolean;
 };
 
 type Tool = "pen" | "eraser";
@@ -28,7 +43,7 @@ const createAttachmentId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-export function AnswerAttachmentComposer({ disabled = false }: AnswerAttachmentComposerProps) {
+export function AnswerAttachmentComposer({ disabled = false, onAttachmentsChange }: AnswerAttachmentComposerProps) {
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
   const [isBoardOpen, setIsBoardOpen] = useState(false);
   const [tool, setTool] = useState<Tool>("pen");
@@ -39,13 +54,41 @@ export function AnswerAttachmentComposer({ disabled = false }: AnswerAttachmentC
   const isDrawingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
+  const { upload: uploadFile } = useFileUpload({
+    purpose: "ATTEMPT_ATTACHMENT",
+    onError: (err) => {
+      console.error("Upload error:", err.message);
+    }
+  });
+
   useEffect(() => {
     attachmentsRef.current = attachments;
   }, [attachments]);
 
   useEffect(() => {
+    const completed = attachments.filter((a) => a.fileAssetId && !a.isUploading);
+    if (onAttachmentsChange && completed.length > 0) {
+      onAttachmentsChange(
+        completed.map((a) => ({
+          id: a.id,
+          fileAssetId: a.fileAssetId!,
+          url: a.uploadedUrl ?? a.previewUrl,
+          name: a.name,
+          type: a.type
+        }))
+      );
+    }
+  }, [attachments, onAttachmentsChange]);
+
+  useEffect(() => {
+    if (attachments.length === 0 && onAttachmentsChange) {
+      onAttachmentsChange([]);
+    }
+  }, [attachments.length, onAttachmentsChange]);
+
+  useEffect(() => {
     return () => {
-      attachmentsRef.current.forEach((attachment) => URL.revokeObjectURL(attachment.url));
+      attachmentsRef.current.forEach((attachment) => URL.revokeObjectURL(attachment.previewUrl));
     };
   }, []);
 
@@ -68,25 +111,58 @@ export function AnswerAttachmentComposer({ disabled = false }: AnswerAttachmentC
     context.lineJoin = "round";
   }, [isBoardOpen]);
 
+  const uploadAttachment = async (attachmentId: string, file: File | Blob, name: string) => {
+    const fileToUpload = file instanceof File ? file : new File([file], `${name}.png`, { type: "image/png" });
+
+    setAttachments((current) =>
+      current.map((a) => (a.id === attachmentId ? { ...a, isUploading: true } : a))
+    );
+
+    try {
+      const result: UploadedImage | null = await uploadFile(fileToUpload);
+      if (result) {
+        setAttachments((current) =>
+          current.map((a) =>
+            a.id === attachmentId
+              ? { ...a, fileAssetId: result.fileAssetId, uploadedUrl: result.url, isUploading: false }
+              : a
+          )
+        );
+      } else {
+        setAttachments((current) =>
+          current.map((a) => (a.id === attachmentId ? { ...a, isUploading: false } : a))
+        );
+      }
+    } catch {
+      setAttachments((current) =>
+        current.map((a) => (a.id === attachmentId ? { ...a, isUploading: false } : a))
+      );
+    }
+  };
+
   const addImageFiles = (files: FileList | null) => {
     if (!files || disabled) return;
 
-    const nextAttachments = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
-      .map((file) => ({
-        id: createAttachmentId(),
-        type: "image" as const,
-        name: file.name || "Imagen de solución",
-        url: URL.createObjectURL(file)
-      }));
+    const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
 
-    setAttachments((current) => [...current, ...nextAttachments]);
+    const newAttachments: AttachmentPreview[] = imageFiles.map((file) => ({
+      id: createAttachmentId(),
+      type: "image" as const,
+      name: file.name || "Imagen de soluci\u00f3n",
+      previewUrl: URL.createObjectURL(file)
+    }));
+
+    setAttachments((current) => [...current, ...newAttachments]);
+
+    newAttachments.forEach((att, index) => {
+      uploadAttachment(att.id, imageFiles[index], att.name);
+    });
   };
 
   const removeAttachment = (id: string) => {
     setAttachments((current) => {
       const target = current.find((attachment) => attachment.id === id);
-      if (target) URL.revokeObjectURL(target.url);
+      if (target) URL.revokeObjectURL(target.previewUrl);
       return current.filter((attachment) => attachment.id !== id);
     });
   };
@@ -154,21 +230,33 @@ export function AnswerAttachmentComposer({ disabled = false }: AnswerAttachmentC
 
     canvas.toBlob((blob) => {
       if (!blob) return;
+      const id = createAttachmentId();
+      const name = `Tablero ${attachments.filter((item) => item.type === "canvas").length + 1}`;
       setAttachments((current) => [
         ...current,
         {
-          id: createAttachmentId(),
+          id,
           type: "canvas",
-          name: `Tablero ${current.filter((item) => item.type === "canvas").length + 1}`,
-          url: URL.createObjectURL(blob)
+          name,
+          previewUrl: URL.createObjectURL(blob)
         }
       ]);
       setIsBoardOpen(false);
+      uploadAttachment(id, blob, name);
     }, "image/png");
   };
 
+  const anyUploading = attachments.some((a) => a.isUploading);
+
   return (
     <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-brand-navy/25 dark:bg-[#12243B]/40">
+      {anyUploading && (
+        <div className="flex items-center gap-2 rounded-xl bg-brand-blue/10 px-3 py-2 text-xs font-bold text-brand-blue dark:bg-brand-blue/20 dark:text-brand-blue">
+          <Loader2 size={14} className="animate-spin" />
+          Subiendo imagen a servidor...
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
         <label className={`inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 transition hover:border-brand-blue/35 hover:text-brand-blue dark:border-brand-navy/30 dark:bg-[#0E1B2F] dark:text-slate-300 ${disabled ? "pointer-events-none opacity-45" : ""}`}>
           <ImagePlus size={15} />
@@ -216,12 +304,12 @@ export function AnswerAttachmentComposer({ disabled = false }: AnswerAttachmentC
           type="button"
           disabled
           className="inline-flex h-10 cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-350 opacity-55 dark:border-brand-navy/30 dark:bg-[#0E1B2F]"
-          title="Próximamente"
+          title="Pr\u00f3ximamente"
         >
           <Mic size={15} />
           <span>Voz</span>
           <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] uppercase text-slate-400 dark:bg-slate-800">
-            Próximamente
+            Pr\u00f3ximamente
           </span>
         </button>
       </div>
@@ -231,9 +319,14 @@ export function AnswerAttachmentComposer({ disabled = false }: AnswerAttachmentC
           {attachments.map((attachment) => (
             <div
               key={attachment.id}
-              className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-brand-navy/25 dark:bg-[#0E1B2F]"
+              className={`group relative overflow-hidden rounded-xl border bg-white dark:bg-[#0E1B2F] ${attachment.isUploading ? "border-brand-blue/40 animate-pulse" : "border-slate-200 dark:border-brand-navy/25"}`}
             >
-              <img src={attachment.url} alt={attachment.name} className="h-24 w-full object-cover" />
+              <img src={attachment.previewUrl} alt={attachment.name} className="h-24 w-full object-cover" />
+              {attachment.isUploading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-black/40">
+                  <Loader2 size={20} className="animate-spin text-brand-blue" />
+                </div>
+              )}
               <div className="flex items-center justify-between gap-2 px-2 py-1.5">
                 <span className="truncate text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   {attachment.name}
@@ -241,7 +334,7 @@ export function AnswerAttachmentComposer({ disabled = false }: AnswerAttachmentC
                 <button
                   type="button"
                   onClick={() => removeAttachment(attachment.id)}
-                  disabled={disabled}
+                  disabled={disabled || attachment.isUploading}
                   className="rounded-md p-1 text-slate-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
                   title="Quitar adjunto"
                 >
@@ -259,10 +352,10 @@ export function AnswerAttachmentComposer({ disabled = false }: AnswerAttachmentC
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-brand-navy/20">
               <div>
                 <h4 className="text-sm font-black text-brand-navy dark:text-white">
-                  Tablero de resolución
+                  Tablero de resoluci\u00f3n
                 </h4>
                 <p className="text-[11px] font-semibold text-slate-400">
-                  Dibuja fórmulas, esquemas o procedimientos y guárdalo como imagen.
+                  Dibuja f\u00f3rmulas, esquemas o procedimientos y gu\u00e1rdalo como imagen.
                 </p>
               </div>
               <button
@@ -285,7 +378,7 @@ export function AnswerAttachmentComposer({ disabled = false }: AnswerAttachmentC
                 }`}
               >
                 <PenLine size={14} />
-                Lápiz
+                L\u00e1piz
               </button>
               <button
                 type="button"

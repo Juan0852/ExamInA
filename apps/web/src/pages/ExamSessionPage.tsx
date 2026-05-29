@@ -22,7 +22,7 @@ import { useExamSessionViewModel } from "../viewmodels/useExamSessionViewModel";
 import { apiService } from "../shared/services/api.service";
 import type { CorrectionFeedback } from "../viewmodels/useQuestionViewModel";
 import { MathText } from "../shared/components/MathText";
-import { AnswerAttachmentComposer } from "../shared/components/AnswerAttachmentComposer";
+import { AnswerAttachmentComposer, type AnswerAttachment } from "../shared/components/AnswerAttachmentComposer";
 
 interface EvaluateWrittenAnswerApiResponse {
   data: {
@@ -62,6 +62,7 @@ export function ExamSessionPage() {
   const [correction, setCorrection] = useState<CorrectionFeedback | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
 
   // Estados de la UI del Modo Enfoque
   const [isTimerOpen, setIsTimerOpen] = useState(true);
@@ -509,6 +510,9 @@ export function ExamSessionPage() {
               <AnswerAttachmentComposer
                 key={currentQuestion.id}
                 disabled={isSubmitting || isExamClosed || isQuestionAnswered}
+                onAttachmentsChange={(attachments) => {
+                  setAttachmentIds(attachments.map((a) => a.fileAssetId));
+                }}
               />
 
               {submitError && (

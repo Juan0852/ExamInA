@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import { apiService } from "../shared/services/api.service";
+import { fileUploadService } from "../shared/services/file-upload.service";
 import { useQuery } from "@tanstack/react-query";
 import { useAchievementToasts } from "../shared/achievements/achievement-toast.store";
 import type { AchievementsResponse } from "../shared/achievements/types";
@@ -179,6 +180,11 @@ export function OnboardingPage() {
       return;
     }
 
+    if (isUploadingAvatar) {
+      setSubmitError("Espera a que se suba la imagen de perfil.");
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -225,7 +231,9 @@ export function OnboardingPage() {
     }
   };
 
-  const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (!file) {
@@ -235,7 +243,16 @@ export function OnboardingPage() {
     const previewUrl = URL.createObjectURL(file);
     setAvatarPreviewUrl(previewUrl);
     setAvatarFileName(file.name);
-    setAvatarUrl("");
+    setIsUploadingAvatar(true);
+
+    try {
+      const result = await fileUploadService.uploadImage(file, "AVATAR");
+      setAvatarUrl(result.url);
+    } catch {
+      setAvatarUrl("");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   // Opciones de horas de estudio semanales
