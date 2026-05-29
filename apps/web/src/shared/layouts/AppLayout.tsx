@@ -1,6 +1,8 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth.store";
 import { Sidebar } from "../components/Sidebar";
+import { useUiStore } from "../../stores/ui.store";
+import { NotificationDrawer } from "../components/NotificationDrawer";
 
 /**
  * AppLayout: Layout de protección de rutas privadas.
@@ -9,6 +11,7 @@ import { Sidebar } from "../components/Sidebar";
  */
 export function AppLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
 
   // Redirección directa al login en caso de no contar con sesión válida
   if (!isAuthenticated) {
@@ -20,8 +23,13 @@ export function AppLayout() {
       {/* Sidebar Lateral responsivo */}
       <Sidebar />
 
+      {/* Global Notifications Drawer */}
+      <NotificationDrawer />
+
       {/* Área del contenido principal con espaciado adaptativo */}
-      <div className="flex-1 flex flex-col min-w-0 md:pl-72 pt-16 md:pt-0">
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 pt-16 md:pt-0 ${
+        sidebarCollapsed ? "md:pl-20" : "md:pl-72"
+      }`}>
         <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-8 sm:px-6 lg:px-8">
           <Outlet />
         </main>

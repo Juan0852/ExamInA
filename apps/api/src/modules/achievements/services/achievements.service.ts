@@ -9,6 +9,7 @@ import type { AchievementCode } from "../entities/achievement.entity";
 import { AchievementMapper } from "../mappers/achievement.mapper";
 import type { AchievementsRepository, AchievementEvaluationStats } from "../repositories/achievements.repository";
 import { ACHIEVEMENT_CATALOG } from "./achievement-catalog";
+import { NotificationsService } from "../../notifications/services/notifications.service";
 
 export const ACHIEVEMENTS_REPOSITORY = Symbol("ACHIEVEMENTS_REPOSITORY");
 
@@ -17,7 +18,9 @@ export class AchievementsService implements OnModuleInit {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
     @Inject(ACHIEVEMENTS_REPOSITORY)
-    private readonly achievementsRepository: AchievementsRepository
+    private readonly achievementsRepository: AchievementsRepository,
+    @Inject(NotificationsService)
+    private readonly notificationsService: NotificationsService
   ) {}
 
   async onModuleInit() {
@@ -36,6 +39,17 @@ export class AchievementsService implements OnModuleInit {
       userId,
       eligibleCodes
     );
+
+    for (const ach of newlyUnlockedAchievements) {
+      await this.notificationsService.createNotification(
+        userId,
+        "ACHIEVEMENT_UNLOCK",
+        "¡Nuevo logro desbloqueado!",
+        `Has desbloqueado la medalla "${ach.title}".`,
+        { achievementId: ach.id, achievementCode: ach.code }
+      );
+    }
+
     return newlyUnlockedAchievements.map(AchievementMapper.toResponse);
   }
 

@@ -24,4 +24,6 @@ export interface AuthRepository {
     }
   ): Promise<AuthenticatedUserEntity>;
   isUsernameAvailable(username: string, currentUserId: string): Promise<boolean>;
+  findFriends(userId: string): Promise<any[]>;
 }
+

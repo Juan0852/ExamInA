@@ -6,6 +6,7 @@ import type { SyncExamSessionActivityRequestDto } from "../dtos/sync-exam-sessio
 import { ExamSessionMapper } from "../mappers/exam-session.mapper";
 import type { ExamSessionsRepository } from "../repositories/exam-sessions.repository";
 import { AchievementsService } from "../../achievements/services/achievements.service";
+import { NotificationsService } from "../../notifications/services/notifications.service";
 
 export const EXAM_SESSIONS_REPOSITORY = Symbol("EXAM_SESSIONS_REPOSITORY");
 
@@ -15,7 +16,8 @@ export class ExamSessionsService {
     @Inject(AuthService) private readonly authService: AuthService,
     @Inject(EXAM_SESSIONS_REPOSITORY)
     private readonly examSessionsRepository: ExamSessionsRepository,
-    @Inject(AchievementsService) private readonly achievementsService: AchievementsService
+    @Inject(AchievementsService) private readonly achievementsService: AchievementsService,
+    @Inject(NotificationsService) private readonly notificationsService: NotificationsService
   ) {}
 
   async findById(
@@ -77,6 +79,14 @@ export class ExamSessionsService {
     );
 
     const newlyUnlockedAchievements = await this.achievementsService.evaluateForUser(user.id);
+
+    await this.notificationsService.createNotification(
+      user.id,
+      "EXAM_FINISHED",
+      "Examen finalizado",
+      `Has completado el examen "${examSession.title}" con un puntaje de ${examSession.totalScore ?? 0}/${examSession.maxScore ?? 0}.`,
+      { examSessionId: examSession.id, score: examSession.totalScore, maxScore: examSession.maxScore }
+    );
 
     const response = ExamSessionMapper.toEnvelope(examSession);
     return {

@@ -151,4 +151,60 @@ export class PrismaAuthRepository implements AuthRepository {
 
     return `${base}_${suffix}`;
   }
+
+  async findFriends(userId: string): Promise<any[]> {
+    const friendships = await this.prismaService.getClient().friendship.findMany({
+      where: {
+        status: "ACCEPTED",
+        OR: [
+          { requesterId: userId },
+          { receiverId: userId }
+        ]
+      },
+      include: {
+        requester: {
+          select: {
+            id: true,
+            displayName: true,
+            photoUrl: true,
+            profile: {
+              select: {
+                username: true,
+                level: true,
+                bio: true
+              }
+            }
+          }
+        },
+        receiver: {
+          select: {
+            id: true,
+            displayName: true,
+            photoUrl: true,
+            profile: {
+              select: {
+                username: true,
+                level: true,
+                bio: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return friendships.map((f) => {
+      const isRequesterMe = f.requesterId === userId;
+      const friend = isRequesterMe ? f.receiver : f.requester;
+      return {
+        id: friend.id,
+        displayName: friend.displayName,
+        photoUrl: friend.photoUrl,
+        username: friend.profile?.username ?? null,
+        level: friend.profile?.level ?? 1,
+        bio: friend.profile?.bio ?? null
+      };
+    });
+  }
 }
+

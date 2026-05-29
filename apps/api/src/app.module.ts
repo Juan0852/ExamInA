@@ -13,6 +13,7 @@ import { QuestionsModule } from "./modules/questions/questions.module";
 import { SharedExamsModule } from "./modules/shared-exams/shared-exams.module";
 import { SubjectsModule } from "./modules/subjects/subjects.module";
 import { TopicsModule } from "./modules/topics/topics.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 
 @Module({
   imports: [
@@ -31,7 +32,8 @@ import { TopicsModule } from "./modules/topics/topics.module";
     QuestionsModule,
     SharedExamsModule,
     SubjectsModule,
-    TopicsModule
+    TopicsModule,
+    NotificationsModule
   ]
 })
 export class AppModule {}

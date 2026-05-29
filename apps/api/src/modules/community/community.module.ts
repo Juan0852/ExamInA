@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { DatabaseModule } from "../../shared/database/database.module";
 import { AuthModule } from "../auth/auth.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 import { CommunityPostsController } from "./controllers/community-posts.controller";
 import { PrismaCommunityPostsRepository } from "./repositories/prisma-community-posts.repository";
 import {
@@ -9,7 +10,7 @@ import {
 } from "./services/community-posts.service";
 
 @Module({
-  imports: [AuthModule, DatabaseModule],
+  imports: [AuthModule, DatabaseModule, NotificationsModule],
   controllers: [CommunityPostsController],
   providers: [
     CommunityPostsService,

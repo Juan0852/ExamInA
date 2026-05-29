@@ -116,4 +116,70 @@ export class PrismaSharedExamsRepository implements SharedExamsRepository {
       examSessionId: examSession.id
     };
   }
+
+  async findMine(userId: string): Promise<SharedExamSummaryRecord[]> {
+    return this.prismaService.getClient().sharedExam.findMany({
+      where: {
+        ownerId: userId
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            displayName: true,
+            photoUrl: true,
+            profile: {
+              select: {
+                username: true
+              }
+            }
+          }
+        },
+        _count: {
+          select: {
+            questions: true
+          }
+        }
+      }
+    });
+  }
+
+  async updateVisibility(
+    sharedExamId: string,
+    userId: string,
+    visibility: CommunityVisibility,
+    status: SharedExamStatus
+  ): Promise<SharedExamSummaryRecord> {
+    return this.prismaService.getClient().sharedExam.update({
+      where: {
+        id: sharedExamId,
+        ownerId: userId
+      },
+      data: {
+        visibility,
+        status
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            displayName: true,
+            photoUrl: true,
+            profile: {
+              select: {
+                username: true
+              }
+            }
+          }
+        },
+        _count: {
+          select: {
+            questions: true
+          }
+        }
+      }
+    });
+  }
 }
+

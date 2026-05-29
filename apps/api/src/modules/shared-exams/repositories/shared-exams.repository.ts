@@ -1,4 +1,4 @@
-import type { SharedExam } from "@prisma/client";
+import type { SharedExam, CommunityVisibility, SharedExamStatus } from "@prisma/client";
 
 export type SharedExamSummaryRecord = SharedExam & {
   owner: {
@@ -28,6 +28,13 @@ export type SharedExamStartRecord = SharedExam & {
 export interface SharedExamsRepository {
   findPublished(input?: { subjectId?: string }): Promise<SharedExamSummaryRecord[]>;
   findPublishedById(sharedExamId: string): Promise<SharedExamStartRecord | null>;
+  findMine(userId: string): Promise<SharedExamSummaryRecord[]>;
+  updateVisibility(
+    sharedExamId: string,
+    userId: string,
+    visibility: CommunityVisibility,
+    status: SharedExamStatus
+  ): Promise<SharedExamSummaryRecord>;
   startForUser(input: {
     sharedExam: SharedExamStartRecord;
     userId: string;

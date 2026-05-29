@@ -1,8 +1,11 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { CommunityVisibility, SharedExamStatus } from "@prisma/client";
 import { AuthService } from "../../auth/services/auth.service";
 import type { SharedExamsResponseDto, StartSharedExamResponseDto } from "../dtos/shared-exam-response.dto";
 import { SharedExamMapper } from "../mappers/shared-exam.mapper";
 import type { SharedExamsRepository } from "../repositories/shared-exams.repository";
+import { NotificationsService } from "../../notifications/services/notifications.service";
+
 
 export const SHARED_EXAMS_REPOSITORY = Symbol("SHARED_EXAMS_REPOSITORY");
 
@@ -10,8 +13,10 @@ export const SHARED_EXAMS_REPOSITORY = Symbol("SHARED_EXAMS_REPOSITORY");
 export class SharedExamsService {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
-    @Inject(SHARED_EXAMS_REPOSITORY) private readonly sharedExamsRepository: SharedExamsRepository
+    @Inject(SHARED_EXAMS_REPOSITORY) private readonly sharedExamsRepository: SharedExamsRepository,
+    @Inject(NotificationsService) private readonly notificationsService: NotificationsService
   ) {}
+
 
   async findPublished(input?: { subjectId?: string }): Promise<SharedExamsResponseDto> {
     const sharedExams = await this.sharedExamsRepository.findPublished(input);
@@ -21,6 +26,58 @@ export class SharedExamsService {
       meta: {
         total: sharedExams.length
       },
+      error: null
+    };
+  }
+
+  async findMine(authorizationHeader: string | undefined): Promise<SharedExamsResponseDto> {
+    const user = await this.authService.resolveAuthenticatedUser(authorizationHeader);
+    const sharedExams = await this.sharedExamsRepository.findMine(user.id);
+
+    return {
+      data: sharedExams.map(SharedExamMapper.toSummaryResponse),
+      meta: {
+        total: sharedExams.length
+      },
+      error: null
+    };
+  }
+
+  async updateVisibility(
+    sharedExamId: string,
+    visibility: string,
+    authorizationHeader: string | undefined
+  ): Promise<any> {
+    const user = await this.authService.resolveAuthenticatedUser(authorizationHeader);
+
+    if (visibility !== "PUBLIC" && visibility !== "PRIVATE" && visibility !== "FRIENDS_ONLY") {
+      throw new BadRequestException("Valor de visibilidad inválido");
+    }
+
+    const prismaVisibility = visibility as CommunityVisibility;
+    const prismaStatus = prismaVisibility === CommunityVisibility.PRIVATE ? SharedExamStatus.DRAFT : SharedExamStatus.PUBLISHED;
+
+    const updated = await this.sharedExamsRepository.updateVisibility(
+      sharedExamId,
+      user.id,
+      prismaVisibility,
+      prismaStatus
+    );
+
+    if (prismaVisibility === CommunityVisibility.PUBLIC) {
+      await this.notificationsService.createNotification(
+        user.id,
+        "EXAM_CREATED",
+        "Examen compartido publicado",
+        `Tu examen "${updated.title}" ya está disponible públicamente en la plataforma.`,
+        { sharedExamId: updated.id }
+      );
+    }
+
+
+    return {
+      data: SharedExamMapper.toSummaryResponse(updated),
+      meta: {},
       error: null
     };
   }
@@ -48,3 +105,4 @@ export class SharedExamsService {
     };
   }
 }
+

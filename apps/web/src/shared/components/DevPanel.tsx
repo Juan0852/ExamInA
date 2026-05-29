@@ -106,7 +106,7 @@ export function DevPanel() {
   if (!DEV_PANEL_ENABLED) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 z-[9999] flex flex-col items-start gap-1">
+    <div className="fixed bottom-4 right-4 z-[9999] flex flex-col items-end gap-1">
       {/* Panel expandido */}
       {isOpen && (
         <div className="bg-white dark:bg-[#0E1B2F] border border-amber-400/60 dark:border-amber-500/40 rounded-2xl shadow-2xl p-4 w-72 mb-1">

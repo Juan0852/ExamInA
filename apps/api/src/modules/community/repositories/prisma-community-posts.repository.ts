@@ -58,4 +58,15 @@ export class PrismaCommunityPostsRepository implements CommunityPostsRepository 
       include: postInclude
     });
   }
+
+  async findMine(authorId: string): Promise<CommunityPostEntity[]> {
+    return this.prismaService.getClient().communityPost.findMany({
+      where: {
+        authorId
+      },
+      orderBy: { createdAt: "desc" },
+      include: postInclude
+    });
+  }
 }
+

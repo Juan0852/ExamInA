@@ -50,6 +50,32 @@ export class AuthController {
     return this.authService.updatePreferences(preferencesDto, authorizationHeader);
   }
 
+  @Get("friends")
+  getFriends(@Headers("authorization") authorizationHeader?: string) {
+    return this.authService.findFriends(authorizationHeader);
+  }
+
+  @Post("friends/request")
+  sendFriendRequest(
+    @Body() body: { friendUsername: string },
+    @Headers("authorization") authorizationHeader?: string
+  ) {
+    return this.authService.sendFriendRequest(authorizationHeader, body.friendUsername);
+  }
+
+  @Post("friends/respond")
+  respondFriendRequest(
+    @Body() body: { friendshipId: string; action: "ACCEPT" | "REJECT" },
+    @Headers("authorization") authorizationHeader?: string
+  ) {
+    return this.authService.respondFriendRequest(authorizationHeader, body.friendshipId, body.action);
+  }
+
+  @Get("friends/pending")
+  getPendingFriendRequests(@Headers("authorization") authorizationHeader?: string) {
+    return this.authService.findPendingFriendRequests(authorizationHeader);
+  }
+
   @Put("profile")
   updateProfile(
     @Body(new ZodValidationPipe(updateProfileRequestSchema)) profileDto: UpdateProfileRequestDto,
@@ -58,3 +84,4 @@ export class AuthController {
     return this.authService.updateProfile(profileDto, authorizationHeader);
   }
 }
+
