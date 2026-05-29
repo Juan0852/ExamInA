@@ -1,7 +1,13 @@
+import { Platform } from "react-native";
+import Constants from "expo-constants";
 import { useAuthStore } from "../stores/auth.store";
 
-// Base URL de la API obtenida desde las variables de entorno de Expo o fallback de desarrollo
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api/v1";
+// Obtenemos la IP de tu computadora dinámicamente desde Expo (funciona para emulador y dispositivo físico)
+const debuggerHost = Constants.expoConfig?.hostUri;
+const localIp = debuggerHost ? debuggerHost.split(":")[0] : (Platform.OS === "android" ? "10.0.2.2" : "localhost");
+
+const DEV_FALLBACK_URL = `http://${localIp}:3000/api/v1`;
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEV_FALLBACK_URL;
 
 /**
  * Define las opciones de configuración para las peticiones HTTP.
@@ -61,8 +67,8 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
         errorMessage = response.statusText || "Error de red o servidor offline.";
       }
       
-      // Si la sesión expiró (401), deslogueamos automáticamente
-      if (response.status === 401) {
+      // Si la sesión expiró (401) o el token de Firebase caducó, deslogueamos automáticamente
+      if (response.status === 401 || errorMessage.includes("Firebase ID token has expired") || errorMessage.includes("auth/id-token-expired")) {
         await useAuthStore.getState().clearSession();
       }
       

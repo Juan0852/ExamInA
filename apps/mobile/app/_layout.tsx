@@ -1,25 +1,59 @@
 import { useEffect } from "react";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { useAuthStore } from "../src/stores/auth.store";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, LogBox, Platform } from "react-native";
 import { theme } from "../src/theme";
-import { SplashScreen3D } from "../src/components/SplashScreen3D";
+import { StatusBar } from "expo-status-bar";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import * as NavigationBar from "expo-navigation-bar";
+
+LogBox.ignoreLogs(["THREE.WebGLRenderer: WebGL 1 support was deprecated"]);
+
+const queryClient = new QueryClient();
 
 export default function RootLayout() {
-  const { initializeSession, isLoading } = useAuthStore();
+  const { initializeSession, isLoading, isAuthenticated } = useAuthStore();
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
     initializeSession();
+
+    if (Platform.OS === "android") {
+      NavigationBar.setVisibilityAsync("hidden");
+    }
   }, []);
 
+  useEffect(() => {
+    if (isLoading) return;
+
+    const isLoginScreen = segments[0] === "login";
+
+    if (!isAuthenticated && !isLoginScreen) {
+      // Redirigir al login si no está autenticado y no está en la pantalla de login
+      router.replace("/login");
+    } else if (isAuthenticated && isLoginScreen) {
+      // Redirigir al dashboard si está autenticado pero intenta ir al login
+      router.replace("/(tabs)/dashboard");
+    }
+  }, [isLoading, isAuthenticated, segments]);
+
   if (isLoading) {
-    return <SplashScreen3D />;
+    // Retornamos un ActivityIndicator nativo muy ligero en lugar del modelo 3D de 83MB que congela el emulador
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <StatusBar style="dark" />
+      </View>
+    );
   }
 
   return (
-    <View style={styles.container}>
-      <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
-    </View>
+    <QueryClientProvider client={queryClient}>
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+        <Stack screenOptions={{ headerShown: false, animation: "fade" }} />
+      </View>
+    </QueryClientProvider>
   );
 }
 

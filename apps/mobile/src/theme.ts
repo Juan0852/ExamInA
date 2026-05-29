@@ -10,15 +10,15 @@ export const theme = {
     brandCyan: "#33D6D0",
     brandSky: "#E8F7FF",
 
-    // Dark theme (Sleek Academic dark mode as default/main preference for mobile screens)
-    background: "#07111F",
-    surface: "#0E1B2F",
-    surfaceMuted: "#12243B",
-    border: "#223A59",
-    borderStrong: "#2D5E91",
-    text: "#EAF2FF",
-    textMuted: "#B7C6D9",
-    textSoft: "#8FA4BC",
+    // Light theme (as requested, dark mode is fully disabled)
+    background: "#F8FAFC",
+    surface: "#FFFFFF",
+    surfaceMuted: "#F1F5F9",
+    border: "#D8E2EE",
+    borderStrong: "#AFC1D6",
+    text: "#0F172A",
+    textMuted: "#475569",
+    textSoft: "#64748B",
 
     // Semantic States
     success: "#16A34A",

@@ -56,8 +56,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         });
       }
     } catch {
-      await AsyncStorage.removeItem("examina_token");
-      await AsyncStorage.removeItem("examina_user");
+      try {
+        await AsyncStorage.removeItem("examina_token");
+        await AsyncStorage.removeItem("examina_user");
+      } catch (e) {
+        // Ignore secondary storage errors
+      }
       set({
         token: null,
         user: null,

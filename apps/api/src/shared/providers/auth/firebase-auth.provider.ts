@@ -114,14 +114,21 @@ export class FirebaseAuthProvider implements AuthProvider {
   async verifyToken(token: string): Promise<AuthUser> {
     this.initializeAdminApp();
 
-    const decodedToken = await getAuth().verifyIdToken(token);
+    try {
+      const decodedToken = await getAuth().verifyIdToken(token);
 
-    return {
-      firebaseUid: decodedToken.uid,
-      email: decodedToken.email,
-      displayName: decodedToken.name,
-      photoUrl: decodedToken.picture
-    };
+      return {
+        firebaseUid: decodedToken.uid,
+        email: decodedToken.email,
+        displayName: decodedToken.name,
+        photoUrl: decodedToken.picture
+      };
+    } catch (error: any) {
+      if (error?.code?.startsWith("auth/")) {
+        throw new UnauthorizedException(error.message || "Invalid or expired Firebase ID token.");
+      }
+      throw error;
+    }
   }
 
   private handleAuthError(message?: string): never {
