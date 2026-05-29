@@ -1,12 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Medal, Sparkles, Trophy } from "lucide-react";
+import { useState, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarDays, Medal, Sparkles, Trophy, Camera, Loader2 } from "lucide-react";
 import { useAuthStore } from "../stores/auth.store";
 import { AchievementMedal } from "../shared/achievements/AchievementMedal";
 import type { AchievementsResponse } from "../shared/achievements/types";
 import { apiService } from "../shared/services/api.service";
+import { fileUploadService } from "../shared/services/file-upload.service";
 
 export function ProfilePage() {
   const user = useAuthStore((state) => state.user);
+  const setSession = useAuthStore((state) => state.setSession);
+  const token = useAuthStore((state) => state.token);
+  const queryClient = useQueryClient();
+
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const achievementsQuery = useQuery<AchievementsResponse, Error>({
     queryKey: ["achievements-me"],
     queryFn: () => apiService.get<AchievementsResponse>("/achievements/me")
@@ -20,6 +30,44 @@ export function ProfilePage() {
     0
   );
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Selecciona un archivo de imagen.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("La imagen no puede superar 5 MB.");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setAvatarError(null);
+
+    try {
+      const result = await fileUploadService.uploadImage(file, "AVATAR");
+
+      await apiService.put("/auth/profile", {
+        photoUrl: result.url
+      });
+
+      const sessionResponse = await apiService.get<{ data: { user: typeof user } }>("/auth/me");
+      if (sessionResponse.data?.user) {
+        setSession(token, sessionResponse.data.user);
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["achievements-me"] });
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : "Error al subir la imagen.");
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-8">
       <section className="overflow-hidden rounded-3xl border border-brand-blue/10 bg-white shadow-xl shadow-brand-blue/5 dark:border-brand-cyan/15 dark:bg-[#0E1B2F]">
@@ -27,17 +75,36 @@ export function ProfilePage() {
           <div className="absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_20%_20%,white_0,transparent_24%),radial-gradient(circle_at_80%_10%,white_0,transparent_18%)]" />
           <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-center gap-4">
-              {user?.photoUrl ? (
-                <img
-                  src={user.photoUrl}
-                  alt={user.displayName || "Perfil"}
-                  className="h-20 w-20 rounded-3xl border-4 border-white/60 object-cover shadow-xl"
+              <label className="group relative cursor-pointer">
+                {user?.photoUrl ? (
+                  <img
+                    src={user.photoUrl}
+                    alt={user.displayName || "Perfil"}
+                    className="h-20 w-20 rounded-3xl border-4 border-white/60 object-cover shadow-xl transition group-hover:brightness-90"
+                  />
+                ) : (
+                  <div className="grid h-20 w-20 place-items-center rounded-3xl border-4 border-white/60 bg-white/20 text-3xl font-black shadow-xl transition group-hover:bg-white/30">
+                    {(user?.profile?.username || user?.displayName || user?.email || "E").charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {isUploadingAvatar ? (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/40">
+                    <Loader2 size={24} className="animate-spin text-white" />
+                  </div>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
+                    <Camera size={22} className="text-white drop-shadow-lg" />
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  disabled={isUploadingAvatar}
+                  onChange={handleAvatarChange}
                 />
-              ) : (
-                <div className="grid h-20 w-20 place-items-center rounded-3xl border-4 border-white/60 bg-white/20 text-3xl font-black shadow-xl">
-                  {(user?.profile?.username || user?.displayName || user?.email || "E").charAt(0).toUpperCase()}
-                </div>
-              )}
+              </label>
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-white/75">
                   Perfil ExamInA
@@ -63,6 +130,12 @@ export function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {avatarError && (
+          <div className="mx-6 mt-3 rounded-xl bg-red-50 px-4 py-2 text-xs font-bold text-red-500 dark:bg-red-950/20 dark:text-red-400">
+            {avatarError}
+          </div>
+        )}
       </section>
 
       {achievementsQuery.isLoading ? (
@@ -79,11 +152,11 @@ export function ProfilePage() {
             title="Medallas desbloqueadas"
             description="Tus logros activos y la experiencia que ya sumaste."
             achievements={unlockedAchievements}
-            emptyText="Todavía no has desbloqueado medallas. Completa tu perfil para conseguir la primera."
+            emptyText="Todav\u00eda no has desbloqueado medallas. Completa tu perfil para conseguir la primera."
           />
 
           <AchievementSection
-            title="Próximas medallas"
+            title="Pr\u00f3ximas medallas"
             description="Retos pendientes para seguir subiendo de nivel."
             achievements={lockedAchievements}
             locked
