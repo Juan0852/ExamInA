@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Medal, Sparkles, Trophy, Camera, Loader2 } from "lucide-react";
+import { CalendarDays, Medal, Sparkles, Trophy, Camera, Loader2, Edit } from "lucide-react";
 import { useAuthStore } from "../stores/auth.store";
 import { AchievementMedal } from "../shared/achievements/AchievementMedal";
 import type { AchievementsResponse } from "../shared/achievements/types";
@@ -16,6 +16,64 @@ export function ProfilePage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editDisplayName, setEditDisplayName] = useState("");
+  const [editUsername, setEditUsername] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editTargetUniversity, setEditTargetUniversity] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const openEditModal = () => {
+    setEditDisplayName(user?.displayName || "");
+    setEditUsername(user?.profile?.username || "");
+    setEditBio(user?.profile?.bio || "");
+    setEditTargetUniversity(user?.profile?.targetUniversity || "");
+    setSaveError(null);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !user) return;
+
+    const usernameRegex = /^[a-z0-9_]+$/;
+    const cleanUsername = editUsername.trim().toLowerCase();
+
+    if (cleanUsername && !usernameRegex.test(cleanUsername)) {
+      setSaveError("El nombre de usuario solo puede contener letras minúsculas, números y guiones bajos.");
+      return;
+    }
+    if (cleanUsername.length < 3 || cleanUsername.length > 32) {
+      setSaveError("El nombre de usuario debe tener entre 3 y 32 caracteres.");
+      return;
+    }
+
+    setIsSavingProfile(true);
+    setSaveError(null);
+
+    try {
+      const response = await apiService.put<{
+        data: {
+          user: typeof user;
+        };
+      }>("/auth/profile", {
+        displayName: editDisplayName.trim() || undefined,
+        username: cleanUsername || undefined,
+        bio: editBio.trim() || "",
+        targetUniversity: editTargetUniversity.trim() || ""
+      });
+
+      setSession(token, response.data.user);
+      setIsEditModalOpen(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Error al guardar el perfil.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
 
   const achievementsQuery = useQuery<AchievementsResponse, Error>({
     queryKey: ["achievements-me"],
@@ -135,18 +193,39 @@ export function ProfilePage() {
                   onChange={handleAvatarChange}
                 />
               </label>
-              <div>
+              <div className="flex-1">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-white/75">
                   Perfil ExamInA
                 </p>
-                <h1 className="mt-1 text-3xl font-black tracking-tight">
-                  {user?.profile?.username || user?.displayName || "Estudiante"}
-                </h1>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <h1 className="text-3xl font-black tracking-tight">
+                    {user?.displayName || user?.profile?.username || "Estudiante"}
+                  </h1>
+                  {user?.profile?.username && user?.displayName && (
+                    <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-extrabold tracking-wide backdrop-blur">
+                      @{user.profile.username}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-1 max-w-xl text-sm font-semibold text-white/80">
                   {user?.profile?.bio || "Tu vitrina de progreso, rachas y medallas desbloqueadas."}
                 </p>
+                {user?.profile?.targetUniversity && (
+                  <p className="mt-2 flex items-center gap-1.5 text-xs font-extrabold text-white/95">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-cyan animate-pulse" />
+                    Universidad objetivo: <span className="text-brand-cyan">{user.profile.targetUniversity}</span>
+                  </p>
+                )}
+                <button
+                  onClick={openEditModal}
+                  className="mt-3.5 flex items-center gap-1.5 rounded-2xl bg-white/15 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-white hover:bg-white/25 border border-white/10 hover:border-white/25 backdrop-blur transition cursor-pointer"
+                >
+                  <Edit size={13} className="text-brand-cyan" />
+                  Editar Perfil
+                </button>
               </div>
             </div>
+
 
             <div className="grid grid-cols-2 gap-3 text-center sm:min-w-64">
               <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur">
@@ -184,9 +263,127 @@ export function ProfilePage() {
           emptyText="No se encontraron medallas."
         />
       )}
+
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md scale-100 rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-brand-cyan/15 dark:bg-[#0E1B2F] animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-brand-navy/30">
+              <h2 className="text-lg font-black text-brand-navy dark:text-white">
+                Editar Perfil
+              </h2>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-brand-navy/30"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="mt-4 space-y-4">
+              {saveError && (
+                <div className="rounded-xl bg-red-50 px-4 py-2.5 text-xs font-bold text-red-500 dark:bg-red-950/20 dark:text-red-400">
+                  {saveError}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                  Nombre Completo
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan"
+                  placeholder="Tu nombre completo"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                  Nombre de Usuario
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-extrabold text-slate-400">
+                    @
+                  </span>
+                  <input
+                    type="text"
+                    required
+                    value={editUsername}
+                    onChange={(e) => setEditUsername(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-8 pr-4 text-sm font-semibold outline-none focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan"
+                    placeholder="nombre_de_usuario"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Min. 3 caracteres. Solo minúsculas, números y guiones bajos (_).
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                  Universidad Objetivo
+                </label>
+                <input
+                  type="text"
+                  value={editTargetUniversity}
+                  onChange={(e) => setEditTargetUniversity(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan"
+                  placeholder="Ej. UNAM, MIT, UBA..."
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                  Descripción (Bio)
+                </label>
+                <textarea
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  maxLength={240}
+                  rows={3}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan resize-none"
+                  placeholder="Cuéntanos un poco sobre ti..."
+                />
+                <div className="text-right text-[10px] text-slate-400">
+                  {editBio.length}/240
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={isSavingProfile}
+                  className="flex-1 rounded-2xl border border-slate-200 py-3 text-xs font-black uppercase tracking-wider text-slate-500 hover:bg-slate-50 dark:border-brand-navy/30 dark:text-slate-400 dark:hover:bg-brand-navy/20 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="flex-1 rounded-2xl bg-gradient-to-r from-brand-blue to-brand-cyan py-3 text-xs font-black uppercase tracking-wider text-white hover:brightness-105 shadow-md shadow-brand-blue/20 transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isSavingProfile ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    "Guardar Cambios"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 interface AchievementSectionProps {
   title: string;
