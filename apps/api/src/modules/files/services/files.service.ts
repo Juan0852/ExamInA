@@ -27,14 +27,15 @@ export class FilesService {
       contentType: dto.contentType
     });
 
-    const publicUrl = dto.visibility === "PUBLIC" ? this.storageProvider.getPublicUrl(presigned.key) : null;
+    const isPublic = dto.visibility === "PUBLIC";
+    const url = isPublic ? this.storageProvider.getPublicUrl(presigned.key) : null;
     const fileType = this.inferFileType(dto.contentType);
 
     const fileAsset = await this.filesRepository.create({
       userId: user.id,
       bucket: presigned.bucket,
       key: presigned.key,
-      url: publicUrl,
+      url,
       mimeType: dto.contentType,
       sizeBytes: 0,
       originalFilename: dto.fileName,
@@ -75,7 +76,9 @@ export class FilesService {
       : fileAsset;
 
     if (!updated.url) {
-      const url = this.storageProvider.getPublicUrl(updated.key);
+      const url = updated.visibility === "PUBLIC"
+        ? this.storageProvider.getPublicUrl(updated.key)
+        : await this.storageProvider.getPresignedGetUrl(updated.key);
       await this.filesRepository.updateUrl(updated.id, url);
       updated.url = url;
     }
@@ -94,10 +97,15 @@ export class FilesService {
       throw new NotFoundException("Archivo no encontrado.");
     }
 
-    if (!fileAsset.url) {
-      const url = this.storageProvider.getPublicUrl(fileAsset.key);
-      await this.filesRepository.updateUrl(fileAsset.id, url);
-      fileAsset.url = url;
+    if (fileAsset.visibility === "PUBLIC") {
+      if (!fileAsset.url) {
+        const url = this.storageProvider.getPublicUrl(fileAsset.key);
+        await this.filesRepository.updateUrl(fileAsset.id, url);
+        fileAsset.url = url;
+      }
+    } else {
+      const freshUrl = await this.storageProvider.getPresignedGetUrl(fileAsset.key);
+      fileAsset.url = freshUrl;
     }
 
     return FileAssetMapper.toResponse(fileAsset);

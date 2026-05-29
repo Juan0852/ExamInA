@@ -12,4 +12,5 @@ export interface StorageProvider {
   deleteObject(key: string): Promise<void>;
   getObjectMetadata(key: string): Promise<{ contentLength: number; contentType: string } | null>;
   getPublicUrl(key: string): string;
+  getPresignedGetUrl(key: string, expiresInSeconds?: number): Promise<string>;
 }
