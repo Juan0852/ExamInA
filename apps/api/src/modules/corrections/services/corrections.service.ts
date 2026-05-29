@@ -7,6 +7,9 @@ import type { ResetAttemptsRequestDto } from "../dtos/reset-attempts-request.dto
 import { CorrectionMapper } from "../mappers/correction.mapper";
 import type { CorrectionsRepository } from "../repositories/corrections.repository";
 
+import type { FilesRepository } from "../../files/repositories/files.repository";
+import { FILES_REPOSITORY } from "../../files/services/files.service.constants";
+
 export const CORRECTION_PROVIDER = Symbol("CORRECTION_PROVIDER");
 export const CORRECTIONS_REPOSITORY = Symbol("CORRECTIONS_REPOSITORY");
 
@@ -15,7 +18,8 @@ export class CorrectionsService {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
     @Inject(CORRECTION_PROVIDER) private readonly correctionProvider: CorrectionProvider,
-    @Inject(CORRECTIONS_REPOSITORY) private readonly correctionsRepository: CorrectionsRepository
+    @Inject(CORRECTIONS_REPOSITORY) private readonly correctionsRepository: CorrectionsRepository,
+    @Inject(FILES_REPOSITORY) private readonly filesRepository: FilesRepository
   ) {}
 
   async evaluateWrittenAnswer(
@@ -29,11 +33,18 @@ export class CorrectionsService {
       throw new NotFoundException("Question not found.");
     }
 
+    let imageUrls: string[] = [];
+    if (data.attachmentIds && data.attachmentIds.length > 0) {
+      const attachments = await this.filesRepository.findManyByIds(data.attachmentIds);
+      imageUrls = attachments.filter((att) => att.url !== null).map((att) => att.url as string);
+    }
+
     const expectedAnswer = this.buildExpectedAnswer(question.solution?.finalAnswer, question.solution?.explanation);
     const correction = await this.correctionProvider.evaluateWrittenAnswer({
       question: question.statement,
       expectedAnswer,
-      userAnswer: data.userAnswer
+      userAnswer: data.userAnswer,
+      imageUrls: imageUrls.length > 0 ? imageUrls : undefined
     });
     const attempt = await this.correctionsRepository.createAttemptWithCorrection({
       userId: user.id,

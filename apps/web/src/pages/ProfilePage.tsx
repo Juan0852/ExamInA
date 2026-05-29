@@ -152,11 +152,11 @@ export function ProfilePage() {
             title="Medallas desbloqueadas"
             description="Tus logros activos y la experiencia que ya sumaste."
             achievements={unlockedAchievements}
-            emptyText="Todav\u00eda no has desbloqueado medallas. Completa tu perfil para conseguir la primera."
+            emptyText="Todavía no has desbloqueado medallas. Completa tu perfil para conseguir la primera."
           />
 
           <AchievementSection
-            title="Pr\u00f3ximas medallas"
+            title="Próximas medallas"
             description="Retos pendientes para seguir subiendo de nivel."
             achievements={lockedAchievements}
             locked

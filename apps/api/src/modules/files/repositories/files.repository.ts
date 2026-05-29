@@ -14,6 +14,7 @@ export interface FilesRepository {
     purpose: string;
   }): Promise<FileAssetEntity>;
   findById(id: string): Promise<FileAssetEntity | null>;
+  findManyByIds(ids: string[]): Promise<FileAssetEntity[]>;
   findByIdAndUserId(id: string, userId: string): Promise<FileAssetEntity | null>;
   deleteById(id: string): Promise<void>;
   updateUrl(id: string, url: string): Promise<FileAssetEntity>;

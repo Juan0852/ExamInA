@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { DatabaseModule } from "../../shared/database/database.module";
+import { FilesModule } from "../files/files.module";
 import { createCorrectionProvider } from "../../shared/providers/ai/correction-provider.factory";
 import { CorrectionsController } from "./controllers/corrections.controller";
 import { PrismaCorrectionsRepository } from "./repositories/prisma-corrections.repository";
@@ -11,7 +12,7 @@ import {
 } from "./services/corrections.service";
 
 @Module({
-  imports: [AuthModule, DatabaseModule],
+  imports: [AuthModule, DatabaseModule, FilesModule],
   controllers: [CorrectionsController],
   providers: [
     CorrectionsService,

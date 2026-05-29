@@ -1,7 +1,12 @@
 import type { CorrectionProvider, CorrectionResult } from "./correction-provider.interface";
 
 export class MockCorrectionProvider implements CorrectionProvider {
-  async evaluateWrittenAnswer(): Promise<CorrectionResult> {
+  async evaluateWrittenAnswer(input: {
+    question: string;
+    expectedAnswer: string;
+    userAnswer: string;
+    imageUrls?: string[];
+  }): Promise<CorrectionResult> {
     return {
       score: 0,
       isCorrect: false,

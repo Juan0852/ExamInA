@@ -70,7 +70,8 @@ export function useQuestionViewModel(questionId: string | undefined) {
   const [correction, setCorrection] = useState<CorrectionFeedback | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
 
   // Obtener detalles de la pregunta mediante react-query
   const { data, isLoading, error, refetch } = useQuery<QuestionApiResponse, Error>({
@@ -97,7 +98,7 @@ export function useQuestionViewModel(questionId: string | undefined) {
     e.preventDefault();
     
     // Validamos la respuesta del usuario con el esquema Zod local
-    const validationResult = answerSchema.safeParse({ userAnswer });
+    const validationResult = answerSchema.safeParse({ userAnswer, attachmentIds });
     if (!validationResult.success) {
       setSubmitError(validationResult.error.issues[0].message);
       return;
@@ -119,7 +120,8 @@ export function useQuestionViewModel(questionId: string | undefined) {
         {
           questionId,
           userAnswer: userAnswer.trim(),
-          timeSpentSeconds
+          timeSpentSeconds,
+          attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined
         }
       );
 
@@ -145,6 +147,8 @@ export function useQuestionViewModel(questionId: string | undefined) {
     setUserAnswer("");
     setCorrection(null);
     setSubmitError(null);
+    setQuestionStartTime(Date.now());
+    setAttachmentIds([]);
   };
 
   return {
@@ -153,6 +157,8 @@ export function useQuestionViewModel(questionId: string | undefined) {
     error: error ? error.message : null,
     userAnswer,
     setUserAnswer,
+    attachmentIds,
+    setAttachmentIds,
     correction,
     setCorrection,
     isSubmitting,

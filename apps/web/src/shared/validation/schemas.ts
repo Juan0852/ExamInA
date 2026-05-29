@@ -36,12 +36,19 @@ export const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
-/**
- * Esquema de validación para el envío de respuestas escritas a preguntas.
- */
 export const answerSchema = z.object({
   userAnswer: z
     .string()
-    .min(5, { message: "La respuesta debe contener al menos 5 caracteres para ser significativa." })
     .max(5000, { message: "La respuesta es demasiado larga (máximo 5000 caracteres)." }),
-});
+  attachmentIds: z.array(z.string()).optional()
+}).refine(
+  (data) => {
+    const hasAttachments = data.attachmentIds && data.attachmentIds.length > 0;
+    const hasAnswerText = data.userAnswer.trim().length >= 8;
+    return hasAttachments || hasAnswerText;
+  },
+  {
+    message: "Por favor, escribe una respuesta de al menos 8 caracteres o adjunta una imagen/tablero.",
+    path: ["userAnswer"]
+  }
+);

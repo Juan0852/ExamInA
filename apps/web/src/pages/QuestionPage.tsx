@@ -18,7 +18,7 @@ import {
   X
 } from "lucide-react";
 import { MathText } from "../shared/components/MathText";
-
+import { AnswerAttachmentComposer } from "../shared/components/AnswerAttachmentComposer";
 export function QuestionPage() {
   const { questionId } = useParams<{ questionId: string }>();
   const navigate = useNavigate();
@@ -53,6 +53,8 @@ export function QuestionPage() {
     handleSubmitAnswer,
     handleReset,
     handleRetry,
+    attachmentIds,
+    setAttachmentIds,
   } = useQuestionViewModel(questionId);
 
   // Serialize reviewAnswers for stable dependency comparison
@@ -286,10 +288,10 @@ export function QuestionPage() {
         </button>
       </header>
 
-      <main className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+      <main className="flex-1 overflow-hidden flex flex-col lg:flex-row bg-slate-50/30 dark:bg-[#07111F]/10">
         
-        <section className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-brand-navy/15">
-          
+        {/* COLUMNA 1 (IZQUIERDA): NAVEGACIÓN Y ENUNCIADO DE PREGUNTA */}
+        <section className="w-full lg:w-[32%] overflow-y-auto p-6 space-y-6 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-brand-navy/15 flex flex-col shrink-0">
           {hasMultipleQuestions && (
             <div className="flex flex-wrap items-center gap-1.5 justify-center sm:justify-start pb-4 border-b border-slate-200 dark:border-brand-navy/10">
               {questionIds.map((id, idx) => (
@@ -316,7 +318,7 @@ export function QuestionPage() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-[#0E1B2F] border border-slate-200 dark:border-brand-navy/25 rounded-2xl p-6 shadow-xs space-y-5">
+          <div className="bg-white dark:bg-[#0E1B2F] border border-slate-200 dark:border-brand-navy/25 rounded-2xl p-6 shadow-xs space-y-5 flex-1 overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-brand-navy/10 pb-3">
               <span className="text-[10px] font-black px-2.5 py-1 rounded-md bg-brand-sky dark:bg-brand-blue/15 text-brand-blue dark:text-brand-cyan uppercase tracking-wider">
                 {question.type}
@@ -326,15 +328,17 @@ export function QuestionPage() {
               </span>
             </div>
 
-            <div className="space-y-2 text-left">
+            <div className="space-y-3 text-left">
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center space-x-1.5">
                 <HelpCircle size={14} className="text-brand-blue" />
                 <span>Enunciado</span>
               </h3>
-              <MathText
-                value={question.statement}
-                className="text-base text-slate-900 dark:text-slate-100 font-semibold leading-relaxed"
-              />
+              <div className="overflow-x-auto">
+                <MathText
+                  value={question.statement}
+                  className="text-base text-slate-900 dark:text-slate-100 font-semibold leading-relaxed"
+                />
+              </div>
               {question.sourceExam && (
                 <span className="text-[10px] font-bold text-slate-400 block mt-1">
                   Fuente: {question.sourceExam} {question.sourceYear ? `(${question.sourceYear})` : ""}
@@ -342,8 +346,11 @@ export function QuestionPage() {
               )}
             </div>
           </div>
+        </section>
 
-          <div className="space-y-4 text-left">
+        {/* COLUMNA 2 (CENTRAL): TU SOLUCIÓN Y ADJUNTOS */}
+        <section className="w-full lg:w-[33%] overflow-y-auto p-6 space-y-6 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-brand-navy/15 flex flex-col justify-start">
+          <div className="space-y-4 text-left flex-1 flex flex-col justify-start">
             <label htmlFor="practice-approach-input" className="block text-sm font-black text-slate-700 dark:text-slate-350">
               {isReviewMode ? "Tu respuesta original" : "Tu solución o razonamiento (Approach)"}
             </label>
@@ -365,7 +372,7 @@ export function QuestionPage() {
                     }
                     handleReset();
                   }}
-                  className="px-4 py-2 border border-slate-200 dark:border-brand-navy/35 rounded-xl text-xs font-black text-slate-650 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+                  className="px-4 py-2 border border-slate-200 dark:border-brand-navy/35 rounded-xl text-xs font-black text-slate-650 dark:text-slate-300 hover:bg-slate-55 dark:hover:bg-slate-800 transition cursor-pointer"
                 >
                   Volver a intentar
                 </button>
@@ -375,7 +382,7 @@ export function QuestionPage() {
                 {userAnswer}
               </div>
             ) : (
-              <form onSubmit={handleSubmitAnswer} className="space-y-4">
+              <form onSubmit={handleSubmitAnswer} className="space-y-4 flex-1 flex flex-col justify-start">
                 <textarea
                   id="practice-approach-input"
                   rows={8}
@@ -383,11 +390,21 @@ export function QuestionPage() {
                   onChange={(e) => setUserAnswer(e.target.value)}
                   placeholder="Redacta paso a paso tu razonamiento matemático o desarrollo científico aquí..."
                   disabled={isSubmitting}
-                  className="block w-full p-4 border border-slate-200 dark:border-brand-navy/30 rounded-2xl bg-white dark:bg-[#0E1B2F] text-slate-900 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue text-sm transition-all resize-none shadow-xs font-medium"
+                  className="block w-full p-4 border border-slate-200 dark:border-brand-navy/30 rounded-2xl bg-white dark:bg-[#0E1B2F] text-slate-900 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue text-sm transition-all resize-none shadow-xs font-medium shrink-0"
                 />
 
+                <div className="flex-1 flex flex-col justify-start">
+                  <span className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Adjunto único (Imagen o Tablero)</span>
+                  <AnswerAttachmentComposer 
+                    disabled={isSubmitting} 
+                    questionStatement={question?.statement}
+                    maxAttachments={1}
+                    onAttachmentsChange={(attachments) => setAttachmentIds(attachments.map(a => a.fileAssetId))}
+                  />
+                </div>
+
                 {submitError && (
-                  <div className="p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl flex items-start space-x-2 text-red-650 dark:text-red-455 text-xs font-bold">
+                  <div className="p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl flex items-start space-x-2 text-red-650 dark:text-red-455 text-xs font-bold shrink-0">
                     <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
                     <span>{submitError}</span>
                   </div>
@@ -395,8 +412,8 @@ export function QuestionPage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !userAnswer.trim()}
-                  className="w-full sm:w-auto inline-flex justify-center items-center px-6 py-3 border border-transparent rounded-xl shadow-md text-sm font-black text-white bg-brand-blue hover:bg-brand-blue/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue disabled:opacity-40 transition cursor-pointer"
+                  disabled={isSubmitting || (!userAnswer.trim() && attachmentIds.length === 0)}
+                  className="w-full sm:w-auto inline-flex justify-center items-center px-6 py-3 border border-transparent rounded-xl shadow-md text-sm font-black text-white bg-brand-blue hover:bg-brand-blue/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue disabled:opacity-40 transition cursor-pointer shrink-0"
                 >
                   {isSubmitting ? (
                     <>
@@ -415,7 +432,8 @@ export function QuestionPage() {
           </div>
         </section>
 
-        <section className="flex-1 overflow-y-auto p-6 lg:p-8 bg-slate-100/50 dark:bg-[#091526]/50 flex flex-col justify-start">
+        {/* COLUMNA 3 (DERECHA): RESULTADO DE LA IA */}
+        <section className="w-full lg:w-[35%] overflow-y-auto p-6 bg-slate-100/50 dark:bg-[#091526]/50 flex flex-col justify-start">
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center space-x-1.5 text-left shrink-0">
             <Brain size={15} className="text-brand-blue" />
             <span>Resultado de la evaluación</span>
@@ -462,7 +480,7 @@ export function QuestionPage() {
                       <ul className="space-y-1">
                         {correction.detectedErrors.map((err, i) => (
                           <li key={i} className="text-[11px] font-bold text-red-650 dark:text-red-400 pl-3 relative before:absolute before:left-0 before:top-1.5 before:w-1.5 before:h-1.5 before:rounded-full before:bg-red-500">
-                            {err}
+                            <MathText value={err} className="inline" />
                           </li>
                         ))}
                       </ul>
@@ -478,8 +496,8 @@ export function QuestionPage() {
                       </h5>
                       <div className="flex flex-wrap gap-1">
                         {correction.missingKeywords.map((kw, i) => (
-                          <span key={i} className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 uppercase">
-                            {kw}
+                          <span key={i} className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 uppercase inline-block">
+                            <MathText value={kw} className="inline" />
                           </span>
                         ))}
                       </div>
@@ -495,8 +513,8 @@ export function QuestionPage() {
                       </h5>
                       <ul className="space-y-1">
                         {correction.suggestions.map((sug, i) => (
-                          <li key={i} className="text-[11px] font-semibold text-slate-650 dark:text-slate-400 pl-3 relative before:absolute before:left-0 before:top-1.5 before:w-1.5 before:h-1.5 before:rounded-full before:bg-brand-blue">
-                            {sug}
+                          <li key={i} className="text-[11px] font-semibold text-slate-655 dark:text-slate-400 pl-3 relative before:absolute before:left-0 before:top-1.5 before:w-1.5 before:h-1.5 before:rounded-full before:bg-brand-blue">
+                            <MathText value={sug} className="inline" />
                           </li>
                         ))}
                       </ul>
@@ -517,9 +535,9 @@ export function QuestionPage() {
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-400 bg-white/50 dark:bg-[#0E1B2F]/20 border-2 border-dashed border-slate-250 dark:border-brand-navy/15 rounded-2xl min-h-[300px]">
                 <Brain size={40} className="text-slate-300 dark:text-slate-700 mb-3 animate-pulse" />
-                <h4 className="font-black text-xs text-slate-500 dark:text-slate-350 uppercase tracking-wider">Esperando solución</h4>
-                <p className="text-[11px] text-slate-450 dark:text-slate-500 max-w-[220px] mx-auto mt-1 leading-relaxed">
-                  Redacta tu solución o approach en el panel izquierdo y haz clic en enviar para ver la retroalimentación detallada.
+                <h4 className="font-black text-xs text-slate-500 dark:text-slate-355 uppercase tracking-wider">Esperando solución</h4>
+                <p className="text-[11px] text-slate-450 dark:text-slate-500 max-w-[220px] mx-auto mt-1 leading-relaxed text-center">
+                  Redacta tu solución en el panel central o sube una imagen/dibujo y haz clic en enviar para ver la retroalimentación.
                 </p>
               </div>
             )}

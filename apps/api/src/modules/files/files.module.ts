@@ -16,6 +16,6 @@ import { FilesService } from "./services/files.service";
       useClass: PrismaFilesRepository
     }
   ],
-  exports: [FilesService]
+  exports: [FilesService, FILES_REPOSITORY]
 })
 export class FilesModule {}

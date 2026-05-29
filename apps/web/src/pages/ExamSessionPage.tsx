@@ -297,8 +297,9 @@ export function ExamSessionPage() {
   };
 
   const isQuestionAnswered = currentQuestion?.answered || !!correction;
+  const hasAttachments = attachmentIds.length > 0;
   const hasWrittenAnswer = userAnswer.trim().length > 0;
-  const canEvaluateCurrentQuestion = !isExamClosed && !isQuestionAnswered && hasWrittenAnswer && !isSubmitting;
+  const canEvaluateCurrentQuestion = !isExamClosed && !isQuestionAnswered && (hasWrittenAnswer || hasAttachments) && !isSubmitting;
   const nextActionLabel = currentIdx === totalQuestions - 1 ? "Finalizar Examen" : "Siguiente pregunta";
 
   // Enviar respuesta
@@ -307,11 +308,11 @@ export function ExamSessionPage() {
     if (isExamClosed || isQuestionAnswered) {
       return;
     }
-    if (!userAnswer.trim()) {
-      setSubmitError("Por favor, escribe una respuesta.");
+    if (!userAnswer.trim() && attachmentIds.length === 0) {
+      setSubmitError("Por favor, escribe una respuesta o adjunta una imagen/tablero.");
       return;
     }
-    if (userAnswer.trim().length < 8) {
+    if (userAnswer.trim().length > 0 && userAnswer.trim().length < 8 && attachmentIds.length === 0) {
       setSubmitError("Tu respuesta es demasiado corta (mínimo 8 caracteres).");
       return;
     }
@@ -329,7 +330,8 @@ export function ExamSessionPage() {
           questionId: currentQuestion.questionId,
           userAnswer: userAnswer.trim(),
           examSessionId: examSession.id,
-          timeSpentSeconds: 0
+          timeSpentSeconds: 0,
+          attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined
         }
       );
 
@@ -421,13 +423,10 @@ export function ExamSessionPage() {
           <X size={18} />
         </button>
       </header>
-
-      {/* ── CONTENIDO PRINCIPAL: DOS COLUMNAS ── */}
-      <main className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+      <main className="flex-1 overflow-hidden flex flex-col lg:flex-row bg-slate-50/30 dark:bg-[#07111F]/10">
         
-        {/* COLUMNA IZQUIERDA: PREGUNTA Y APORTACIÓN DEL ESTUDIANTE */}
-        <section className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-brand-navy/15">
-          
+        {/* COLUMNA 1 (IZQUIERDA): NAVEGACIÓN Y ENUNCIADO DE PREGUNTA */}
+        <section className="w-full lg:w-[32%] overflow-y-auto p-6 space-y-6 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-brand-navy/15 flex flex-col shrink-0">
           {/* NÚMEROS DE PREGUNTA / NAVEGADOR DE PROGRESO */}
           <div className="flex flex-wrap items-center gap-1.5 justify-center sm:justify-start pb-4 border-b border-slate-200 dark:border-brand-navy/10">
             {questions.map((q, idx) => (
@@ -447,7 +446,7 @@ export function ExamSessionPage() {
             ))}
           </div>
 
-          <div className="bg-white dark:bg-[#0E1B2F] border border-slate-200 dark:border-brand-navy/25 rounded-2xl p-6 shadow-xs space-y-5">
+          <div className="bg-white dark:bg-[#0E1B2F] border border-slate-200 dark:border-brand-navy/25 rounded-2xl p-6 shadow-xs space-y-5 flex-1 overflow-y-auto">
             {/* Cabecera de la tarjeta de la pregunta */}
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-brand-navy/10 pb-3">
               <span className="text-[10px] font-black px-2.5 py-1 rounded-md bg-brand-sky dark:bg-brand-blue/15 text-brand-blue dark:text-brand-cyan uppercase tracking-wider">
@@ -459,15 +458,17 @@ export function ExamSessionPage() {
             </div>
 
             {/* Enunciado de la Pregunta */}
-            <div className="space-y-2 text-left">
+            <div className="space-y-3 text-left">
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center space-x-1.5">
                 <HelpCircle size={14} className="text-brand-blue" />
                 <span>Enunciado</span>
               </h3>
-              <MathText
-                value={currentQuestion.statement}
-                className="text-base text-slate-900 dark:text-slate-100 font-semibold leading-relaxed"
-              />
+              <div className="overflow-x-auto">
+                <MathText
+                  value={currentQuestion.statement}
+                  className="text-base text-slate-900 dark:text-slate-100 font-semibold leading-relaxed"
+                />
+              </div>
               {currentQuestion.sourceExam && (
                 <span className="text-[10px] font-bold text-slate-400 block mt-1">
                   Fuente: {currentQuestion.sourceExam} {currentQuestion.sourceYear ? `(${currentQuestion.sourceYear})` : ""}
@@ -475,9 +476,12 @@ export function ExamSessionPage() {
               )}
             </div>
           </div>
+        </section>
 
+        {/* COLUMNA 2 (CENTRAL): DESARROLLO O RAZONAMIENTO Y ADJUNTOS */}
+        <section className="w-full lg:w-[33%] overflow-y-auto p-6 space-y-6 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-brand-navy/15 flex flex-col justify-start">
           {/* Formulario / Input del Approach */}
-          <div className="space-y-4 text-left">
+          <div className="space-y-4 text-left flex-1 flex flex-col justify-start">
             <div className="flex items-center justify-between">
               <label htmlFor="approach-input" className="block text-sm font-black text-slate-700 dark:text-slate-350">
                 Tu desarrollo o razonamiento (Approach)
@@ -496,27 +500,32 @@ export function ExamSessionPage() {
               </p>
             )}
 
-            <form id="exam-session-answer-form" onSubmit={handleSubmitAnswer} className="space-y-4">
+            <form id="exam-session-answer-form" onSubmit={handleSubmitAnswer} className="space-y-4 flex-1 flex flex-col justify-start">
               <textarea
                 id="approach-input"
-                rows={7}
+                rows={8}
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
                 placeholder="Escribe aquí tu desarrollo paso a paso..."
                 disabled={isSubmitting || isExamClosed || isQuestionAnswered}
-                className="block w-full p-4 border border-slate-200 dark:border-brand-navy/30 rounded-2xl bg-white dark:bg-[#0E1B2F] text-slate-900 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue text-sm transition-all resize-none shadow-xs font-medium"
+                className="block w-full p-4 border border-slate-200 dark:border-brand-navy/30 rounded-2xl bg-white dark:bg-[#0E1B2F] text-slate-900 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue text-sm transition-all resize-none shadow-xs font-medium shrink-0"
               />
 
-              <AnswerAttachmentComposer
-                key={currentQuestion.id}
-                disabled={isSubmitting || isExamClosed || isQuestionAnswered}
-                onAttachmentsChange={(attachments) => {
-                  setAttachmentIds(attachments.map((a) => a.fileAssetId));
-                }}
-              />
+              <div className="flex-1 flex flex-col justify-start">
+                <span className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Adjunto único (Imagen o Tablero)</span>
+                <AnswerAttachmentComposer
+                  key={currentQuestion.id}
+                  disabled={isSubmitting || isExamClosed || isQuestionAnswered}
+                  questionStatement={currentQuestion?.statement}
+                  maxAttachments={1}
+                  onAttachmentsChange={(attachments) => {
+                    setAttachmentIds(attachments.map((a) => a.fileAssetId));
+                  }}
+                />
+              </div>
 
               {submitError && (
-                <div className="p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl flex items-start space-x-2 text-red-650 dark:text-red-455 text-xs font-bold">
+                <div className="p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl flex items-start space-x-2 text-red-650 dark:text-red-455 text-xs font-bold shrink-0">
                   <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
                   <span>{submitError}</span>
                 </div>
@@ -525,8 +534,8 @@ export function ExamSessionPage() {
           </div>
         </section>
 
-        {/* COLUMNA DERECHA: RESULTADO DE LA IA */}
-        <section className="flex-1 overflow-y-auto p-6 lg:p-8 bg-slate-100/50 dark:bg-[#091526]/50 flex flex-col justify-start">
+        {/* COLUMNA 3 (DERECHA): RESULTADO DE LA IA */}
+        <section className="w-full lg:w-[35%] overflow-y-auto p-6 bg-slate-100/50 dark:bg-[#091526]/50 flex flex-col justify-start">
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center space-x-1.5 text-left shrink-0">
             <Brain size={15} className="text-brand-blue" />
             <span>Resultado de la evaluación</span>
@@ -573,7 +582,7 @@ export function ExamSessionPage() {
                       <ul className="space-y-1">
                         {correction.detectedErrors.map((err, i) => (
                           <li key={i} className="text-[11px] font-bold text-red-650 dark:text-red-400 pl-3 relative before:absolute before:left-0 before:top-1.5 before:w-1.5 before:h-1.5 before:rounded-full before:bg-red-500">
-                            {err}
+                            <MathText value={err} className="inline" />
                           </li>
                         ))}
                       </ul>
@@ -589,8 +598,8 @@ export function ExamSessionPage() {
                       </h5>
                       <div className="flex flex-wrap gap-1">
                         {correction.missingKeywords.map((kw, i) => (
-                          <span key={i} className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 uppercase">
-                            {kw}
+                          <span key={i} className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 uppercase inline-block">
+                            <MathText value={kw} className="inline" />
                           </span>
                         ))}
                       </div>
@@ -607,7 +616,7 @@ export function ExamSessionPage() {
                       <ul className="space-y-1">
                         {correction.suggestions.map((sug, i) => (
                           <li key={i} className="text-[11px] font-semibold text-slate-650 dark:text-slate-400 pl-3 relative before:absolute before:left-0 before:top-1.5 before:w-1.5 before:h-1.5 before:rounded-full before:bg-brand-blue">
-                            {sug}
+                            <MathText value={sug} className="inline" />
                           </li>
                         ))}
                       </ul>
@@ -629,8 +638,8 @@ export function ExamSessionPage() {
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-400 bg-white/50 dark:bg-[#0E1B2F]/20 border-2 border-dashed border-slate-250 dark:border-brand-navy/15 rounded-2xl min-h-[300px]">
                 <Brain size={40} className="text-slate-300 dark:text-slate-700 mb-3 animate-pulse" />
                 <h4 className="font-black text-xs text-slate-500 dark:text-slate-350 uppercase tracking-wider">Esperando solución</h4>
-                <p className="text-[11px] text-slate-450 dark:text-slate-500 max-w-[220px] mx-auto mt-1 leading-relaxed">
-                  Redacta tu solución o approach en el panel izquierdo y haz clic en enviar para ver la retroalimentación detallada.
+                <p className="text-[11px] text-slate-450 dark:text-slate-500 max-w-[220px] mx-auto mt-1 leading-relaxed text-center">
+                  Redacta tu solución en el panel central o sube una imagen/dibujo y haz clic en enviar para ver la retroalimentación.
                 </p>
               </div>
             )}

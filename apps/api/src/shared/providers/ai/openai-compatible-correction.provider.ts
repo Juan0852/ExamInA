@@ -18,6 +18,7 @@ export class OpenAiCompatibleCorrectionProvider implements CorrectionProvider {
     question: string;
     expectedAnswer: string;
     userAnswer: string;
+    imageUrls?: string[];
   }): Promise<CorrectionResult> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json"
@@ -27,10 +28,44 @@ export class OpenAiCompatibleCorrectionProvider implements CorrectionProvider {
       headers.Authorization = `Bearer ${this.config.apiKey}`;
     }
 
+    let imageUrls = input.imageUrls;
+
+    if (
+      imageUrls &&
+      imageUrls.length > 0 &&
+      (this.config.provider === "lmstudio" ||
+        this.config.provider === "local" ||
+        this.config.provider === "gemma4")
+    ) {
+      imageUrls = await Promise.all(
+        imageUrls.map(async (url) => {
+          if (url.startsWith("data:")) {
+            return url;
+          }
+          try {
+            const res = await fetch(url);
+            if (!res.ok) {
+              throw new Error(`Failed to fetch image: ${res.statusText}`);
+            }
+            const buffer = await res.arrayBuffer();
+            const base64 = Buffer.from(buffer).toString("base64");
+            const contentType = res.headers.get("content-type") || "image/jpeg";
+            return `data:${contentType};base64,${base64}`;
+          } catch (err) {
+            console.error(`Error converting image URL to base64: ${url}`, err);
+            return url; // fallback
+          }
+        })
+      );
+    }
+
     const body: Record<string, unknown> = {
       model: this.config.model,
       temperature: 0.2,
-      messages: buildWrittenAnswerCorrectionMessages(input)
+      messages: buildWrittenAnswerCorrectionMessages({
+        ...input,
+        imageUrls
+      })
     };
 
     if (this.config.provider === "openai") {

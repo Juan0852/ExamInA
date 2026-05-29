@@ -14,5 +14,6 @@ export interface CorrectionProvider {
     question: string;
     expectedAnswer: string;
     userAnswer: string;
+    imageUrls?: string[];
   }): Promise<CorrectionResult>;
 }

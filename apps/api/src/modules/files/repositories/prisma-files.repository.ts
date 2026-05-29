@@ -41,6 +41,14 @@ export class PrismaFilesRepository implements FilesRepository {
     return fileAsset ? this.toEntity(fileAsset) : null;
   }
 
+  async findManyByIds(ids: string[]): Promise<FileAssetEntity[]> {
+    if (!ids || ids.length === 0) return [];
+    const files = await this.prismaService.getClient().fileAsset.findMany({
+      where: { id: { in: ids } }
+    });
+    return files.map((file) => this.toEntity(file));
+  }
+
   async findByIdAndUserId(id: string, userId: string): Promise<FileAssetEntity | null> {
     const fileAsset = await this.prismaService.getClient().fileAsset.findFirst({
       where: { id, userId }
