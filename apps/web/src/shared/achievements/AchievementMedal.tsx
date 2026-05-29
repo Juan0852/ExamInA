@@ -18,7 +18,7 @@ const illustrationScaleClasses = {
   lg: "h-16 w-16"
 };
 
-const medalThemes: Record<AchievementCode, { from: string; via: string; to: string; ring: string }> = {
+export const medalThemes: Record<AchievementCode, { from: string; via: string; to: string; ring: string }> = {
   PROFILE_80: {
     from: "#22D3EE",
     via: "#0879F2",

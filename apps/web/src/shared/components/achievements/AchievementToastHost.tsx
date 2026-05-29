@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { AchievementMedal } from "../../achievements/AchievementMedal";
+import { AchievementMedal, medalThemes } from "../../achievements/AchievementMedal";
 import { useAchievementToastStore } from "../../achievements/achievement-toast.store";
 
 const TOAST_DURATION_MS = 3000;
@@ -75,6 +75,7 @@ function AchievementToast({ achievementId }: { achievementId: string }) {
     return null;
   }
 
+  const theme = medalThemes[achievement.code] || medalThemes.FIRST_ANSWER;
   const gradientId = `achievement-toast-progress-gradient-${achievement.id}`;
 
   return (
@@ -111,12 +112,11 @@ function AchievementToast({ achievementId }: { achievementId: string }) {
               ease: [0.12, 0.82, 0.22, 1],
               delay: isExiting ? index * 0.002 : 0
             }}
-            className="absolute left-1/2 top-1/2 rounded-[4px] bg-white shadow-[0_0_12px_rgba(255,255,255,0.8)] will-change-transform"
+            className="absolute left-1/2 top-1/2 rounded-[4px] shadow-[0_0_12px_rgba(255,255,255,0.8)] will-change-transform"
             style={{
               width,
               height,
-              background:
-                "linear-gradient(135deg, rgba(255,255,255,1), rgba(232,247,255,0.95) 44%, rgba(51,214,208,0.9))"
+              background: `linear-gradient(135deg, #ffffff 0%, ${theme.from} 50%, ${theme.to} 100%)`
             }}
           />
         ))}
@@ -133,7 +133,11 @@ function AchievementToast({ achievementId }: { achievementId: string }) {
             : { opacity: 1, scale: 1, y: 0, rotate: 0 }
         }
         transition={{ duration: TOAST_EXIT_MS / 1000, ease: [0.16, 1, 0.3, 1] }}
-        className="overflow-hidden rounded-2xl border border-white/60 bg-white/95 p-3 shadow-2xl shadow-brand-blue/25 backdrop-blur-xl dark:border-brand-cyan/20 dark:bg-[#0E1B2F]/95"
+        className="overflow-hidden rounded-2xl border bg-white/95 p-3 shadow-2xl backdrop-blur-xl dark:bg-[#0E1B2F]/95"
+        style={{
+          borderColor: theme.via,
+          boxShadow: `0 20px 30px -4px ${theme.via}25, 0 4px 12px -2px ${theme.to}15`
+        }}
       >
       <div className="flex items-center gap-3">
         <div className="relative grid h-20 w-20 shrink-0 place-items-center">
@@ -143,7 +147,7 @@ function AchievementToast({ achievementId }: { achievementId: string }) {
               cy="44"
               r="39"
               fill="none"
-              stroke="rgba(148, 163, 184, 0.22)"
+              stroke="rgba(148, 163, 184, 0.15)"
               strokeWidth="5"
             />
             <circle
@@ -160,9 +164,9 @@ function AchievementToast({ achievementId }: { achievementId: string }) {
             />
             <defs>
               <linearGradient id={gradientId} x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0%" stopColor="#33D6D0" />
-                <stop offset="55%" stopColor="#0879F2" />
-                <stop offset="100%" stopColor="#F472B6" />
+                <stop offset="0%" stopColor={theme.from} />
+                <stop offset="50%" stopColor={theme.via} />
+                <stop offset="100%" stopColor={theme.to} />
               </linearGradient>
             </defs>
           </svg>
@@ -170,7 +174,10 @@ function AchievementToast({ achievementId }: { achievementId: string }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-black uppercase tracking-wide text-brand-blue dark:text-brand-cyan">
+          <p
+            className="text-[11px] font-black uppercase tracking-wide"
+            style={{ color: theme.via }}
+          >
             Logro desbloqueado
           </p>
           <h2 className="mt-0.5 truncate text-base font-black text-brand-navy dark:text-white">
@@ -179,7 +186,13 @@ function AchievementToast({ achievementId }: { achievementId: string }) {
           <p className="mt-1 line-clamp-2 text-xs font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
             {achievement.description}
           </p>
-          <div className="mt-2 inline-flex rounded-full bg-brand-sky px-2.5 py-1 text-[11px] font-black text-brand-blue dark:bg-brand-blue/15 dark:text-brand-cyan">
+          <div
+            className="mt-2 inline-flex rounded-full px-2.5 py-1 text-[11px] font-black"
+            style={{
+              backgroundColor: `${theme.from}15`,
+              color: theme.via
+            }}
+          >
             +{achievement.experienceReward} XP
           </div>
         </div>
