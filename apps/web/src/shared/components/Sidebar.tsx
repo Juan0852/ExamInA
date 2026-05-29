@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth.store";
+import { signOutClient } from "../services/firebase-client.service";
 import {
   LogOut, 
   BookOpen, 
@@ -65,7 +66,12 @@ export function Sidebar() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOutClient();
+    } catch (e) {
+      console.error("Error signing out from Firebase:", e);
+    }
     clearSession();
     navigate("/login");
   };

@@ -56,13 +56,24 @@ export const fileUploadService = {
   },
 
   async uploadToPresignedUrl(uploadUrl: string, file: File | Blob): Promise<void> {
-    await fetch(uploadUrl, {
+    const response = await fetch(uploadUrl, {
       method: "PUT",
       body: file,
       headers: {
         "Content-Type": file.type
       }
     });
+
+    if (!response.ok) {
+      let errorMessage = `S3 Upload Failed: ${response.status} ${response.statusText}`;
+      try {
+        const text = await response.text();
+        errorMessage += ` - ${text}`;
+      } catch (e) {
+        // ignore
+      }
+      throw new Error(errorMessage);
+    }
   },
 
   async confirmUpload(request: ConfirmUploadRequest): Promise<FileAssetResponse> {

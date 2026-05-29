@@ -58,3 +58,13 @@ export async function signInWithGoogle() {
     idToken
   };
 }
+
+/**
+ * Cierra la sesión en el SDK de Firebase.
+ * Esto asegura que al volver a intentar hacer login con Google u otro proveedor,
+ * no ingrese automáticamente con la sesión anterior.
+ */
+export async function signOutClient(): Promise<void> {
+  const auth = getAuth(getFirebaseApp());
+  await auth.signOut();
+}

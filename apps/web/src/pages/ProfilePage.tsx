@@ -54,9 +54,9 @@ export function ProfilePage() {
         photoUrl: result.url
       });
 
-      const sessionResponse = await apiService.get<{ data: { user: typeof user } }>("/auth/me");
-      if (sessionResponse.data?.user) {
-        setSession(token, sessionResponse.data.user);
+      // Actualizar el estado local inmediatamente sin esperar a /auth/me (evita problemas de caché de navegador)
+      if (user) {
+        setSession(token, { ...user, photoUrl: result.url });
       }
 
       await queryClient.invalidateQueries({ queryKey: ["achievements-me"] });

@@ -12,7 +12,7 @@ export class FilesService {
 
   constructor(
     @Inject(FILES_REPOSITORY) private readonly filesRepository: FilesRepository,
-    private readonly authService: AuthService
+    @Inject(AuthService) private readonly authService: AuthService
   ) {
     this.storageProvider = new S3StorageProvider();
   }
@@ -25,7 +25,8 @@ export class FilesService {
 
     const presigned = await this.storageProvider.createPresignedUpload({
       fileName: dto.fileName,
-      contentType: dto.contentType
+      contentType: dto.contentType,
+      visibility: dto.visibility
     });
 
     const isPublic = dto.visibility === "PUBLIC";
@@ -77,11 +78,15 @@ export class FilesService {
       : fileAsset;
 
     if (!updated.url) {
-      const url = updated.visibility === "PUBLIC"
-        ? this.storageProvider.getPublicUrl(updated.key)
-        : await this.storageProvider.getPresignedGetUrl(updated.key);
-      await this.filesRepository.updateUrl(updated.id, url);
-      updated.url = url;
+      if (updated.visibility === "PUBLIC") {
+        const url = this.storageProvider.getPublicUrl(updated.key);
+        await this.filesRepository.updateUrl(updated.id, url);
+        updated.url = url;
+      } else {
+        // Para archivos privados NO guardamos la URL en base de datos porque expira.
+        // Solo la generamos temporalmente para retornar en la respuesta de este request.
+        updated.url = await this.storageProvider.getPresignedGetUrl(updated.key);
+      }
     }
 
     return FileAssetMapper.toResponse(updated);

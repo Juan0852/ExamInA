@@ -25,8 +25,9 @@ export class S3StorageProvider implements StorageProvider {
   async createPresignedUpload(input: {
     fileName: string;
     contentType: string;
+    visibility: "PUBLIC" | "PRIVATE";
   }): Promise<PresignedUpload> {
-    const key = this.generateKey(input.fileName);
+    const key = this.generateKey(input.fileName, input.visibility);
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: key,
@@ -72,10 +73,11 @@ export class S3StorageProvider implements StorageProvider {
     return getSignedUrl(this.client, command, { expiresIn: expiresInSeconds });
   }
 
-  private generateKey(originalFileName: string): string {
+  private generateKey(originalFileName: string, visibility: "PUBLIC" | "PRIVATE"): string {
     const ext = originalFileName.split(".").pop() || "bin";
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 10);
-    return `uploads/${timestamp}-${randomStr}.${ext}`;
+    const prefix = visibility === "PUBLIC" ? "uploads/public" : "uploads/private";
+    return `${prefix}/${timestamp}-${randomStr}.${ext}`;
   }
 }

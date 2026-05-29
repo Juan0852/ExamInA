@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Headers, Param, Post, Put, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Headers, Param, Post, Put, Res, UseGuards, Inject } from "@nestjs/common";
 import { ZodValidationPipe } from "../../../shared/validation/zod-validation.pipe";
 import type { ConfirmUploadRequestDto, PresignUploadRequestDto } from "../dtos/file-upload.dto";
 import { presignUploadRequestSchema } from "../dtos/file-upload.dto";
@@ -6,37 +6,41 @@ import { FilesService } from "../services/files.service";
 
 @Controller("files")
 export class FilesController {
-  constructor(private readonly filesService: FilesService) {}
+  constructor(@Inject(FilesService) private readonly filesService: FilesService) {}
 
   @Post("presign")
-  presignUpload(
+  async presignUpload(
     @Body(new ZodValidationPipe(presignUploadRequestSchema)) dto: PresignUploadRequestDto,
     @Headers("authorization") authorizationHeader?: string
   ) {
-    return this.filesService.presignUpload(authorizationHeader, dto);
+    const data = await this.filesService.presignUpload(authorizationHeader, dto);
+    return { data, meta: {}, error: null };
   }
 
   @Put("confirm")
-  confirmUpload(
+  async confirmUpload(
     @Body() dto: ConfirmUploadRequestDto,
     @Headers("authorization") authorizationHeader?: string
   ) {
-    return this.filesService.confirmUpload(authorizationHeader, dto);
+    const data = await this.filesService.confirmUpload(authorizationHeader, dto);
+    return { data, meta: {}, error: null };
   }
 
   @Get(":id")
-  getFile(
+  async getFile(
     @Param("id") fileAssetId: string,
     @Headers("authorization") authorizationHeader?: string
   ) {
-    return this.filesService.getFile(authorizationHeader, fileAssetId);
+    const data = await this.filesService.getFile(authorizationHeader, fileAssetId);
+    return { data, meta: {}, error: null };
   }
 
   @Delete(":id")
-  deleteFile(
+  async deleteFile(
     @Param("id") fileAssetId: string,
     @Headers("authorization") authorizationHeader?: string
   ) {
-    return this.filesService.deleteFile(authorizationHeader, fileAssetId);
+    const data = await this.filesService.deleteFile(authorizationHeader, fileAssetId);
+    return { data, meta: {}, error: null };
   }
 }
