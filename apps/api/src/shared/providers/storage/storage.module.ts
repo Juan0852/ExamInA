@@ -1,23 +1,15 @@
-import { Module } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { Global, Module } from "@nestjs/common";
 import { STORAGE_PROVIDER } from "./storage-provider.constants";
 import { S3StorageProvider } from "./s3-storage.provider";
+import type { StorageProvider } from "./storage-provider.interface";
 
+@Global()
 @Module({
   providers: [
+    S3StorageProvider,
     {
       provide: STORAGE_PROVIDER,
-      useFactory: (configService: ConfigService) => {
-        return new S3StorageProvider();
-      },
-      inject: [ConfigService]
-    },
-    {
-      provide: S3StorageProvider,
-      useFactory: (configService: ConfigService) => {
-        return new S3StorageProvider();
-      },
-      inject: [ConfigService]
+      useExisting: S3StorageProvider
     }
   ],
   exports: [STORAGE_PROVIDER]
