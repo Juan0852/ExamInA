@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { join } from "node:path";
+import { StorageModule } from "./shared/providers/storage/storage.module";
 import { AchievementsModule } from "./modules/achievements/achievements.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { CommunityModule } from "./modules/community/community.module";
@@ -20,6 +21,7 @@ import { TopicsModule } from "./modules/topics/topics.module";
       isGlobal: true,
       envFilePath: join(process.cwd(), ".env")
     }),
+    StorageModule,
     AuthModule,
     AchievementsModule,
     CommunityModule,
