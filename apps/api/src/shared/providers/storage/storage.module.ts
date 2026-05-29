@@ -1,7 +1,6 @@
 import { Global, Module } from "@nestjs/common";
 import { STORAGE_PROVIDER } from "./storage-provider.constants";
 import { S3StorageProvider } from "./s3-storage.provider";
-import type { StorageProvider } from "./storage-provider.interface";
 
 @Global()
 @Module({
