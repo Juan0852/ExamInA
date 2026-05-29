@@ -10,8 +10,8 @@ export class S3StorageProvider implements StorageProvider {
   private readonly logger = new Logger(S3StorageProvider.name);
 
   constructor() {
-    const region = process.env.AWS_REGION || "eu-west-1";
-    this.bucket = process.env.S3_BUCKET || "examina-uploads";
+    const region = process.env.AWS_REGION || "eu-north-1";
+    this.bucket = process.env.S3_BUCKET || "examina2026";
     this.client = new S3Client({
       region,
       credentials: {
@@ -60,7 +60,7 @@ export class S3StorageProvider implements StorageProvider {
   }
 
   getPublicUrl(key: string): string {
-    const region = process.env.AWS_REGION || "eu-west-1";
+    const region = process.env.AWS_REGION || "eu-north-1";
     return `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`;
   }
 
