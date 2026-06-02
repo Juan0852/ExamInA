@@ -25,7 +25,6 @@ export interface ExamSession {
   title: string;
   mode: string;
   status: string;
-  timerEnabled: boolean;
   durationLimitSeconds: number | null;
   startedAt: string | null;
   finishedAt: string | null;
@@ -36,6 +35,20 @@ export interface ExamSession {
 
 interface ExamSessionApiResponse {
   data: ExamSession;
+  meta: any;
+  error: any;
+}
+
+interface EvaluateAnswerApiResponse {
+  data: {
+    correction: {
+      score: number;
+      feedback: string;
+      detectedErrors: string[];
+      missingKeywords: string[];
+      suggestions: string[];
+    };
+  };
   meta: any;
   error: any;
 }
@@ -55,12 +68,9 @@ export function useExamSessionViewModel(examSessionId: string | undefined) {
   });
 
   const activityMutation = useMutation({
-    mutationFn: (data: { questionId: string; score: number }) => {
+    mutationFn: (data: { elapsedSeconds: number }) => {
       return apiService.patch(`/exam-sessions/${examSessionId}/activity`, {
-        questionId: data.questionId,
-        score: data.score, // Enviamos el score directamente basado en el swipe (ej. 10 para derecha, 0 para izquierda)
-        timeSpentSeconds: 5, // Fijo por ahora
-        userAnswer: "Self-assessed via Flashcard Mode",
+        elapsedSeconds: data.elapsedSeconds
       });
     },
     onSuccess: () => {
@@ -79,13 +89,61 @@ export function useExamSessionViewModel(examSessionId: string | undefined) {
     }
   });
 
+  const evaluateAnswerMutation = useMutation({
+    mutationFn: (data: { questionId: string; userAnswer: string; attachmentIds?: string[] }) => {
+      return apiService.post<EvaluateAnswerApiResponse>(`/corrections/evaluate-written-answer`, {
+        questionId: data.questionId,
+        userAnswer: data.userAnswer,
+        examSessionId: examSessionId,
+        attachmentIds: data.attachmentIds || [],
+      });
+    }
+  });
+
   return {
     examSession: query.data?.data ?? null,
     isLoading: query.isLoading || !examSessionId,
     error: query.error?.message ?? null,
     handleRetry: query.refetch,
-    saveActivity: (questionId: string, score: number) => activityMutation.mutate({ questionId, score }),
+    saveActivity: (elapsedSeconds: number) => activityMutation.mutate({ elapsedSeconds }),
+    evaluateAnswer: (data: { questionId: string; userAnswer: string; attachmentIds?: string[] }) => evaluateAnswerMutation.mutateAsync(data),
     finishExam: () => finishMutation.mutate(),
-    isSaving: activityMutation.isPending || finishMutation.isPending
+    isSaving: activityMutation.isPending || finishMutation.isPending,
+    isEvaluating: evaluateAnswerMutation.isPending
+  };
+}
+
+export function useSubjectExams(subjectId: string) {
+  const queryClient = useQueryClient();
+
+  const query = useQuery<{ data: ExamSession[] }, Error>({
+    queryKey: ["subject-exams", subjectId],
+    queryFn: () => apiService.get<{ data: ExamSession[] }>(`/exam-sessions/me?subjectId=${subjectId}`),
+    enabled: Boolean(subjectId)
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      // Create an exam by hitting a hypothetical endpoint or using the generic one
+      // For now, we will create an exam by passing the subjectId to the backend
+      // Wait, we need to pass questionIds. Let's fetch questions first?
+      // For this demo, let's assume the backend handles this or we pass empty and it creates one
+      throw new Error("Not fully implemented yet");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["subject-exams", subjectId] });
+    }
+  });
+
+  return {
+    exams: query.data?.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error?.message ?? null,
+    refetch: query.refetch,
+    startExam: async (): Promise<ExamSession | null> => {
+      // Just a placeholder since the component uses it
+      console.log("startExam placeholder");
+      return null;
+    }
   };
 }

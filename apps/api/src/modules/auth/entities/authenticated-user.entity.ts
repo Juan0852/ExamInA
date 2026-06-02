@@ -23,7 +23,6 @@ export interface AuthenticatedUserEntity {
     notificationsEnabled: boolean;
     studyReminderEnabled: boolean;
     timerSoundEnabled: boolean;
-    defaultTimerEnabled: boolean;
     defaultExamDurationSeconds: number;
     preferredSubjects: any;
     weeklyStudyHours: string | null;

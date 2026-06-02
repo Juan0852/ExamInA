@@ -68,7 +68,8 @@ export class QuestionsService {
           statement: `Calcula el límite $$\\lim_{x \\to 0} \\frac{\\sin(3x) \\cdot (e^{x} - 1)}{x^2}$$ utilizando equivalencias infinitesimales o límites notables. Justifica los pasos.`,
           difficulty: input.difficulty || "MEDIUM",
           finalAnswer: "\\(3\\)",
-          explanation: "Cuando \\(x \\to 0\\), tenemos las siguientes equivalencias infinitesimales:\n1) \\(\\sin(3x) \\sim 3x\\)\n2) \\(e^{x} - 1 \\sim x\\)\n\nSustituyendo en la expresión del límite:\n$$\\lim_{x \\to 0} \\frac{3x \\cdot x}{x^2} = \\lim_{x \\to 0} \\frac{3x^2}{x^2} = 3$$\n\nPor tanto, el resultado es 3."
+          explanation: "Cuando \\(x \\to 0\\), tenemos las siguientes equivalencias infinitesimales:\n1) \\(\\sin(3x) \\sim 3x\\)\n2) \\(e^{x} - 1 \\sim x\\)\n\nSustituyendo en la expresión del límite:\n$$\\lim_{x \\to 0} \\frac{3x \\cdot x}{x^2} = \\lim_{x \\to 0} \\frac{3x^2}{x^2} = 3$$\n\nPor tanto, el resultado es 3.",
+          expectedKeywords: ["equivalencias infinitesimales", "límite notable", "resultado 3"]
         },
         meta: {},
         error: null
@@ -82,7 +83,8 @@ Debes responder obligatoriamente con un único objeto JSON que tenga los siguien
   "statement": "El enunciado de la pregunta. Usa $$ para ecuaciones matemáticas destacadas en bloque y \\( y \\) para fórmulas o expresiones matemáticas en línea.",
   "difficulty": "EASY" | "MEDIUM" | "HARD" (selecciona la dificultad adecuada),
   "finalAnswer": "La respuesta final corta y resumida (ej. \\( 4 \\) o \\( x = 1 \\)). Usa LaTeX en línea.",
-  "explanation": "La justificación o procedimiento paso a paso para resolver el problema, explicada de forma clara y didáctica. Usa LaTeX si es necesario."
+  "explanation": "La justificación o procedimiento paso a paso para resolver el problema, explicada de forma clara y didáctica. Usa LaTeX si es necesario.",
+  "expectedKeywords": ["Lista de 3 a 8 palabras o conceptos clave esperados en una buena respuesta"]
 }
 
 No incluyas explicaciones previas ni posteriores, solo devuelve el objeto JSON válido.`;
@@ -153,7 +155,10 @@ ${input.difficulty ? `Dificultad deseada: ${input.difficulty}` : ""}`;
           statement: parsed.statement || "Pregunta sin enunciado generado.",
           difficulty: parsed.difficulty || "MEDIUM",
           finalAnswer: parsed.finalAnswer || "",
-          explanation: parsed.explanation || ""
+          explanation: parsed.explanation || "",
+          expectedKeywords: Array.isArray(parsed.expectedKeywords)
+            ? parsed.expectedKeywords.map((keyword: unknown) => String(keyword)).filter(Boolean)
+            : []
         },
         meta: {},
         error: null

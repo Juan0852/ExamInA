@@ -32,18 +32,18 @@ export class PrismaQuestionsRepository implements QuestionsRepository {
             slug: true
           }
         },
-        keywords: {
-          orderBy: { keyword: "asc" }
-        },
-        attempts: userId
+        examSessionAnswers: userId
           ? {
-              where: { userId },
+              where: {
+                examSession: {
+                  userId
+                }
+              },
               orderBy: { createdAt: "desc" },
               take: 1,
               select: {
                 id: true,
-                score: true,
-                status: true
+                score: true
               }
             }
           : false
@@ -69,10 +69,7 @@ export class PrismaQuestionsRepository implements QuestionsRepository {
             slug: true
           }
         },
-        solution: true,
-        keywords: {
-          orderBy: { keyword: "asc" }
-        }
+        solution: true
       }
     });
   }

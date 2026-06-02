@@ -24,7 +24,7 @@ export interface QuestionResponseDto {
     finalAnswer: string;
     explanation: string;
     gradingCriteria: unknown;
+    expectedKeywords: string[];
   } | null;
-  keywords?: string[];
   isAnswered?: boolean;
 }

@@ -40,24 +40,6 @@ export interface CorrectionFeedback {
   recommendedTopics: string[];
 }
 
-interface EvaluateWrittenAnswerApiResponse {
-  data: {
-    attempt: {
-      id: string;
-      questionId: string;
-      examSessionId: string | null;
-      userAnswer: string;
-      score: number | null;
-      status: string;
-      createdAt: string;
-      updatedAt: string;
-    };
-    correction: CorrectionFeedback;
-  };
-  meta: any;
-  error: any;
-}
-
 import { answerSchema } from "../shared/validation/schemas";
 
 /**
@@ -68,7 +50,7 @@ import { answerSchema } from "../shared/validation/schemas";
 export function useQuestionViewModel(questionId: string | undefined) {
   const [userAnswer, setUserAnswer] = useState("");
   const [correction, setCorrection] = useState<CorrectionFeedback | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
   const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
@@ -92,7 +74,7 @@ export function useQuestionViewModel(questionId: string | undefined) {
 
   /**
    * Procesa el envío de la respuesta escrita.
-   * Crea un Attempt y una Correction persistida desde el backend.
+   * La evaluacion IA solo esta disponible dentro de una sesion de examen.
    */
   const handleSubmitAnswer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,40 +86,8 @@ export function useQuestionViewModel(questionId: string | undefined) {
       return;
     }
 
-    setIsSubmitting(true);
-    setSubmitError(null);
+    setSubmitError("La evaluación IA solo está disponible dentro de una sesión de examen.");
     setCorrection(null);
-
-    try {
-      if (!questionId) {
-        throw new Error("ID de pregunta inválido.");
-      }
-
-      const timeSpentSeconds = Math.floor((Date.now() - questionStartTime) / 1000);
-
-      const response = await apiService.post<EvaluateWrittenAnswerApiResponse>(
-        "/corrections/evaluate-written-answer",
-        {
-          questionId,
-          userAnswer: userAnswer.trim(),
-          timeSpentSeconds,
-          attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined
-        }
-      );
-
-      setCorrection({
-        ...response.data.correction,
-        detectedErrors: response.data.correction.detectedErrors ?? [],
-        missingKeywords: response.data.correction.missingKeywords ?? [],
-        suggestions: response.data.correction.suggestions ?? [],
-        recommendedTopics: response.data.correction.recommendedTopics ?? []
-      });
-      setQuestionStartTime(Date.now());
-    } catch (err: any) {
-      setSubmitError(err.message || "No se pudo procesar la corrección. Inténtalo de nuevo.");
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   /**

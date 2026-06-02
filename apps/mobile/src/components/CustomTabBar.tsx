@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform } from "react-native";
-import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Home, User, Plus, BookOpen, FileText } from "lucide-react-native";
 import Svg, { Path } from "react-native-svg";
@@ -16,7 +15,17 @@ import { theme } from "../theme";
 const { width } = Dimensions.get("window");
 const BAR_HEIGHT = 61; // Definido por las dimensiones del SVG
 
-export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+type CustomTabBarProps = {
+  state: {
+    index: number;
+    routes: Array<{ name: string }>;
+  };
+  navigation: {
+    navigate: (name: string) => void;
+  };
+};
+
+export function CustomTabBar({ state, navigation }: CustomTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomPad = insets.bottom || 12;
 

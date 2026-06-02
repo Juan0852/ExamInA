@@ -24,14 +24,10 @@ export interface QuestionEntity {
     finalAnswer: string;
     explanation: string;
     gradingCriteria: unknown;
+    expectedKeywords: string[];
   } | null;
-  keywords?: {
-    id: string;
-    keyword: string;
-  }[];
-  attempts?: {
+  examSessionAnswers?: {
     id: string;
     score: number | null;
-    status: string;
   }[];
 }

@@ -1,34 +1,34 @@
 import type { EvaluateWrittenAnswerResponseDto } from "../dtos/correction-response.dto";
-import type { AttemptWithCorrectionRecord } from "../repositories/corrections.repository";
+import type { ExamSessionAnswerWithCorrectionRecord } from "../repositories/corrections.repository";
 
 export class CorrectionMapper {
   static toEvaluateWrittenAnswerResponse(
-    attempt: AttemptWithCorrectionRecord
+    answer: ExamSessionAnswerWithCorrectionRecord
   ): EvaluateWrittenAnswerResponseDto {
     return {
       data: {
-        attempt: {
-          id: attempt.id,
-          questionId: attempt.questionId,
-          examSessionId: attempt.examSessionId,
-          userAnswer: attempt.userAnswer,
-          score: attempt.score,
-          status: attempt.status,
-          createdAt: attempt.createdAt.toISOString(),
-          updatedAt: attempt.updatedAt.toISOString()
+        answer: {
+          id: answer.id,
+          questionId: answer.questionId,
+          examSessionId: answer.examSessionId,
+          userAnswer: answer.userAnswer,
+          score: answer.score,
+          isCorrect: answer.isCorrect,
+          answeredAt: (answer.answeredAt ?? answer.createdAt).toISOString(),
+          createdAt: answer.createdAt.toISOString()
         },
         correction: {
-          id: attempt.correction.id,
-          attemptId: attempt.correction.attemptId,
-          isCorrect: attempt.correction.isCorrect,
-          score: attempt.correction.score,
-          summary: attempt.correction.summary,
-          feedback: attempt.correction.feedback,
-          detectedErrors: CorrectionMapper.toStringArray(attempt.correction.detectedErrors),
-          missingKeywords: CorrectionMapper.toStringArray(attempt.correction.missingKeywords),
-          suggestions: CorrectionMapper.toStringArray(attempt.correction.suggestions),
-          recommendedTopics: CorrectionMapper.toStringArray(attempt.correction.recommendedTopics),
-          createdAt: attempt.correction.createdAt.toISOString()
+          id: answer.correction.id,
+          examSessionAnswerId: answer.correction.examSessionAnswerId,
+          isCorrect: answer.correction.isCorrect,
+          score: answer.correction.score,
+          summary: answer.correction.summary,
+          feedback: answer.correction.feedback,
+          detectedErrors: CorrectionMapper.toStringArray(answer.correction.detectedErrors),
+          missingKeywords: CorrectionMapper.toStringArray(answer.correction.missingKeywords),
+          suggestions: CorrectionMapper.toStringArray(answer.correction.suggestions),
+          recommendedTopics: CorrectionMapper.toStringArray(answer.correction.recommendedTopics),
+          createdAt: answer.correction.createdAt.toISOString()
         }
       },
       meta: {},

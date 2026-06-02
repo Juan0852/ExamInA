@@ -31,7 +31,6 @@ export class AuthUserMapper {
             notificationsEnabled: user.preferences.notificationsEnabled,
             studyReminderEnabled: user.preferences.studyReminderEnabled,
             timerSoundEnabled: user.preferences.timerSoundEnabled,
-            defaultTimerEnabled: user.preferences.defaultTimerEnabled,
             defaultExamDurationSeconds: user.preferences.defaultExamDurationSeconds,
             preferredSubjects: user.preferences.preferredSubjects,
             weeklyStudyHours: user.preferences.weeklyStudyHours,

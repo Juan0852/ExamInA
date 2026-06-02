@@ -47,11 +47,7 @@ interface UsernameAvailabilityResponse {
   };
 }
 
-// Helper para comprobar si una asignatura está activa (Sólo Matemáticas y Biología)
-const isSubjectEnabled = (name: string): boolean => {
-  const normalized = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return normalized.includes("matematica") || normalized.includes("biologia");
-};
+
 
 export function OnboardingPage() {
   const navigate = useNavigate();
@@ -189,35 +185,25 @@ export function OnboardingPage() {
     setSubmitError(null);
 
     try {
-      // Guardar preferencias y perfil del usuario al cerrar el onboarding.
-      const profileResponse = await apiService.put<{
+      // Guardar preferencias y perfil del usuario al cerrar el onboarding de forma atómica.
+      const response = await apiService.post<{
         data: {
           user: typeof user;
         };
-      }>("/auth/profile", {
+      }>("/auth/onboarding/complete", {
         displayName: normalizedUsername,
         username: normalizedUsername,
         bio: bio.trim(),
         targetUniversity: targetUniversity.trim(),
         photoUrl: avatarUrl.trim(),
-      });
-
-      const response = await apiService.put<{
-        data: {
-          user: typeof user;
-        };
-      }>("/auth/preferences", {
         preferredSubjects: selectedSubjects,
         weeklyStudyHours: weeklyHours,
         referralSource: referralSource,
-        onboardingCompleted: true,
       });
 
       // Actualizar Zustand store con el usuario actualizado
       if (user && response.data?.user) {
         setSession(token || "", response.data.user);
-      } else if (user && profileResponse.data?.user) {
-        setSession(token || "", profileResponse.data.user);
       }
 
       const achievementsResponse = await apiService.post<AchievementsResponse>("/achievements/me/evaluate");
@@ -365,24 +351,18 @@ export function OnboardingPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-1">
                   {subjects.map((sub) => {
                     const isSelected = selectedSubjects.includes(sub.id);
-                    const enabled = isSubjectEnabled(sub.name);
                     return (
                       <button
                         key={sub.id}
-                        onClick={() => enabled && handleToggleSubject(sub.id)}
-                        disabled={!enabled}
+                        onClick={() => handleToggleSubject(sub.id)}
                         className={`flex items-center justify-between gap-3 p-4 rounded-xl border text-left transition-all duration-200 ${
-                          !enabled
-                            ? "opacity-60 cursor-not-allowed bg-slate-100/50 dark:bg-[#12243B]/40 border-slate-200/50 dark:border-brand-navy/15"
-                            : isSelected
+                          isSelected
                             ? "bg-brand-sky/20 dark:bg-brand-blue/10 border-brand-blue dark:border-brand-cyan shadow-sm cursor-pointer"
                             : "bg-slate-50 dark:bg-[#12243B] border-slate-200 dark:border-brand-navy/35 hover:border-slate-300 dark:hover:border-brand-navy/60 cursor-pointer"
                         }`}
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-3">
-                          <div className={`h-14 w-14 min-w-14 max-w-14 shrink-0 rounded-lg overflow-hidden flex items-center justify-center ${
-                            !enabled ? "opacity-60 bg-slate-200/30 dark:bg-[#1C2C42]/30" : "bg-brand-sky/30 dark:bg-brand-navy/40"
-                          }`}>
+                          <div className={`h-14 w-14 min-w-14 max-w-14 shrink-0 rounded-lg overflow-hidden flex items-center justify-center bg-brand-sky/30 dark:bg-brand-navy/40`}>
                             <img src={getSubjectIcon(sub.name)} alt={sub.name} className="h-10 w-10 min-w-10 max-w-10 shrink-0 object-contain" />
                           </div>
                           <div className="min-w-0 flex-1">
@@ -390,15 +370,10 @@ export function OnboardingPage() {
                               <h3 className="min-w-0 text-sm font-bold text-slate-800 dark:text-white break-words">
                                 {sub.name}
                               </h3>
-                              {!enabled && (
-                                <span className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-200/40 dark:bg-slate-800/40 border border-slate-300/30 rounded-md">
-                                  Próximamente
-                                </span>
-                              )}
                             </div>
                           </div>
                         </div>
-                        {isSelected && enabled && (
+                        {isSelected && (
                           <CheckCircle2 className="w-5 h-5 text-brand-blue dark:text-brand-cyan flex-shrink-0" />
                         )}
                       </button>

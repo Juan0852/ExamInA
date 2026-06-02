@@ -1,14 +1,32 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
 import { useAuthStore } from "../src/stores/auth.store";
-import { apiService } from "../src/services/api.service";
+import {
+  getGoogleClientIds,
+  getReadableAuthError,
+  loginWithEmailPassword,
+  loginWithGoogleToken,
+  registerWithEmailPassword
+} from "../src/services/mobile-auth.service";
 import { theme } from "../src/theme";
 import { Ionicons } from "@expo/vector-icons";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
   const setSession = useAuthStore((state) => state.setSession);
+  const googleClientIds = useMemo(() => getGoogleClientIds(), []);
+  const [googleRequest, googleResponse, promptGoogleAsync] = Google.useIdTokenAuthRequest({
+    clientId: googleClientIds.webClientId || googleClientIds.iosClientId || googleClientIds.androidClientId || "missing-google-client-id.apps.googleusercontent.com",
+    webClientId: googleClientIds.webClientId,
+    iosClientId: googleClientIds.iosClientId,
+    androidClientId: googleClientIds.androidClientId,
+    selectAccount: true
+  });
 
   const [view, setView] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -26,15 +44,9 @@ export default function LoginScreen() {
     setError(null);
 
     try {
-      const endpoint = view === "login" ? "/auth/login" : "/auth/register";
-      const response = await apiService.post<{
-        data: {
-          user: any;
-          auth?: {
-            idToken: string;
-          };
-        };
-      }>(endpoint, { email, password });
+      const response = view === "login"
+        ? await loginWithEmailPassword(email, password)
+        : await registerWithEmailPassword(email, password);
 
       if (!response.data.auth?.idToken) {
         throw new Error("El servidor no devolvió un token de sesión válido.");
@@ -43,16 +55,73 @@ export default function LoginScreen() {
       await setSession(response.data.auth.idToken, response.data.user);
       router.replace("/(tabs)/dashboard");
     } catch (err: any) {
-      setError(err.message || (view === "login" ? "Error al iniciar sesión." : "Error al registrarse."));
+      setError(getReadableAuthError(err));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleAuth = () => {
-    // TODO: Implement Google Sign-In logic here
-    setError("Inicio con Google no implementado aún.");
+  const handleGoogleAuth = async () => {
+    if (!googleClientIds.hasAnyClientId) {
+      setError("Faltan los client IDs de Google en la configuración mobile.");
+      return;
+    }
+
+    if (!googleRequest) {
+      setError("Google todavía está preparando el inicio de sesión. Inténtalo otra vez.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const result = await promptGoogleAsync();
+    if (result.type !== "success") {
+      setIsLoading(false);
+      setError("El inicio con Google fue cancelado.");
+    }
   };
+
+  useEffect(() => {
+    const googleIdToken = googleResponse?.type === "success" ? googleResponse.params.id_token : null;
+
+    if (!googleIdToken) {
+      return;
+    }
+
+    const token = googleIdToken;
+    let isMounted = true;
+
+    async function finishGoogleAuth() {
+      try {
+        const response = await loginWithGoogleToken(token);
+
+        if (!response.data.auth?.idToken) {
+          throw new Error("El servidor no devolvió un token de sesión válido.");
+        }
+
+        await setSession(response.data.auth.idToken, response.data.user);
+
+        if (isMounted) {
+          router.replace("/(tabs)/dashboard");
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(getReadableAuthError(err));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void finishGoogleAuth();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [googleResponse, router, setSession]);
 
   return (
     <KeyboardAvoidingView

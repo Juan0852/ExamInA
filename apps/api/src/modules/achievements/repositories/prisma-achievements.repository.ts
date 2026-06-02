@@ -15,20 +15,18 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
   async syncCatalog(catalog: AchievementCatalogItem[]): Promise<void> {
     const prisma = this.prismaService.getClient();
 
-    await Promise.all(
-      catalog.map((achievement) =>
-        prisma.achievement.upsert({
-          where: { code: achievement.code },
-          update: {
-            title: achievement.title,
-            description: achievement.description,
-            icon: achievement.icon,
-            experienceReward: achievement.experienceReward
-          },
-          create: achievement
-        })
-      )
-    );
+    for (const achievement of catalog) {
+      await prisma.achievement.upsert({
+        where: { code: achievement.code },
+        update: {
+          title: achievement.title,
+          description: achievement.description,
+          icon: achievement.icon,
+          experienceReward: achievement.experienceReward
+        },
+        create: achievement
+      });
+    }
   }
 
   async findAllForUser(userId: string): Promise<AchievementWithUnlock[]> {
@@ -64,7 +62,6 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
       user,
       completedExamSessions,
       createdSharedExams,
-      attempts,
       examAnswers,
       communityPosts,
       sentAcceptedFriendships,
@@ -93,9 +90,6 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
       }),
       prisma.sharedExam.count({
         where: { ownerId: userId }
-      }),
-      prisma.attempt.count({
-        where: { userId }
       }),
       prisma.examSessionAnswer.count({
         where: {
@@ -216,8 +210,12 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
       }
     });
 
-    const userAttempts = await prisma.attempt.findMany({
-      where: { userId },
+    const userAnswers = await prisma.examSessionAnswer.findMany({
+      where: {
+        examSession: {
+          userId
+        }
+      },
       select: {
         createdAt: true,
         score: true,
@@ -233,30 +231,29 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
       }
     });
 
-    const hasPerfectAnswer = userAttempts.some((att) => att.score !== null && att.score >= 10);
-    const hasGreatAnswer = userAttempts.some((att) => att.score !== null && att.score >= 7.5);
-    const hasMathPerfectAnswer = userAttempts.some(
-      (att) =>
-        att.score !== null &&
-        att.score >= 10 &&
-        att.question.subject.name
+    const hasPerfectAnswer = userAnswers.some((answer) => answer.score !== null && answer.score >= 10);
+    const hasGreatAnswer = userAnswers.some((answer) => answer.score !== null && answer.score >= 7.5);
+    const hasMathPerfectAnswer = userAnswers.some(
+      (answer) =>
+        answer.score !== null &&
+        answer.score >= 10 &&
+        answer.question.subject.name
           .toLowerCase()
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
           .includes("matematica")
     );
-    const hasNightOwl = userAttempts.some((att) => {
-      const hr = new Date(att.createdAt).getUTCHours();
+    const hasNightOwl = userAnswers.some((answer) => {
+      const hr = new Date(answer.createdAt).getUTCHours();
       return hr >= 0 && hr < 4;
     });
-    const hasSundayStudy = userAttempts.some((att) => new Date(att.createdAt).getUTCDay() === 0);
+    const hasSundayStudy = userAnswers.some((answer) => new Date(answer.createdAt).getUTCDay() === 0);
 
     return {
       profileCompletion,
       completedExamSessions,
       createdSharedExams,
       currentStreakDays: calculatedStreak,
-      attempts,
       examAnswers,
       communityPosts,
       acceptedFriendships: sentAcceptedFriendships + receivedAcceptedFriendships,

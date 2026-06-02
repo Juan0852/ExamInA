@@ -296,9 +296,9 @@ Si una decisión técnica cambia, se debe actualizar la documentación en el mis
 
 Ejemplos:
 
-- si cambia una entidad, actualizar `EXAMINA_ENTITY_DIAGRAM.md`;
-- si cambia una ruta, actualizar `EXAMINA_API_ENDPOINTS.md`;
-- si cambia arquitectura, actualizar `EXAMINA_PROJECT_PLAN.md`.
+- si cambia una entidad, actualizar el documento vigente que describa el modelo o crear uno nuevo si no existe;
+- si cambia una ruta, actualizar el inventario vigente de endpoints o crear uno nuevo si no existe;
+- si cambia arquitectura, actualizar `docs/AGENT_HANDOFF.md` y registrar el riesgo o decision en `docs/CURRENT_PROBLEMS.md`.
 
 ## Regla práctica
 

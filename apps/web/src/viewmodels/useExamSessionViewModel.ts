@@ -27,7 +27,6 @@ export interface ExamSession {
   title: string;
   mode: string;
   status: string;
-  timerEnabled: boolean;
   durationLimitSeconds: number | null;
   startedAt: string | null;
   finishedAt: string | null;

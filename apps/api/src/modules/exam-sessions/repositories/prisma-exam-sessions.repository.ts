@@ -36,17 +36,12 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
             userAnswer: true,
             score: true,
             isCorrect: true,
-            attemptId: true,
-            attempt: {
+            correction: {
               select: {
-                correction: {
-                  select: {
-                    feedback: true,
-                    detectedErrors: true,
-                    missingKeywords: true,
-                    suggestions: true
-                  }
-                }
+                feedback: true,
+                detectedErrors: true,
+                missingKeywords: true,
+                suggestions: true
               }
             }
           }
@@ -55,9 +50,21 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
     }) as Promise<ExamSessionRecord | null>;
   }
 
-  async findAllForUser(userId: string): Promise<ExamSessionRecord[]> {
+  async findAllForUser(userId: string, subjectId?: string): Promise<ExamSessionRecord[]> {
+    const whereClause: Prisma.ExamSessionWhereInput = { userId };
+    
+    if (subjectId) {
+      whereClause.questions = {
+        some: {
+          question: {
+            subjectId
+          }
+        }
+      };
+    }
+
     return this.prismaService.getClient().examSession.findMany({
-      where: { userId },
+      where: whereClause,
       orderBy: { lastActivityAt: "desc" },
       take: 20,
       include: {
@@ -70,7 +77,8 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
                 type: true,
                 difficulty: true,
                 sourceYear: true,
-                sourceExam: true
+                sourceExam: true,
+                subjectId: true
               }
             }
           }
@@ -81,17 +89,12 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
             userAnswer: true,
             score: true,
             isCorrect: true,
-            attemptId: true,
-            attempt: {
+            correction: {
               select: {
-                correction: {
-                  select: {
-                    feedback: true,
-                    detectedErrors: true,
-                    missingKeywords: true,
-                    suggestions: true
-                  }
-                }
+                feedback: true,
+                detectedErrors: true,
+                missingKeywords: true,
+                suggestions: true
               }
             }
           }
@@ -129,17 +132,12 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
             userAnswer: true,
             score: true,
             isCorrect: true,
-            attemptId: true,
-            attempt: {
+            correction: {
               select: {
-                correction: {
-                  select: {
-                    feedback: true,
-                    detectedErrors: true,
-                    missingKeywords: true,
-                    suggestions: true
-                  }
-                }
+                feedback: true,
+                detectedErrors: true,
+                missingKeywords: true,
+                suggestions: true
               }
             }
           }
@@ -177,17 +175,12 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
             userAnswer: true,
             score: true,
             isCorrect: true,
-            attemptId: true,
-            attempt: {
+            correction: {
               select: {
-                correction: {
-                  select: {
-                    feedback: true,
-                    detectedErrors: true,
-                    missingKeywords: true,
-                    suggestions: true
-                  }
-                }
+                feedback: true,
+                detectedErrors: true,
+                missingKeywords: true,
+                suggestions: true
               }
             }
           }
@@ -311,7 +304,6 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
     userId: string;
     title: string;
     questionIds: string[];
-    timerEnabled?: boolean;
     durationLimitSeconds?: number;
   }): Promise<ExamSessionRecord> {
     const questions = await this.prismaService.getClient().question.findMany({
@@ -330,7 +322,6 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
         title: input.title,
         mode: ExamSessionMode.PRACTICE,
         status: ExamSessionStatus.IN_PROGRESS,
-        timerEnabled: input.timerEnabled ?? false,
         durationLimitSeconds: input.durationLimitSeconds ?? null,
         startedAt: new Date(),
         lastActivityAt: new Date(),
@@ -375,17 +366,12 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
             userAnswer: true,
             score: true,
             isCorrect: true,
-            attemptId: true,
-            attempt: {
+            correction: {
               select: {
-                correction: {
-                  select: {
-                    feedback: true,
-                    detectedErrors: true,
-                    missingKeywords: true,
-                    suggestions: true
-                  }
-                }
+                feedback: true,
+                detectedErrors: true,
+                missingKeywords: true,
+                suggestions: true
               }
             }
           }

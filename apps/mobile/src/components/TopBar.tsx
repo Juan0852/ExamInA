@@ -16,8 +16,8 @@ export function TopBar() {
         {/* Lado Izquierdo: Solo Avatar */}
         <View style={styles.leftSection}>
           <TouchableOpacity style={styles.avatarContainer}>
-            {user?.photoURL ? (
-              <Image source={{ uri: user.photoURL }} style={styles.avatarImage} />
+            {user?.photoUrl ? (
+              <Image source={{ uri: user.photoUrl }} style={styles.avatarImage} />
             ) : (
               <User size={18} color={theme.colors.brandBlue} strokeWidth={2.5} />
             )}
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   centerSection: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "center",
     alignItems: "center",
     zIndex: -1,

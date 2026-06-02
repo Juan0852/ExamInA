@@ -55,7 +55,7 @@ import { useRouter } from "expo-router";
 export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { summary, isLoading, isError, error, refetch, getMappedStreakDays, formatSecondsSmart, formatExamStatus, formatRelativeDate } = useDashboardViewModel();
+  const { summary, isLoading, isError, error, refetch, getMappedStreakDays, formatSecondsSmart, formatExamStatus, formatRelativeDate, monthStreak } = useDashboardViewModel();
 
   const [streakModalVisible, setStreakModalVisible] = useState(false);
   const [timeModalVisible, setTimeModalVisible] = useState(false);
@@ -129,8 +129,11 @@ export default function DashboardScreen() {
     ? (lastCompletedIndex / (streakDays.length - 1)) * 100 
     : 0;
 
-  const monthStreakData = useDashboardViewModel().monthStreak;
-  const monthData = monthStreakData?.months?.[0];
+  const monthData = monthStreak?.months?.[0] || null;
+  const bestStreakCount = Math.max(
+    summary?.streak.currentCount ?? 0,
+    user?.profile?.longestStreakDays ?? 0
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
@@ -234,12 +237,19 @@ export default function DashboardScreen() {
               </View>
               <View style={styles.timeBreakdownRow}>
                 <View style={styles.timeBreakdownBox}>
-                  <Text style={styles.timeBreakdownLabel}>TOTAL</Text>
-                  <Text style={styles.timeBreakdownValue}>{formatSecondsSmart(summary?.progress.totalStudyTimeSeconds ?? 0)}</Text>
+                  <Text style={styles.timeBreakdownLabel}>PROMEDIO</Text>
+                  <Text style={styles.timeBreakdownValue}>
+                    {(() => {
+                      const daily = summary?.studyTime.daily || [];
+                      const activeDays = daily.filter(d => d.studySeconds > 0).length;
+                      const totalSecs = summary?.progress.totalStudyTimeSeconds ?? 0;
+                      return formatSecondsSmart(activeDays > 0 ? Math.round(totalSecs / activeDays) : 0);
+                    })()}
+                  </Text>
                 </View>
                 <View style={styles.timeBreakdownBox}>
-                  <Text style={styles.timeBreakdownLabel}>SEMANA</Text>
-                  <Text style={styles.timeBreakdownValue}>{formatSecondsSmart(summary?.studyTime.weekStudySeconds ?? 0)}</Text>
+                  <Text style={styles.timeBreakdownLabel}>ACTIVO</Text>
+                  <Text style={styles.timeBreakdownValue}>{formatSecondsSmart(summary?.progress.totalStudyTimeSeconds ?? 0)}</Text>
                 </View>
               </View>
             </Animated.View>
@@ -329,7 +339,7 @@ export default function DashboardScreen() {
               </View>
               <View style={styles.modalStatBox}>
                 <Text style={styles.modalStatLabel}>Mejor Racha</Text>
-                <Text style={styles.modalStatValue}>{summary?.streak.longestCount ?? 0} días</Text>
+                <Text style={styles.modalStatValue}>{bestStreakCount} días</Text>
               </View>
             </View>
 
@@ -387,6 +397,7 @@ export default function DashboardScreen() {
               <Clock size={32} color="#6366f1" />
               <Text style={[styles.modalTitle, { color: "#4f46e5" }]}>Tiempo de estudio</Text>
             </View>
+
             {/* Selector de Modo */}
             <View style={styles.timeToggleContainer}>
               <TouchableOpacity 

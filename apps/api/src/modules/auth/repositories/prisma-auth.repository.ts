@@ -29,9 +29,7 @@ export class PrismaAuthRepository implements AuthRepository {
     const user = await this.prismaService.getClient().user.upsert({
       where: { firebaseUid: authUser.firebaseUid },
       update: {
-        email,
-        displayName,
-        photoUrl
+        email
       },
       create: {
         firebaseUid: authUser.firebaseUid,
@@ -95,6 +93,90 @@ export class PrismaAuthRepository implements AuthRepository {
     return user;
   }
 
+  async completeOnboarding(
+    userId: string,
+    data: {
+      displayName: string;
+      username: string;
+      bio?: string;
+      targetUniversity?: string;
+      photoUrl?: string;
+      preferredSubjects: string[];
+      weeklyStudyHours?: string | null;
+      referralSource?: string | null;
+    }
+  ): Promise<AuthenticatedUserEntity> {
+    await this.prismaService.getClient().$transaction(async (tx) => {
+      // 1. Update User (displayName, photoUrl)
+      // We pass profile and preferences creates in case they don't exist, to prevent crashes
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          displayName: data.displayName,
+          photoUrl: data.photoUrl || undefined,
+          profile: {
+            upsert: {
+              create: {
+                username: data.username,
+                bio: data.bio || undefined,
+                targetUniversity: data.targetUniversity || undefined
+              },
+              update: {
+                username: data.username,
+                bio: data.bio || undefined,
+                targetUniversity: data.targetUniversity || undefined
+              }
+            }
+          },
+          preferences: {
+            upsert: {
+              create: {
+                weeklyStudyHours: data.weeklyStudyHours || undefined,
+                referralSource: data.referralSource || undefined,
+                onboardingCompleted: true
+              },
+              update: {
+                weeklyStudyHours: data.weeklyStudyHours || undefined,
+                referralSource: data.referralSource || undefined,
+                onboardingCompleted: true
+              }
+            }
+          }
+        }
+      });
+
+      // 2. Synchronize preferred subjects
+      if (data.preferredSubjects && data.preferredSubjects.length > 0) {
+        await tx.userSubjectEnrollment.deleteMany({
+          where: { userId }
+        });
+
+        await tx.userSubjectEnrollment.createMany({
+          data: data.preferredSubjects.map((subjectId) => ({
+            userId,
+            subjectId,
+            status: "ACTIVE"
+          }))
+        });
+      }
+    });
+
+    const user = await this.prismaService.getClient().user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: true,
+        preferences: true,
+        progress: true
+      }
+    });
+
+    if (!user) {
+      throw new Error("User not found after onboarding");
+    }
+
+    return user;
+  }
+
   async updateProfile(
     userId: string,
     data: {
@@ -105,18 +187,22 @@ export class PrismaAuthRepository implements AuthRepository {
       photoUrl?: string;
     }
   ): Promise<AuthenticatedUserEntity> {
+    const hasProfileUpdates = data.username !== undefined || data.bio !== undefined || data.targetUniversity !== undefined;
+    
     await this.prismaService.getClient().user.update({
       where: { id: userId },
       data: {
         displayName: data.displayName !== undefined ? data.displayName : undefined,
         photoUrl: data.photoUrl !== undefined ? data.photoUrl : undefined,
-        profile: {
-          update: {
-            username: data.username !== undefined ? data.username : undefined,
-            bio: data.bio !== undefined ? data.bio : undefined,
-            targetUniversity: data.targetUniversity !== undefined ? data.targetUniversity : undefined
+        ...(hasProfileUpdates && {
+          profile: {
+            update: {
+              ...(data.username !== undefined && { username: data.username }),
+              ...(data.bio !== undefined && { bio: data.bio }),
+              ...(data.targetUniversity !== undefined && { targetUniversity: data.targetUniversity }),
+            }
           }
-        }
+        })
       }
     });
 

@@ -19,8 +19,14 @@ export function parseCorrectionResult(content: string): CorrectionResult {
 function parseJsonObject(json: string): unknown {
   try {
     return JSON.parse(json);
-  } catch {
-    return JSON.parse(escapeInvalidBackslashes(json));
+  } catch (err1) {
+    try {
+      const escaped = escapeInvalidBackslashes(json);
+      return JSON.parse(escaped);
+    } catch (err2: any) {
+      console.error("DEBUG JSON RAW:", json);
+      throw new Error(`JSON Parse Error: ${err2.message}. Raw: ${json.substring(0, 100)}...`);
+    }
   }
 }
 
@@ -36,7 +42,11 @@ function extractJson(content: string): string {
 }
 
 function escapeInvalidBackslashes(json: string): string {
-  return json.replace(/\\(?!["\\/bfnrtu])/g, "\\\\");
+  // First, handle \u that are not followed by 4 hex digits (e.g. \usepackage, \underbrace)
+  let fixed = json.replace(/\\u(?![0-9a-fA-F]{4})/g, "\\\\u");
+  // Then handle other invalid escapes
+  fixed = fixed.replace(/\\(?!["\\/bfnrtu])/g, "\\\\");
+  return fixed;
 }
 
 function clampScore(score: number): number {

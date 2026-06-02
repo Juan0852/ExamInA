@@ -108,7 +108,7 @@ export class AchievementsService implements OnModuleInit {
       eligibleCodes.push("STREAK_7_DAYS");
     }
 
-    if (stats.attempts > 0 || stats.examAnswers > 0) {
+    if (stats.examAnswers > 0) {
       eligibleCodes.push("FIRST_ANSWER");
     }
 

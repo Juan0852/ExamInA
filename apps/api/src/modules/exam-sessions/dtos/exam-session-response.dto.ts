@@ -5,7 +5,6 @@ export type ExamSessionResponseDto = {
   title: string;
   mode: string;
   status: string;
-  timerEnabled: boolean;
   durationLimitSeconds: number | null;
   startedAt: string | null;
   finishedAt: string | null;

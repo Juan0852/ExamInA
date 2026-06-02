@@ -2,7 +2,7 @@ import type { AchievementResponseDto } from "../../achievements/dtos/achievement
 
 export type CorrectionResponseDto = {
   id: string;
-  attemptId: string;
+  examSessionAnswerId: string;
   isCorrect: boolean;
   score: number;
   summary: string;
@@ -16,15 +16,15 @@ export type CorrectionResponseDto = {
 
 export type EvaluateWrittenAnswerResponseDto = {
   data: {
-    attempt: {
+    answer: {
       id: string;
       questionId: string;
-      examSessionId: string | null;
+      examSessionId: string;
       userAnswer: string;
       score: number | null;
-      status: string;
+      isCorrect: boolean | null;
+      answeredAt: string;
       createdAt: string;
-      updatedAt: string;
     };
     correction: CorrectionResponseDto;
   };

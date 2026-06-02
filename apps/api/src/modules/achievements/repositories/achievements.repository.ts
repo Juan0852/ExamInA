@@ -10,7 +10,6 @@ export type AchievementEvaluationStats = {
   completedExamSessions: number;
   createdSharedExams: number;
   currentStreakDays: number;
-  attempts: number;
   examAnswers: number;
   communityPosts: number;
   acceptedFriendships: number;

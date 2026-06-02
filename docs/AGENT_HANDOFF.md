@@ -8,13 +8,13 @@ Antes de trabajar, un agente debe leer:
 
 1. `README.md`
 2. `docs/AGENT_HANDOFF.md`
-3. El documento especifico relacionado con la tarea:
-   - `docs/EXAMINA_PROJECT_PLAN.md`
-   - `docs/EXAMINA_ENTITY_DIAGRAM.md`
-   - `docs/EXAMINA_API_ENDPOINTS.md`
-   - `docs/IMPLEMENTATION_ROADMAP.md`
+3. `docs/CURRENT_PROBLEMS.md`
+4. El documento especifico relacionado con la tarea:
    - `docs/GIT_WORKFLOW.md`
    - `docs/CODE_COMMENTING_GUIDE.md`
+   - `docs/FRONTEND_STYLE_GUIDE.md`
+   - `docs/DEPENDENCY_SECURITY.md`
+   - `docs/EXAM_FLOW_AND_ENTITY_CONNECTIONS.md` si la tarea toca examenes, intentos, correcciones, preguntas, adjuntos o tiempo de estudio
 
 Despues de trabajar, el agente debe actualizar este documento si cambio algo importante.
 
@@ -227,7 +227,7 @@ Los servicios externos deben estar desacoplados mediante interfaces dentro de `a
 
 La logica de negocio no debe depender directamente de Firebase, OpenAI, AWS S3, OCR o Prisma.
 
-Storage se implementara primero con `LocalStorageProvider` basado en filesystem de Node.js para desarrollo/debugging. Produccion usara `S3StorageProvider` detras de la misma interfaz. Ver `docs/STORAGE_STRATEGY.md`.
+Storage se implementara primero con `LocalStorageProvider` basado en filesystem de Node.js para desarrollo/debugging. Produccion usara `S3StorageProvider` detras de la misma interfaz. La estrategia vigente debe documentarse en `docs/CURRENT_PROBLEMS.md` hasta crear una especificacion nueva.
 
 ### Web y mobile
 
@@ -545,8 +545,7 @@ Archivos tocados:
 - `pnpm-lock.yaml`
 - `README.md`
 - `docs/AGENT_HANDOFF.md`
-- `docs/EXAMINA_PROJECT_PLAN.md`
-- `docs/IMPLEMENTATION_ROADMAP.md`
+- documentos de planificacion obsoletos, eliminados posteriormente
 
 Validacion ejecutada:
 
@@ -590,7 +589,7 @@ Archivos tocados:
 - `docs/AGENT_HANDOFF.md`
 - `docs/FRONTEND_STYLE_GUIDE.md`
 - `docs/DEPENDENCY_SECURITY.md`
-- `docs/IMPLEMENTATION_ROADMAP.md`
+- documentos de planificacion obsoletos, eliminados posteriormente
 
 Validacion ejecutada:
 
@@ -660,9 +659,7 @@ Archivos tocados:
 
 - `README.md`
 - `AGENT_HANDOFF.md`
-- `EXAMINA_PROJECT_PLAN.md`
-- `IMPLEMENTATION_ROADMAP.md`
-- `EXAMINA_API_ENDPOINTS.md`
+- documentos de planificacion obsoletos, eliminados posteriormente
 - `FRONTEND_STYLE_GUIDE.md`
 - `DEPENDENCY_SECURITY.md`
 - `GIT_WORKFLOW.md`

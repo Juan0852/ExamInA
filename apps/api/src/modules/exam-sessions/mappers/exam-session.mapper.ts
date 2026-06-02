@@ -13,7 +13,6 @@ export class ExamSessionMapper {
         title: examSession.title,
         mode: examSession.mode,
         status: examSession.status,
-        timerEnabled: examSession.timerEnabled,
         durationLimitSeconds: examSession.durationLimitSeconds,
         startedAt: examSession.startedAt?.toISOString() ?? null,
         finishedAt: examSession.finishedAt?.toISOString() ?? null,
@@ -35,12 +34,12 @@ export class ExamSessionMapper {
             userAnswer: answer?.userAnswer ?? null,
             score: answer?.score ?? null,
             isCorrect: answer?.isCorrect ?? null,
-            correction: answer?.attempt?.correction
+            correction: answer?.correction
               ? {
-                  feedback: answer.attempt.correction.feedback,
-                  detectedErrors: answer.attempt.correction.detectedErrors,
-                  missingKeywords: answer.attempt.correction.missingKeywords,
-                  suggestions: answer.attempt.correction.suggestions
+                  feedback: answer.correction.feedback,
+                  detectedErrors: answer.correction.detectedErrors,
+                  missingKeywords: answer.correction.missingKeywords,
+                  suggestions: answer.correction.suggestions
                 }
               : null
           };

@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 export const evaluateWrittenAnswerRequestSchema = z.object({
+  examSessionId: z.string().min(1),
   questionId: z.string().min(1),
   userAnswer: z.string().trim().max(8000),
-  examSessionId: z.string().min(1).optional(),
   timeSpentSeconds: z.number().int().min(0).max(3600).optional(),
   attachmentIds: z.array(z.string().min(1)).max(3).optional()
 }).refine(

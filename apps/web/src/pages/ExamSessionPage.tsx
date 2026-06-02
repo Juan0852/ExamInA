@@ -26,15 +26,15 @@ import { AnswerAttachmentComposer, type AnswerAttachment } from "../shared/compo
 
 interface EvaluateWrittenAnswerApiResponse {
   data: {
-    attempt: {
+    answer: {
       id: string;
       questionId: string;
-      examSessionId: string | null;
+      examSessionId: string;
       userAnswer: string;
       score: number | null;
-      status: string;
+      isCorrect: boolean | null;
+      answeredAt: string;
       createdAt: string;
-      updatedAt: string;
     };
     correction: CorrectionFeedback;
   };

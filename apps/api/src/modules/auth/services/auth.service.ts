@@ -1,9 +1,11 @@
 import { ConflictException, Inject, Injectable, UnauthorizedException, NotFoundException, BadRequestException, forwardRef } from "@nestjs/common";
 import type { AuthProvider } from "../../../shared/providers/auth/auth-provider.interface";
 import type { AuthResponseDto } from "../dtos/auth-response.dto";
+import type { GoogleAuthRequestDto } from "../dtos/google-auth-request.dto";
 import type { LoginRequestDto } from "../dtos/login-request.dto";
 import type { RegisterRequestDto } from "../dtos/register-request.dto";
 import type { UpdateProfileRequestDto } from "../dtos/update-profile-request.dto";
+import type { CompleteOnboardingRequestDto } from "../dtos/complete-onboarding-request.dto";
 import type { AuthenticatedUserEntity } from "../entities/authenticated-user.entity";
 import { AuthUserMapper } from "../mappers/auth-user.mapper";
 import type { AuthRepository } from "../repositories/auth.repository";
@@ -54,6 +56,18 @@ export class AuthService {
     );
   }
 
+  async loginWithGoogle(credentials: GoogleAuthRequestDto): Promise<AuthResponseDto> {
+    const loginResult = await this.authProvider.signInWithGoogleIdToken(credentials.idToken);
+    const user = await this.authRepository.findOrCreateFromAuthUser(loginResult.user);
+
+    return this.createAuthResponse(
+      user,
+      loginResult.idToken,
+      loginResult.refreshToken,
+      loginResult.expiresIn
+    );
+  }
+
   async createSession(authorizationHeader?: string): Promise<AuthResponseDto> {
     const user = await this.resolveAuthenticatedUser(authorizationHeader);
 
@@ -87,6 +101,33 @@ export class AuthService {
   ): Promise<AuthResponseDto> {
     const user = await this.resolveAuthenticatedUser(authorizationHeader);
     const updatedUser = await this.authRepository.updatePreferences(user.id, preferencesData);
+
+    return {
+      data: {
+        user: AuthUserMapper.toResponse(updatedUser)
+      },
+      meta: {},
+      error: null
+    };
+  }
+
+  async completeOnboarding(
+    onboardingData: CompleteOnboardingRequestDto,
+    authorizationHeader?: string
+  ): Promise<AuthResponseDto> {
+    const user = await this.resolveAuthenticatedUser(authorizationHeader);
+    
+    if (onboardingData.username) {
+      const isUsernameAvailable = await this.authRepository.isUsernameAvailable(
+        onboardingData.username,
+        user.id
+      );
+      if (!isUsernameAvailable) {
+        throw new ConflictException("El nombre de usuario ya está en uso.");
+      }
+    }
+
+    const updatedUser = await this.authRepository.completeOnboarding(user.id, onboardingData);
 
     return {
       data: {
@@ -332,4 +373,3 @@ export class AuthService {
     return token;
   }
 }
-

@@ -121,12 +121,10 @@ apps/api/
 
 ## Documentos de trabajo
 
-- [Plan maestro del proyecto](./docs/EXAMINA_PROJECT_PLAN.md)
-- [Diagrama de entidades](./docs/EXAMINA_ENTITY_DIAGRAM.md)
-- [Propuesta inicial de endpoints](./docs/EXAMINA_API_ENDPOINTS.md)
+- [Problemas actuales y deuda tecnica](./docs/CURRENT_PROBLEMS.md)
+- [Entidades y flujo de examenes](./docs/EXAM_FLOW_AND_ENTITY_CONNECTIONS.md)
 - [Frontend style guide](./docs/FRONTEND_STYLE_GUIDE.md)
 - [Dependency security policy](./docs/DEPENDENCY_SECURITY.md)
-- [Implementation roadmap](./docs/IMPLEMENTATION_ROADMAP.md)
 - [Code commenting guide](./docs/CODE_COMMENTING_GUIDE.md)
 - [Workflow de Git](./docs/GIT_WORKFLOW.md)
 - [Handoff para agentes](./docs/AGENT_HANDOFF.md)

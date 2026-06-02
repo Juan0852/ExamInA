@@ -82,7 +82,6 @@ export class PrismaSharedExamsRepository implements SharedExamsRepository {
         title: input.sharedExam.title,
         mode: ExamSessionMode.MOCK_EXAM,
         status: ExamSessionStatus.IN_PROGRESS,
-        timerEnabled: true,
         durationLimitSeconds: 5400,
         startedAt: new Date(),
         lastActivityAt: new Date(),
@@ -324,4 +323,3 @@ export class PrismaSharedExamsRepository implements SharedExamsRepository {
     });
   }
 }
-

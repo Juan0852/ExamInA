@@ -1,9 +1,8 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { AuthService } from "../../auth/services/auth.service";
 import type { CorrectionProvider } from "../../../shared/providers/ai/correction-provider.interface";
 import type { EvaluateWrittenAnswerRequestDto } from "../dtos/evaluate-written-answer-request.dto";
 import type { EvaluateWrittenAnswerResponseDto } from "../dtos/correction-response.dto";
-import type { ResetAttemptsRequestDto } from "../dtos/reset-attempts-request.dto";
 import { CorrectionMapper } from "../mappers/correction.mapper";
 import type { CorrectionsRepository } from "../repositories/corrections.repository";
 import { AchievementsService } from "../../achievements/services/achievements.service";
@@ -35,51 +34,74 @@ export class CorrectionsService {
       throw new NotFoundException("Question not found.");
     }
 
-    let imageUrls: string[] = [];
-    if (data.attachmentIds && data.attachmentIds.length > 0) {
-      const attachments = await this.filesRepository.findManyByIds(data.attachmentIds);
-      imageUrls = attachments.filter((att) => att.url !== null).map((att) => att.url as string);
+    const sessionQuestion = await this.correctionsRepository.findSessionQuestionForUser({
+      userId: user.id,
+      examSessionId: data.examSessionId,
+      questionId: data.questionId
+    });
+
+    if (!sessionQuestion) {
+      throw new NotFoundException("Question not found in this exam session.");
     }
 
-    const expectedAnswer = this.buildExpectedAnswer(question.solution?.finalAnswer, question.solution?.explanation);
-    const correction = await this.correctionProvider.evaluateWrittenAnswer({
-      question: question.statement,
-      expectedAnswer,
-      userAnswer: data.userAnswer,
-      imageUrls: imageUrls.length > 0 ? imageUrls : undefined
-    });
-    const attempt = await this.correctionsRepository.createAttemptWithCorrection({
-      userId: user.id,
-      questionId: data.questionId,
+    const existingAnswer = await this.correctionsRepository.findAnswerForSessionQuestion({
       examSessionId: data.examSessionId,
-      userAnswer: data.userAnswer,
-      correction,
-      timeSpentSeconds: data.timeSpentSeconds,
-      subjectId: question.subjectId,
-      topicId: question.topicId
+      questionId: data.questionId
     });
 
-    const newlyUnlockedAchievements = await this.achievementsService.evaluateForUser(user.id);
+    if (existingAnswer) {
+      throw new ConflictException("This question has already been evaluated.");
+    }
 
-    const response = CorrectionMapper.toEvaluateWrittenAnswerResponse(attempt);
-    return {
-      ...response,
-      meta: {
-        newlyUnlockedAchievements
+    let imageUrls: string[] = [];
+    try {
+      if (data.attachmentIds && data.attachmentIds.length > 0) {
+        const attachments = await this.filesRepository.findManyByIds(data.attachmentIds);
+        imageUrls = attachments.filter((att) => att.url !== null).map((att) => att.url as string);
       }
-    };
+
+      const expectedAnswer = this.buildExpectedAnswer(
+        question.solution?.finalAnswer,
+        question.solution?.explanation,
+        question.solution?.expectedKeywords
+      );
+      const correction = await this.correctionProvider.evaluateWrittenAnswer({
+        question: question.statement,
+        expectedAnswer,
+        userAnswer: data.userAnswer,
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined
+      });
+      const answer = await this.correctionsRepository.createAnswerWithCorrection({
+        userId: user.id,
+        questionId: data.questionId,
+        examSessionId: data.examSessionId,
+        userAnswer: data.userAnswer,
+        correction,
+        timeSpentSeconds: data.timeSpentSeconds,
+        subjectId: question.subjectId,
+        topicId: question.topicId
+      });
+
+      const newlyUnlockedAchievements = await this.achievementsService.evaluateForUser(user.id);
+
+      const response = CorrectionMapper.toEvaluateWrittenAnswerResponse(answer);
+      return {
+        ...response,
+        meta: {
+          newlyUnlockedAchievements
+        }
+      };
+    } catch (e: any) {
+      console.error("DEBUG AI EVAL ERROR:", e);
+      throw new BadRequestException("AI Eval Failed: " + (e?.message || String(e)));
+    }
   }
 
-  private buildExpectedAnswer(finalAnswer?: string, explanation?: string): string {
-    return [finalAnswer, explanation].filter(Boolean).join("\n\n");
-  }
+  private buildExpectedAnswer(finalAnswer?: string, explanation?: string, expectedKeywords: string[] = []): string {
+    const keywordsBlock = expectedKeywords.length > 0
+      ? `Palabras clave esperadas: ${expectedKeywords.join(", ")}`
+      : undefined;
 
-  async resetAttempts(
-    authorizationHeader: string | undefined,
-    data: ResetAttemptsRequestDto
-  ): Promise<{ success: boolean }> {
-    const user = await this.authService.resolveAuthenticatedUser(authorizationHeader);
-    await this.correctionsRepository.resetAttempts(user.id, data.questionIds);
-    return { success: true };
+    return [finalAnswer, explanation, keywordsBlock].filter(Boolean).join("\n\n");
   }
 }

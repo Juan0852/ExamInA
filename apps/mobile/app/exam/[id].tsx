@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { 
   View, 
   Text, 
@@ -7,13 +7,22 @@ import {
   TouchableOpacity, 
   Animated, 
   PanResponder,
-  ScrollView
+  ScrollView,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 import { useExamSessionViewModel } from "../../src/viewmodels/useExamSessionViewModel";
 import { theme } from "../../src/theme";
-import { X, Check, ArrowLeft, Layers, Flame } from "lucide-react-native";
+import { X, Check, ArrowLeft, Layers, Flame, Lightbulb, Edit3, Target, Camera, Image as ImageIcon, PenTool, AlertTriangle, Key, List, XCircle } from "lucide-react-native";
+import { MathText } from "../../src/components/MathText";
+import { WhiteboardModal } from "../../src/components/WhiteboardModal";
+import { Image } from "expo-image";
+import { apiService } from "../../src/services/api.service";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SWIPE_THRESHOLD = 0.25 * SCREEN_WIDTH;
@@ -22,97 +31,181 @@ const SWIPE_OUT_DURATION = 250;
 export default function ExamSessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { examSession, isLoading, saveActivity, finishExam } = useExamSessionViewModel(id);
+  const { examSession, isLoading, saveActivity, evaluateAnswer, finishExam, isEvaluating } = useExamSessionViewModel(id);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isFlipped, setIsFlipped] = useState(false);
+  
+  // 0: Pregunta + Approach, 1: Solución IA
+  const [currentFace, setCurrentFace] = useState<0 | 1>(0);
+  const [approachText, setApproachText] = useState("");
+  const [attachments, setAttachments] = useState<string[]>([]);
+  const [isWhiteboardVisible, setIsWhiteboardVisible] = useState(false);
+  const [evaluations, setEvaluations] = useState<Record<string, any>>({});
+  const [isUploadingAttachments, setIsUploadingAttachments] = useState(false);
 
   const position = useRef(new Animated.ValueXY()).current;
+  const faceAnim = useRef(new Animated.Value(0)).current;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (evt, gestureState) => {
-        position.setValue({ x: gestureState.dx, y: gestureState.dy });
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        if (gestureState.dx > SWIPE_THRESHOLD) {
-          forceSwipe("right");
-        } else if (gestureState.dx < -SWIPE_THRESHOLD) {
-          forceSwipe("left");
-        } else {
-          resetPosition();
-        }
-      }
-    })
-  ).current;
-
-  const forceSwipe = (direction: "right" | "left") => {
-    const x = direction === "right" ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
-    Animated.timing(position, {
-      toValue: { x, y: 0 },
-      duration: SWIPE_OUT_DURATION,
+  const animateToFace = (face: number) => {
+    Keyboard.dismiss();
+    Animated.timing(faceAnim, {
+      toValue: face,
+      duration: 300,
       useNativeDriver: false,
-    }).start(() => onSwipeComplete(direction));
+    }).start(() => setCurrentFace(face as 0 | 1));
   };
 
-  const onSwipeComplete = (direction: "right" | "left") => {
-    const score = direction === "right" ? 10 : 0;
+  const handleVerify = async () => {
+    const currentQuestion = examSession?.questions?.[currentIndex];
+    if (!currentQuestion) return;
+
+    try {
+      setIsUploadingAttachments(true);
+      const uploadedAttachmentIds: string[] = [];
+
+      for (const uri of attachments) {
+        try {
+          const fetchRes = await fetch(uri);
+          const blob = await fetchRes.blob();
+
+          const fileName = uri.split('/').pop() || `upload-${Date.now()}.jpg`;
+          const contentType = blob.type || "image/jpeg";
+
+          const presignRes = await apiService.post<any>("/files/presign", {
+            fileName,
+            contentType,
+            purpose: "ANSWER_ATTACHMENT",
+            visibility: "PRIVATE"
+          });
+
+          const { uploadUrl, fileAssetId } = presignRes.data;
+
+          const uploadResponse = await fetch(uploadUrl, {
+            method: "PUT",
+            body: blob,
+            headers: {
+              "Content-Type": contentType
+            }
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error(`S3 Upload Failed: ${uploadResponse.status}`);
+          }
+
+          await apiService.put("/files/confirm", { fileAssetId });
+          uploadedAttachmentIds.push(fileAssetId);
+        } catch (uploadError) {
+          console.error("Error subiendo adjunto:", uploadError);
+          alert("Hubo un problema subiendo una de las imágenes. Intentando continuar de todos modos.");
+        }
+      }
+
+      setIsUploadingAttachments(false);
+
+      const response = await evaluateAnswer({
+        questionId: currentQuestion.questionId,
+        userAnswer: approachText.trim() || "Adjuntos provistos",
+        attachmentIds: uploadedAttachmentIds.length > 0 ? uploadedAttachmentIds : undefined
+      });
+      
+      setEvaluations(prev => ({
+        ...prev,
+        [currentQuestion.id]: response.data.correction
+      }));
+      animateToFace(1);
+    } catch (error) {
+      setIsUploadingAttachments(false);
+      console.error("Error al evaluar:", error);
+      alert("Hubo un problema contactando a la IA.");
+    }
+  };
+
+  const animateCardChange = (direction: "left" | "right", callback: () => void) => {
+    const x = direction === "right" ? SCREEN_WIDTH * 1.2 : -SCREEN_WIDTH * 1.2;
+    Animated.timing(position, {
+      toValue: { x, y: 0 },
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      callback();
+      position.setValue({ x: direction === "right" ? -SCREEN_WIDTH * 1.2 : SCREEN_WIDTH * 1.2, y: 0 });
+      Animated.spring(position, {
+        toValue: { x: 0, y: 0 },
+        friction: 6,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  const onNextQuestion = () => {
     const questions = examSession?.questions || [];
     const currentQuestion = questions[currentIndex];
-
+    
     if (currentQuestion) {
-      // Guardar actividad (10 = Lo sabía, 0 = No lo sabía)
-      saveActivity(currentQuestion.id, score);
+      saveActivity(10);
     }
 
     if (currentIndex < questions.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-      setIsFlipped(false);
-      position.setValue({ x: 0, y: 0 });
+      animateCardChange("right", () => {
+        setCurrentIndex(prev => prev + 1);
+        setCurrentFace(0);
+        setApproachText("");
+        setAttachments([]);
+        faceAnim.setValue(0);
+      });
     } else {
       finishExam();
       router.back();
     }
   };
 
-  const resetPosition = () => {
-    Animated.spring(position, {
-      toValue: { x: 0, y: 0 },
-      friction: 5,
-      useNativeDriver: false,
-    }).start();
+  const onPrevQuestion = () => {
+    if (currentIndex > 0) {
+      animateCardChange("left", () => {
+        setCurrentIndex(prev => prev - 1);
+        setCurrentFace(0);
+        setApproachText("");
+        setAttachments([]);
+        faceAnim.setValue(0);
+      });
+    }
   };
 
-  const getCardStyle = () => {
-    const rotate = position.x.interpolate({
-      inputRange: [-SCREEN_WIDTH * 1.5, 0, SCREEN_WIDTH * 1.5],
-      outputRange: ["-30deg", "0deg", "30deg"],
+  const handlePickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
     });
-
-    return {
-      ...position.getLayout(),
-      transform: [{ rotate }],
-    };
+    if (!result.canceled && result.assets[0]?.uri) {
+      setAttachments(prev => [...prev, result.assets[0].uri]);
+    }
   };
 
-  const likeOpacity = position.x.interpolate({
-    inputRange: [0, SWIPE_THRESHOLD / 2, SWIPE_THRESHOLD],
-    outputRange: [0, 0.5, 1],
-    extrapolate: "clamp",
-  });
+  const handleTakePicture = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Se necesitan permisos de cámara para tomar fotos.');
+      return;
+    }
+    let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      setAttachments(prev => [...prev, result.assets[0].uri]);
+    }
+  };
 
-  const nopeOpacity = position.x.interpolate({
-    inputRange: [-SWIPE_THRESHOLD, -SWIPE_THRESHOLD / 2, 0],
-    outputRange: [1, 0.5, 0],
-    extrapolate: "clamp",
-  });
+  const handleWhiteboardSave = (uri: string) => {
+    setAttachments(prev => [...prev, uri]);
+  };
 
   if (isLoading || !examSession) {
     return (
       <SafeAreaView style={styles.centerContainer}>
         <Flame size={48} color={theme.colors.brandBlue} style={{ marginBottom: 16 }} />
-        <Text style={styles.loadingText}>Preparando tus tarjetas...</Text>
+        <Text style={styles.loadingText}>Preparando tu examen...</Text>
       </SafeAreaView>
     );
   }
@@ -122,95 +215,240 @@ export default function ExamSessionScreen() {
   if (currentIndex >= questions.length) {
     return (
       <SafeAreaView style={styles.centerContainer}>
-        <Text style={styles.title}>¡Simulacro Terminado!</Text>
+        <Text style={styles.title}>¡Examen Terminado!</Text>
         <TouchableOpacity style={styles.finishButton} onPress={() => router.back()}>
-          <Text style={styles.finishButtonText}>Volver al Dashboard</Text>
+          <Text style={styles.finishButtonText}>Ver Resultados</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
   const currentQuestion = questions[currentIndex];
-  // Simulamos una respuesta si el backend no trae (en este mockup)
-  const mockAnswer = currentQuestion.solution?.finalAnswer || "La respuesta correcta depende del contexto de la pregunta, pero asegúrate de repasar los conceptos fundamentales de este tema.";
+  const currentEvaluation = evaluations[currentQuestion.id];
+  
+  const hasInput = approachText.trim() !== "" || attachments.length > 0;
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#0f172a" />
-        </TouchableOpacity>
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>
-            Tarjeta {currentIndex + 1} / {questions.length}
-          </Text>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${((currentIndex) / questions.length) * 100}%` }]} />
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.cardContainer}>
-        <Animated.View
-          {...panResponder.panHandlers}
-          style={[styles.card, getCardStyle()]}
-        >
-          {/* Sellos de Swipe */}
-          <Animated.View style={[styles.stamp, styles.nopeStamp, { opacity: nopeOpacity }]}>
-            <Text style={styles.nopeStampText}>A REPASAR</Text>
-          </Animated.View>
-          <Animated.View style={[styles.stamp, styles.likeStamp, { opacity: likeOpacity }]}>
-            <Text style={styles.likeStampText}>LO SABÍA</Text>
-          </Animated.View>
-
-          <View style={styles.cardHeader}>
-            <View style={styles.badge}>
-              <Layers size={14} color={theme.colors.brandBlue} />
-              <Text style={styles.badgeText}>{currentQuestion.type || "Pregunta"}</Text>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <ArrowLeft size={24} color="#0f172a" />
+          </TouchableOpacity>
+          <View style={styles.progressContainer}>
+            <Text style={styles.progressText}>
+              Pregunta {currentIndex + 1} de {questions.length}
+            </Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${((currentIndex) / questions.length) * 100}%` }]} />
             </View>
           </View>
+        </View>
 
-          <ScrollView style={styles.cardScroll} showsVerticalScrollIndicator={false}>
-            <Text style={styles.statementText}>{currentQuestion.statement}</Text>
-            
-            {isFlipped ? (
-              <View style={styles.answerSection}>
-                <View style={styles.divider} />
-                <Text style={styles.answerTitle}>Respuesta Ideal:</Text>
-                <Text style={styles.answerText}>{mockAnswer}</Text>
-              </View>
-            ) : (
-              <View style={styles.flipPrompt}>
-                <Text style={styles.flipPromptText}>Toca "Voltear" para ver la respuesta</Text>
+        <View style={styles.cardContainer}>
+          <Animated.View style={[styles.card, { transform: [{ translateX: position.x }] }]}>
+            {currentFace === 0 && (
+              <View style={styles.cardHeader}>
+                <View style={styles.badge}>
+                  <Layers size={14} color={theme.colors.brandBlue} />
+                  <Text style={styles.badgeText}>{currentQuestion.type || "Desarrollo"}</Text>
+                </View>
+                <View style={styles.stepsIndicator}>
+                  <View style={[styles.stepDot, styles.stepDotActive]} />
+                  <View style={styles.stepLine} />
+                  <View style={styles.stepDot} />
+                </View>
               </View>
             )}
-          </ScrollView>
 
-        </Animated.View>
-      </View>
+            {currentFace === 1 && currentEvaluation && (
+              <View style={[styles.aiEvalHeader, { backgroundColor: currentEvaluation.score >= 7 ? "#10b981" : currentEvaluation.score >= 4 ? "#f59e0b" : "#ef4444" }]}>
+                <View style={styles.aiEvalHeaderIcon}>
+                  {currentEvaluation.score >= 7 ? <Check size={28} color="#ffffff" /> : <XCircle size={28} color="#ffffff" />}
+                </View>
+                <Text style={styles.aiEvalTitle}>EVALUACIÓN DE LA IA</Text>
+                <Text style={styles.aiEvalSubtitle}>
+                  {currentEvaluation.summary}
+                </Text>
+                <View style={styles.aiEvalScorePill}>
+                  <Text style={styles.aiEvalScoreText}>Calificación: {currentEvaluation.score} / 10</Text>
+                </View>
+              </View>
+            )}
 
-      <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.nopeButton]} 
-          onPress={() => forceSwipe("left")}
-        >
-          <X size={32} color="#f43f5e" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.flipButton} 
-          onPress={() => setIsFlipped(!isFlipped)}
-        >
-          <Text style={styles.flipButtonText}>{isFlipped ? "Ocultar" : "Voltear Tarjeta"}</Text>
-        </TouchableOpacity>
+            <ScrollView 
+              style={[styles.cardScroll, currentFace === 1 && { paddingHorizontal: 0, paddingTop: 0 }]} 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Cara 0: Pregunta y Approach */}
+              {currentFace === 0 && (
+                <View style={{ flex: 1 }}>
+                  <View style={styles.faceSection}>
+                    <View style={styles.faceHeader}>
+                      <Target size={20} color="#0f172a" />
+                      <Text style={styles.faceTitle}>Pregunta</Text>
+                    </View>
+                    <MathText text={currentQuestion.statement} fontSize={18} />
+                  </View>
 
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.likeButton]} 
-          onPress={() => forceSwipe("right")}
-        >
-          <Check size={32} color="#10b981" />
-        </TouchableOpacity>
-      </View>
+                  <View style={[styles.faceSection, { marginTop: 24 }]}>
+                    <View style={styles.divider} />
+                    <View style={styles.faceHeader}>
+                      <Edit3 size={20} color={theme.colors.brandBlue} />
+                      <Text style={[styles.faceTitle, { color: theme.colors.brandBlue }]}>Tu Desarrollo</Text>
+                    </View>
+                    <TextInput
+                      style={styles.textInput}
+                      multiline
+                      placeholder="Escribe aquí tu planteamiento o respuesta detallada..."
+                      placeholderTextColor="#94a3b8"
+                      value={approachText}
+                      onChangeText={setApproachText}
+                      editable={currentFace === 0}
+                    />
+                    
+                    <View style={styles.attachmentToolbar}>
+                      <TouchableOpacity style={styles.toolbarButton} onPress={handleTakePicture}>
+                        <Camera size={20} color="#64748b" />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.toolbarButton} onPress={handlePickImage}>
+                        <ImageIcon size={20} color="#64748b" />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.toolbarButton} onPress={() => setIsWhiteboardVisible(true)}>
+                        <PenTool size={20} color="#64748b" />
+                        <Text style={styles.toolbarText}>Pizarra</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {attachments.length > 0 && (
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.attachmentsContainer}>
+                        {attachments.map((uri, idx) => (
+                          <View key={idx} style={styles.attachmentThumb}>
+                            <Image source={{ uri }} style={styles.attachmentImage} contentFit="cover" />
+                            <TouchableOpacity 
+                              style={styles.removeAttachment} 
+                              onPress={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
+                            >
+                              <X size={12} color="#ffffff" />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* Cara 1: Solución de IA */}
+              {currentFace === 1 && currentEvaluation && (
+                <View style={styles.aiEvalBody}>
+                  <Text style={styles.aiEvalSectionTitle}>RETROALIMENTACIÓN</Text>
+                  <View style={{ marginBottom: 16 }}>
+                    <MathText 
+                      text={currentEvaluation.feedback} 
+                      fontSize={15} 
+                    />
+                  </View>
+
+                  {currentEvaluation.detectedErrors && currentEvaluation.detectedErrors.length > 0 && (
+                    <>
+                      <View style={styles.dividerLight} />
+                      <View style={styles.aiEvalSectionHeader}>
+                        <AlertTriangle size={16} color="#ef4444" />
+                        <Text style={styles.aiEvalSectionTitle}>ERRORES DETECTADOS</Text>
+                      </View>
+                      {currentEvaluation.detectedErrors.map((err: string, i: number) => (
+                        <View key={i} style={styles.bulletItem}>
+                          <View style={[styles.bulletDot, { backgroundColor: "#ef4444" }]} />
+                          <Text style={styles.bulletText}>{err}</Text>
+                        </View>
+                      ))}
+                    </>
+                  )}
+
+                  {currentEvaluation.missingKeywords && currentEvaluation.missingKeywords.length > 0 && (
+                    <>
+                      <View style={styles.dividerLight} />
+                      <View style={styles.aiEvalSectionHeader}>
+                        <Key size={16} color="#d97706" />
+                        <Text style={styles.aiEvalSectionTitle}>CONCEPTOS OMITIDOS</Text>
+                      </View>
+                      {currentEvaluation.missingKeywords.map((kw: string, i: number) => (
+                        <View key={i} style={styles.conceptPill}>
+                          <Text style={styles.conceptPillText}>{kw.toUpperCase()}</Text>
+                        </View>
+                      ))}
+                    </>
+                  )}
+
+                  {currentEvaluation.suggestions && currentEvaluation.suggestions.length > 0 && (
+                    <>
+                      <View style={styles.dividerLight} />
+                      <View style={styles.aiEvalSectionHeader}>
+                        <List size={16} color={theme.colors.brandBlue} />
+                        <Text style={styles.aiEvalSectionTitle}>RECOMENDACIONES DE MEJORA</Text>
+                      </View>
+                      {currentEvaluation.suggestions.map((rec: string, i: number) => (
+                        <View key={i} style={styles.bulletItem}>
+                          <View style={[styles.bulletDot, { backgroundColor: theme.colors.brandBlue }]} />
+                          <Text style={styles.bulletText}>{rec}</Text>
+                        </View>
+                      ))}
+                    </>
+                  )}
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Floating Control Buttons (Bottom of Card) */}
+            <View style={styles.cardFooter}>
+              {currentFace === 0 && (
+                <TouchableOpacity 
+                  style={[styles.primaryButton, (!hasInput || isEvaluating || isUploadingAttachments) && styles.disabledButton]} 
+                  disabled={!hasInput || isEvaluating || isUploadingAttachments}
+                  onPress={handleVerify}
+                >
+                  <Sparkles size={20} color="#ffffff" />
+                  <Text style={styles.verifyButtonText}>
+                    {isUploadingAttachments ? "Subiendo imágenes..." : isEvaluating ? "La IA está evaluando..." : "Verificar con IA"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {currentFace === 1 && (
+                <View style={styles.navActionsRow}>
+                  <TouchableOpacity 
+                    style={[styles.navButtonSecondary, currentIndex === 0 && styles.disabledButton]} 
+                    onPress={onPrevQuestion}
+                    disabled={currentIndex === 0}
+                  >
+                    <Text style={styles.navButtonSecondaryText}>Anterior</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.navButtonPrimary} 
+                    onPress={onNextQuestion}
+                  >
+                    <Text style={styles.navButtonPrimaryText}>
+                      {currentIndex === questions.length - 1 ? "Terminar Examen" : "Siguiente pregunta"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </Animated.View>
+        </View>
+      </KeyboardAvoidingView>
+      <WhiteboardModal 
+        visible={isWhiteboardVisible} 
+        questionStatement={currentQuestion.statement}
+        onClose={() => setIsWhiteboardVisible(false)}
+        onSave={handleWhiteboardSave}
+      />
     </SafeAreaView>
   );
 }
@@ -218,13 +456,64 @@ export default function ExamSessionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#f1f5f9",
+  },
+  attachmentToolbar: {
+    flexDirection: "row",
+    marginTop: 12,
+    gap: 12,
+  },
+  toolbarButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    gap: 8,
+  },
+  toolbarText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#64748b",
+  },
+  attachmentsContainer: {
+    marginTop: 16,
+    flexDirection: "row",
+  },
+  attachmentThumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    marginRight: 12,
+    position: "relative",
+  },
+  attachmentImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+    backgroundColor: "#e2e8f0",
+  },
+  removeAttachment: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: "#f43f5e",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#ffffff",
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#f1f5f9",
     padding: 24,
   },
   loadingText: {
@@ -275,38 +564,38 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
     paddingHorizontal: 16,
+    paddingBottom: 20, // Leave room for safe area
   },
   card: {
-    width: "100%",
-    height: "100%",
-    maxHeight: SCREEN_HEIGHT * 0.65,
+    flex: 1,
     backgroundColor: "#ffffff",
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 32,
+    paddingTop: 24,
+    paddingBottom: 20,
+    paddingHorizontal: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
     shadowRadius: 20,
     elevation: 5,
     borderWidth: 1,
-    borderColor: "#f1f5f9",
+    borderColor: "#e2e8f0",
   },
   stamp: {
     position: "absolute",
-    top: 40,
+    top: 60,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 4,
-    zIndex: 10,
-    transform: [{ rotate: "-10deg" }]
+    zIndex: 100,
+    backgroundColor: "rgba(255,255,255,0.9)",
   },
   likeStamp: {
     left: 20,
     borderColor: "#10b981",
+    transform: [{ rotate: "-10deg" }]
   },
   nopeStamp: {
     right: 20,
@@ -314,20 +603,110 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "10deg" }]
   },
   likeStampText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "900",
     color: "#10b981",
     letterSpacing: 2,
   },
   nopeStampText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "900",
     color: "#f43f5e",
     letterSpacing: 2,
   },
   cardHeader: {
     flexDirection: "row",
-    marginBottom: 20,
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 24,
+    paddingBottom: 16,
+  },
+  aiEvalHeader: {
+    backgroundColor: "#ef4444",
+    padding: 24,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    alignItems: "center",
+  },
+  aiEvalHeaderIcon: {
+    marginBottom: 12,
+  },
+  aiEvalTitle: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  aiEvalSubtitle: {
+    color: "#ffffff",
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 16,
+    opacity: 0.9,
+  },
+  aiEvalScorePill: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  aiEvalScoreText: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  aiEvalBody: {
+    padding: 24,
+  },
+  aiEvalSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  aiEvalSectionTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#64748b",
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  dividerLight: {
+    height: 1,
+    backgroundColor: "#f1f5f9",
+    marginVertical: 16,
+  },
+  bulletItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+    paddingRight: 16,
+  },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 6,
+    marginRight: 12,
+  },
+  bulletText: {
+    fontSize: 14,
+    color: "#0f172a",
+    lineHeight: 20,
+  },
+  conceptPill: {
+    backgroundColor: "#fef3c7",
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  conceptPillText: {
+    color: "#d97706",
+    fontSize: 12,
+    fontWeight: "800",
   },
   badge: {
     flexDirection: "row",
@@ -343,97 +722,152 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.brandBlue,
   },
+  stepsIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#cbd5e1",
+  },
+  stepDotActive: {
+    backgroundColor: theme.colors.brandBlue,
+  },
+  stepLine: {
+    width: 16,
+    height: 2,
+    backgroundColor: "#f1f5f9",
+  },
   cardScroll: {
     flex: 1,
   },
-  statementText: {
-    fontSize: 20,
-    fontWeight: "700",
+  faceSection: {
+    marginBottom: 10,
+  },
+  faceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 8,
+  },
+  faceTitle: {
+    fontSize: 18,
+    fontWeight: "800",
     color: "#0f172a",
-    lineHeight: 28,
+  },
+  textInput: {
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 16,
+    padding: 16,
+    minHeight: 120,
+    fontSize: 16,
+    color: "#334155",
+    textAlignVertical: "top",
+  },
+  solutionBox: {
+    backgroundColor: "#ecfdf5",
+    borderWidth: 1,
+    borderColor: "#a7f3d0",
+    borderRadius: 16,
+    padding: 16,
   },
   divider: {
     height: 1,
     backgroundColor: "#e2e8f0",
-    marginVertical: 24,
+    marginVertical: 10,
   },
-  answerSection: {
-    paddingBottom: 24,
+  cardFooter: {
+    paddingTop: 16,
   },
-  answerTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#64748b",
-    marginBottom: 12,
-    textTransform: "uppercase",
-  },
-  answerText: {
-    fontSize: 16,
-    color: "#334155",
-    lineHeight: 24,
-  },
-  flipPrompt: {
-    marginTop: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    backgroundColor: "#f8fafc",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderStyle: "dashed",
-  },
-  flipPromptText: {
-    fontSize: 14,
-    color: "#94a3b8",
-    fontWeight: "600",
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingBottom: 40,
-    paddingTop: 20,
-    gap: 24,
-  },
-  actionButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#ffffff",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  nopeButton: {
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-  },
-  likeButton: {
-    borderWidth: 1,
-    borderColor: "#a7f3d0",
-  },
-  flipButton: {
+  primaryButton: {
     backgroundColor: theme.colors.brandBlue,
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 20,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
     shadowColor: theme.colors.brandBlue,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
-  flipButtonText: {
+  disabledButton: {
+    backgroundColor: "#94a3b8",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  primaryButtonText: {
     color: "#ffffff",
     fontSize: 16,
-    fontWeight: "900",
-    letterSpacing: 0.5,
+    fontWeight: "800",
   },
+  navActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  navButtonSecondary: {
+    flex: 1,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  navButtonSecondaryText: {
+    color: "#334155",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  navButtonPrimary: {
+    flex: 1.35,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: theme.colors.brandBlue,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: theme.colors.brandBlue,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  navButtonPrimaryText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  tinderActionsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: "column",
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    gap: 4,
+  },
+  nopeButton: { borderColor: "#ffe4e6" },
+  likeButton: { borderColor: "#d1fae5" },
+  actionTextNope: { fontSize: 13, fontWeight: "700", color: "#f43f5e" },
+  actionTextLike: { fontSize: 13, fontWeight: "700", color: "#10b981" },
   title: {
     fontSize: 24,
     fontWeight: "900",

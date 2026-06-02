@@ -33,12 +33,6 @@ enum QuestionDifficulty {
   HARD
 }
 
-enum AttemptStatus {
-  PENDING
-  CORRECTED
-  FAILED
-}
-
 enum ExamSessionMode {
   PRACTICE
   MOCK_EXAM
@@ -106,10 +100,44 @@ enum FileAssetVisibility {
 enum FileAssetPurpose {
   AVATAR
   BANNER
-  ATTEMPT_ATTACHMENT
-  EXAM_ATTACHMENT
+  ANSWER_ATTACHMENT
+  QUESTION_ATTACHMENT
   OCR_SOURCE
   OTHER
+}
+
+enum AssetOwnerType {
+  USER_PROFILE
+  QUESTION
+  QUESTION_SOLUTION
+  EXAM_SESSION
+  EXAM_SESSION_ANSWER
+  COMMUNITY_POST
+  COMMUNITY_COMMENT
+  SHARED_EXAM
+  LLM_REVIEW
+}
+
+enum AssetRole {
+  PROFILE_PHOTO
+  PROFILE_BANNER
+  QUESTION_IMAGE
+  QUESTION_SOLUTION_IMAGE
+  ANSWER_IMAGE
+  ANSWER_WHITEBOARD
+  ANSWER_AUDIO
+  POST_IMAGE
+  COMMENT_IMAGE
+  EXAM_COVER
+  LLM_INPUT
+  OTHER
+}
+
+enum FileAssetStatus {
+  ACTIVE
+  INACTIVE
+  REPLACED
+  DELETED
 }
 
 enum LlmReviewStatus {
@@ -201,11 +229,9 @@ model User {
   preferences UserPreferences?
   progress    UserProgress?
 
-  attempts                 Attempt[]
   examSessions             ExamSession[]
   subjectEnrollments       UserSubjectEnrollment[]
   subjectProgress          UserSubjectProgress[]
-  topicProgress            UserTopicProgress[]
   studyActivities          StudyActivity[]
   fileAssets               FileAsset[]
   llmReviews               LlmReviewAsset[]
@@ -256,7 +282,6 @@ model UserPreferences {
   studyReminderEnabled       Boolean  @default(false)
   studyReminderTime          String?
   timerSoundEnabled          Boolean  @default(true)
-  defaultTimerEnabled        Boolean  @default(false)
   defaultExamDurationSeconds Int      @default(5400)
   preferredSubjects          Json?
   weeklyStudyHours           String?
@@ -294,7 +319,6 @@ model Topic {
 
   subject   Subject             @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   questions Question[]
-  progress  UserTopicProgress[]
 
   @@unique([subjectId, slug])
   @@index([subjectId])
@@ -316,8 +340,6 @@ model Question {
   subject              Subject               @relation(fields: [subjectId], references: [id], onDelete: Restrict)
   topic                Topic                 @relation(fields: [topicId], references: [id], onDelete: Restrict)
   solution             QuestionSolution?
-  keywords             QuestionKeyword[]
-  attempts             Attempt[]
   examSessionQuestions ExamSessionQuestion[]
   examSessionAnswers   ExamSessionAnswer[]
   sharedExamQuestions  SharedExamQuestion[]
@@ -335,6 +357,7 @@ model QuestionSolution {
   finalAnswer     String
   explanation     String
   gradingCriteria Json?
+  expectedKeywords String[] @default([])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -343,47 +366,9 @@ model QuestionSolution {
   @@map("question_solutions")
 }
 
-model QuestionKeyword {
-  id         String @id @default(cuid())
-  questionId String
-  keyword    String
-
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@unique([questionId, keyword])
-  @@index([questionId])
-  @@map("question_keywords")
-}
-
-model Attempt {
-  id            String        @id @default(cuid())
-  userId        String
-  questionId    String
-  examSessionId String?
-  userAnswer    String
-  score         Float?
-  status        AttemptStatus @default(PENDING)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  question      Question           @relation(fields: [questionId], references: [id], onDelete: Restrict)
-  examSession   ExamSession?       @relation(fields: [examSessionId], references: [id], onDelete: SetNull)
-  correction    Correction?
-  sessionAnswer ExamSessionAnswer?
-  assets        AttemptAsset[]
-  llmReviews    LlmReviewAsset[]
-
-  @@index([userId])
-  @@index([questionId])
-  @@index([examSessionId])
-  @@index([status])
-  @@map("attempts")
-}
-
 model Correction {
   id                String   @id @default(cuid())
-  attemptId         String   @unique
+  examSessionAnswerId String? @unique
   isCorrect         Boolean
   score             Float
   summary           String
@@ -394,7 +379,7 @@ model Correction {
   recommendedTopics Json?
   createdAt         DateTime @default(now())
 
-  attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  examSessionAnswer ExamSessionAnswer? @relation(fields: [examSessionAnswerId], references: [id], onDelete: Cascade)
 
   @@map("corrections")
 }
@@ -405,7 +390,6 @@ model ExamSession {
   title                String
   mode                 ExamSessionMode   @default(PRACTICE)
   status               ExamSessionStatus @default(DRAFT)
-  timerEnabled         Boolean           @default(false)
   durationLimitSeconds Int?
   startedAt            DateTime?
   finishedAt           DateTime?
@@ -420,9 +404,7 @@ model ExamSession {
   user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   questions        ExamSessionQuestion[]
   answers          ExamSessionAnswer[]
-  attempts         Attempt[]
   posts            CommunityPost[]
-  assets           ExamSessionAsset[]
   llmReviews       LlmReviewAsset[]
   sharedExams      SharedExam[]
   sharedExamUsages SharedExamUsage[]
@@ -455,7 +437,6 @@ model ExamSessionAnswer {
   id            String    @id @default(cuid())
   examSessionId String
   questionId    String
-  attemptId     String?   @unique
   userAnswer    String
   score         Float?
   isCorrect     Boolean?
@@ -464,7 +445,8 @@ model ExamSessionAnswer {
 
   examSession ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
   question    Question    @relation(fields: [questionId], references: [id], onDelete: Restrict)
-  attempt     Attempt?    @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+  correction  Correction?
+  llmReviews  LlmReviewAsset[]
 
   @@unique([examSessionId, questionId])
   @@index([questionId])
@@ -530,27 +512,6 @@ model UserSubjectProgress {
   @@map("user_subject_progress")
 }
 
-model UserTopicProgress {
-  id                String    @id @default(cuid())
-  userId            String
-  topicId           String
-  questionsAnswered Int       @default(0)
-  correctAnswers    Int       @default(0)
-  averageScore      Float     @default(0)
-  studyTimeSeconds  Int       @default(0)
-  masteryLevel      Int       @default(0)
-  lastPracticedAt   DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, topicId])
-  @@index([topicId])
-  @@map("user_topic_progress")
-}
-
 model StudyActivity {
   id                 String   @id @default(cuid())
   userId             String
@@ -569,16 +530,6 @@ model StudyActivity {
   @@unique([userId, activityDate])
   @@index([activityDate])
   @@map("study_activities")
-}
-
-model LevelRule {
-  id                 String   @id @default(cuid())
-  level              Int      @unique
-  requiredExperience Int
-  title              String
-  createdAt          DateTime @default(now())
-
-  @@map("level_rules")
 }
 
 model Achievement {
@@ -621,57 +572,36 @@ model FileAsset {
   fileType         FileAssetType
   visibility       FileAssetVisibility @default(PRIVATE)
   purpose          FileAssetPurpose
+  ownerType        AssetOwnerType?
+  ownerId          String?
+  role             AssetRole           @default(OTHER)
+  status           FileAssetStatus     @default(ACTIVE)
+  sortOrder        Int                 @default(0)
   checksum         String?
   width            Int?
   height           Int?
+  deactivatedAt    DateTime?
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  attemptAssets     AttemptAsset[]
-  examSessionAssets ExamSessionAsset[]
   llmReviews        LlmReviewAsset[]
 
   @@unique([bucket, key])
   @@index([userId])
   @@index([purpose])
+  @@index([ownerType, ownerId])
+  @@index([role])
+  @@index([status])
   @@map("file_assets")
-}
-
-model AttemptAsset {
-  id          String   @id @default(cuid())
-  attemptId   String
-  fileAssetId String
-  createdAt   DateTime @default(now())
-
-  attempt   Attempt   @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  fileAsset FileAsset @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
-
-  @@unique([attemptId, fileAssetId])
-  @@index([fileAssetId])
-  @@map("attempt_assets")
-}
-
-model ExamSessionAsset {
-  id            String   @id @default(cuid())
-  examSessionId String
-  fileAssetId   String
-  createdAt     DateTime @default(now())
-
-  examSession ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
-  fileAsset   FileAsset   @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
-
-  @@unique([examSessionId, fileAssetId])
-  @@index([fileAssetId])
-  @@map("exam_session_assets")
 }
 
 model LlmReviewAsset {
   id                String          @id @default(cuid())
   fileAssetId       String
   userId            String
-  attemptId         String?
   examSessionId     String?
+  examSessionAnswerId String?
   status            LlmReviewStatus @default(PENDING)
   extractedText     String?
   llmInputSnapshot  Json?
@@ -682,13 +612,13 @@ model LlmReviewAsset {
 
   fileAsset   FileAsset    @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  attempt     Attempt?     @relation(fields: [attemptId], references: [id], onDelete: SetNull)
   examSession ExamSession? @relation(fields: [examSessionId], references: [id], onDelete: SetNull)
+  examSessionAnswer ExamSessionAnswer? @relation(fields: [examSessionAnswerId], references: [id], onDelete: SetNull)
 
   @@index([fileAssetId])
   @@index([userId])
-  @@index([attemptId])
   @@index([examSessionId])
+  @@index([examSessionAnswerId])
   @@index([status])
   @@map("llm_review_assets")
 }
@@ -914,4 +844,3 @@ model Notification {
   @@index([createdAt])
   @@map("notifications")
 }
-

@@ -9,6 +9,7 @@ interface FirebasePasswordLoginResponse {
   localId: string;
   email?: string;
   displayName?: string;
+  photoUrl?: string;
   idToken: string;
   refreshToken: string;
   expiresIn: string;
@@ -104,6 +105,42 @@ export class FirebaseAuthProvider implements AuthProvider {
         firebaseUid: payload.localId,
         email: payload.email,
         displayName: payload.displayName
+      },
+      idToken: payload.idToken,
+      refreshToken: payload.refreshToken,
+      expiresIn: Number(payload.expiresIn)
+    };
+  }
+
+  async signInWithGoogleIdToken(idToken: string): Promise<AuthLoginResult> {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${this.webApiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          postBody: `id_token=${encodeURIComponent(idToken)}&providerId=google.com`,
+          requestUri: "https://examina.local",
+          returnIdpCredential: true,
+          returnSecureToken: true
+        })
+      }
+    );
+
+    const payload = (await response.json()) as FirebasePasswordLoginResponse & FirebaseErrorResponse;
+
+    if (!response.ok) {
+      this.handleAuthError(payload.error?.message);
+    }
+
+    return {
+      user: {
+        firebaseUid: payload.localId,
+        email: payload.email,
+        displayName: payload.displayName,
+        photoUrl: payload.photoUrl
       },
       idToken: payload.idToken,
       refreshToken: payload.refreshToken,

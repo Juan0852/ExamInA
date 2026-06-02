@@ -19,27 +19,23 @@ export type ExamSessionRecord = ExamSession & {
     userAnswer: string;
     score: number | null;
     isCorrect: boolean | null;
-    attemptId: string | null;
-    attempt: {
-      correction: {
-        feedback: string;
-        detectedErrors: unknown;
-        missingKeywords: unknown;
-        suggestions: unknown;
-      } | null;
+    correction: {
+      feedback: string;
+      detectedErrors: unknown;
+      missingKeywords: unknown;
+      suggestions: unknown;
     } | null;
   }[];
 };
 
 export interface ExamSessionsRepository {
   findByIdForUser(examSessionId: string, userId: string): Promise<ExamSessionRecord | null>;
-  findAllForUser(userId: string): Promise<ExamSessionRecord[]>;
+  findAllForUser(userId: string, subjectId?: string): Promise<ExamSessionRecord[]>;
   findAllCompletedForUser(userId: string): Promise<ExamSessionRecord[]>;
   create(input: {
     userId: string;
     title: string;
     questionIds: string[];
-    timerEnabled?: boolean;
     durationLimitSeconds?: number;
   }): Promise<ExamSessionRecord>;
   syncActivity(input: {

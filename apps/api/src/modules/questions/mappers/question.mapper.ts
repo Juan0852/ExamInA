@@ -33,11 +33,11 @@ export class QuestionMapper {
             id: question.solution.id,
             finalAnswer: question.solution.finalAnswer,
             explanation: question.solution.explanation,
-            gradingCriteria: question.solution.gradingCriteria
+            gradingCriteria: question.solution.gradingCriteria,
+            expectedKeywords: question.solution.expectedKeywords
           }
         : question.solution,
-      keywords: question.keywords?.map((keyword) => keyword.keyword),
-      isAnswered: question.attempts ? question.attempts.length > 0 : false
+      isAnswered: question.examSessionAnswers ? question.examSessionAnswers.length > 0 : false
     };
   }
 }

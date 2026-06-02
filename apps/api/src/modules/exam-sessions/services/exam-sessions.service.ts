@@ -43,16 +43,15 @@ export class ExamSessionsService {
       userId: user.id,
       title: data.title,
       questionIds: data.questionIds,
-      timerEnabled: data.timerEnabled,
       durationLimitSeconds: data.durationLimitSeconds
     });
 
     return ExamSessionMapper.toEnvelope(examSession);
   }
 
-  async findAllForUser(authorizationHeader?: string): Promise<{ data: ExamSessionResponseDto[]; meta: {}; error: null }> {
+  async findAllForUser(authorizationHeader?: string, subjectId?: string): Promise<{ data: ExamSessionResponseDto[]; meta: {}; error: null }> {
     const user = await this.authService.resolveAuthenticatedUser(authorizationHeader);
-    const sessions = await this.examSessionsRepository.findAllForUser(user.id);
+    const sessions = await this.examSessionsRepository.findAllForUser(user.id, subjectId);
 
     return {
       data: sessions.map((session) => ExamSessionMapper.toEnvelope(session).data),

@@ -289,15 +289,36 @@ export function TopicsPage() {
     }
   };
 
-  const handleResetExam = async (questionIds: string[], examId: string) => {
-    setIsResetting(examId);
+  const handleResetExam = async (examCard: {
+    id: string;
+    title: string;
+    questionIds: string[];
+    latestSession: any;
+  }) => {
+    setIsResetting(examCard.id);
     try {
-      await apiService.post("/corrections/reset-attempts", { questionIds });
-      localStorage.removeItem(`exam_time_${examId}`);
-      localStorage.removeItem(`active_run_${examId}`);
-      clearStoredSession(examId);
+      const existingSessionId = getStoredSessionId(examCard.id);
+
+      if (existingSessionId && examCard.latestSession?.status !== "COMPLETED") {
+        await apiService.delete(`/exam-sessions/${existingSessionId}`);
+      }
+
+      localStorage.removeItem(`exam_time_${examCard.id}`);
+      localStorage.removeItem(`active_run_${examCard.id}`);
+      clearStoredSession(examCard.id);
+
+      const response = await apiService.post<{ data: { id: string } }>(
+        "/exam-sessions",
+        {
+          title: examCard.title,
+          questionIds: examCard.questionIds
+        }
+      );
+
+      storeSessionId(examCard.id, response.data.id);
       handleRetry();
       examSessionsQuery.refetch();
+      navigate(`/exam-sessions/${response.data.id}`);
     } catch (err) {
       console.error("Error resetting exam:", err);
       alert("No se pudo reiniciar el progreso. Inténtalo de nuevo.");
@@ -348,16 +369,16 @@ export function TopicsPage() {
           return [...questionIdSet].some((id) => sessionQuestionIds.has(id));
         })
         .sort((a: any, b: any) => getSessionDateValue(b) - getSessionDateValue(a));
-      const latestAttempt = matchingSessions[0] ?? null;
-      const latestAnsweredCount = latestAttempt
-        ? (latestAttempt.questions || []).filter((question: any) => question.answered).length
+      const latestSession = matchingSessions[0] ?? null;
+      const latestAnsweredCount = latestSession
+        ? (latestSession.questions || []).filter((question: any) => question.answered).length
         : 0;
-      const latestTotalQuestions = latestAttempt?.questions?.length || totalCount;
-      const progress = latestAttempt
+      const latestTotalQuestions = latestSession?.questions?.length || totalCount;
+      const progress = latestSession
         ? Math.round((latestAnsweredCount / latestTotalQuestions) * 100)
         : 0;
-      const latestDate = latestAttempt
-        ? new Date(latestAttempt.finishedAt || latestAttempt.lastActivityAt || latestAttempt.startedAt)
+      const latestDate = latestSession
+        ? new Date(latestSession.finishedAt || latestSession.lastActivityAt || latestSession.startedAt)
         : null;
       const latestDateLabel = latestDate
         ? new Intl.DateTimeFormat("es-ES", {
@@ -367,8 +388,8 @@ export function TopicsPage() {
             minute: "2-digit"
           }).format(latestDate)
         : null;
-      const latestScores = latestAttempt
-        ? (latestAttempt.questions || [])
+      const latestScores = latestSession
+        ? (latestSession.questions || [])
             .filter((question: any) => question.score != null)
             .map((question: any) => question.score)
         : [];
@@ -377,12 +398,12 @@ export function TopicsPage() {
           ? (latestScores.reduce((total: number, score: number) => total + score, 0) / latestScores.length).toFixed(1)
           : null;
       const latestAverageScoreNumber = latestAverageScore ? Number(latestAverageScore) : null;
-      const latestStatusLabel = latestAttempt
-        ? formatSessionStatus(latestAttempt.status)
+      const latestStatusLabel = latestSession
+        ? formatSessionStatus(latestSession.status)
         : "Sin empezar";
       const latestMotivationPhrase =
-        latestAttempt && latestAverageScoreNumber != null
-          ? getMotivationPhrase(latestAverageScoreNumber, latestAttempt.id, studentName)
+        latestSession && latestAverageScoreNumber != null
+          ? getMotivationPhrase(latestAverageScoreNumber, latestSession.id, studentName)
           : null;
 
       return {
@@ -391,9 +412,9 @@ export function TopicsPage() {
         description,
         type: topicName ? "topic" : "complete",
         progress,
-        elapsedTime: latestAttempt ? formatTimeSeconds(latestAttempt.totalTimeSeconds ?? 0) : "Sin iniciar",
-        lastOpened: latestAttempt
-          ? latestAttempt.status === "COMPLETED"
+        elapsedTime: latestSession ? formatTimeSeconds(latestSession.totalTimeSeconds ?? 0) : "Sin iniciar",
+        lastOpened: latestSession
+          ? latestSession.status === "COMPLETED"
             ? `Terminado ${latestDateLabel}`
             : `Última vez ${latestDateLabel}`
           : "Sin intentos",
@@ -401,7 +422,7 @@ export function TopicsPage() {
         questionIds,
         historicalRuns: [] as any[],
         hasHistory: matchingSessions.length > 0,
-        latestAttempt,
+        latestSession,
         latestAverageScore,
         latestAverageScoreNumber,
         latestStatusLabel,
@@ -626,16 +647,16 @@ export function TopicsPage() {
                                   Último intento
                                 </div>
                                 <span className={`inline-flex rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${
-                                  exam.latestAttempt?.status === "COMPLETED"
+                                  exam.latestSession?.status === "COMPLETED"
                                     ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                                    : exam.latestAttempt
+                                    : exam.latestSession
                                     ? "bg-brand-blue/10 text-brand-blue dark:bg-brand-cyan/10 dark:text-brand-cyan"
                                     : "bg-slate-100 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500"
                                 }`}>
                                   {exam.latestStatusLabel}
                                 </span>
                               </div>
-                              {exam.latestAttempt?.status === "COMPLETED" && exam.latestMotivationPhrase && (
+                              {exam.latestSession?.status === "COMPLETED" && exam.latestMotivationPhrase && (
                                 <div className={`rounded-xl px-3 py-2 text-xs font-black ${getScoreBadgeClasses(exam.latestAverageScoreNumber ?? 0)}`}>
                                   <span className="uppercase tracking-wide">
                                     Nota {exam.latestAverageScore}/10
@@ -645,7 +666,7 @@ export function TopicsPage() {
                                 </div>
                               )}
 
-                              {!exam.latestAttempt ? (
+                              {!exam.latestSession ? (
                                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-xs font-bold text-slate-400 dark:border-brand-navy/30 dark:bg-[#12243B]/40">
                                   Todavía no hay intentos disponibles.
                                 </div>
@@ -678,7 +699,7 @@ export function TopicsPage() {
                                   <div className="rounded-xl bg-slate-50 dark:bg-[#12243B] p-3">
                                     <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400">
                                       <CalendarClock size={13} />
-                                      {exam.latestAttempt.status === "COMPLETED" ? "Terminado" : "Última vez"}
+                                      {exam.latestSession.status === "COMPLETED" ? "Terminado" : "Última vez"}
                                     </div>
                                     <span className="mt-2 block text-xs font-black text-slate-700 dark:text-slate-200">
                                       {exam.lastOpened}
@@ -693,7 +714,7 @@ export function TopicsPage() {
                                 <Loader2 size={16} className="animate-spin text-brand-blue mr-1" />
                               )}
 
-                              {exam.latestAttempt?.status === "COMPLETED" ? (
+                              {exam.latestSession?.status === "COMPLETED" ? (
                                 <>
                                   <button
                                     onClick={(e) => {
@@ -709,7 +730,7 @@ export function TopicsPage() {
                                     disabled={isResetting === exam.id || startingExamId === exam.id}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleResetExam(exam.questionIds, exam.id);
+                                      handleResetExam(exam);
                                     }}
                                     className="inline-flex justify-center items-center px-6 py-2.5 rounded-xl shadow-md text-xs font-black text-white bg-brand-blue hover:bg-brand-blue/90 transition cursor-pointer disabled:opacity-50"
                                   >
@@ -720,13 +741,13 @@ export function TopicsPage() {
                                     )}
                                   </button>
                                 </>
-                              ) : exam.latestAttempt ? (
+                              ) : exam.latestSession ? (
                                 <>
                                   <button
                                     disabled={isResetting === exam.id}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleResetExam(exam.questionIds, exam.id);
+                                      handleResetExam(exam);
                                     }}
                                     className="inline-flex justify-center items-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 bg-white text-red-500 hover:bg-red-50 transition text-xs font-black cursor-pointer dark:bg-[#0E1B2F] dark:border-red-900/30 dark:text-red-400 dark:hover:bg-red-950/20"
                                   >

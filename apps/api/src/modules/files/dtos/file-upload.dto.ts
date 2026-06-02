@@ -6,7 +6,7 @@ export const presignUploadRequestSchema = z.object({
   purpose: z.enum([
     "AVATAR",
     "BANNER",
-    "ATTEMPT_ATTACHMENT",
+    "ANSWER_ATTACHMENT",
     "EXAM_ATTACHMENT",
     "OCR_SOURCE",
     "OTHER"

@@ -13,6 +13,19 @@ export interface AuthRepository {
       onboardingCompleted?: boolean;
     }
   ): Promise<AuthenticatedUserEntity>;
+  completeOnboarding(
+    userId: string,
+    data: {
+      displayName: string;
+      username: string;
+      bio?: string;
+      targetUniversity?: string;
+      photoUrl?: string;
+      preferredSubjects: string[];
+      weeklyStudyHours?: string | null;
+      referralSource?: string | null;
+    }
+  ): Promise<AuthenticatedUserEntity>;
   updateProfile(
     userId: string,
     data: {

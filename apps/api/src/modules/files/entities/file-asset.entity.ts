@@ -9,7 +9,7 @@ export interface FileAssetEntity {
   originalFilename: string;
   fileType: "IMAGE" | "PDF" | "AUDIO" | "VIDEO" | "OTHER";
   visibility: "PRIVATE" | "PUBLIC";
-  purpose: "AVATAR" | "BANNER" | "ATTEMPT_ATTACHMENT" | "EXAM_ATTACHMENT" | "OCR_SOURCE" | "OTHER";
+  purpose: "AVATAR" | "BANNER" | "ANSWER_ATTACHMENT" | "EXAM_ATTACHMENT" | "OCR_SOURCE" | "OTHER";
   checksum: string | null;
   width: number | null;
   height: number | null;

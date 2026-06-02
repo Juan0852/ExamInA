@@ -1,0 +1,16 @@
+export const SubjectIcons: Record<string, any> = {
+  "biologia": require("../../assets/subjects/biologia.svg"),
+  "dibujo-tecnico-ii": require("../../assets/subjects/dibujo-tecnico.svg"),
+  "economia-de-la-empresa": require("../../assets/subjects/economia.svg"),
+  "historia-de-la-filosofia": require("../../assets/subjects/filosofia.svg"),
+  "fisica": require("../../assets/subjects/fisica.svg"),
+  "geografia": require("../../assets/subjects/geografia.svg"),
+  "historia-de-espana": require("../../assets/subjects/historia.svg"),
+  "ingles": require("../../assets/subjects/ingles.svg"),
+  "latin-ii": require("../../assets/subjects/latin.svg"),
+  "lengua-y-literatura": require("../../assets/subjects/lengua.svg"),
+  "matematicas-ii": require("../../assets/subjects/matematicas.svg"),
+  "matematicas-ccss": require("../../assets/subjects/matematicas.svg"),
+  "quimica": require("../../assets/subjects/quimica.svg"),
+  "tecnologia-e-ingenieria-ii": require("../../assets/subjects/tecnologia.svg"),
+};

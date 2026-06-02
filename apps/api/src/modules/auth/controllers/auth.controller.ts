@@ -1,8 +1,10 @@
 import { Body, Controller, Get, Headers, Inject, Post, Put, Query } from "@nestjs/common";
 import { ZodValidationPipe } from "../../../shared/validation/zod-validation.pipe";
+import { googleAuthRequestSchema, type GoogleAuthRequestDto } from "../dtos/google-auth-request.dto";
 import { loginRequestSchema, type LoginRequestDto } from "../dtos/login-request.dto";
 import { registerRequestSchema, type RegisterRequestDto } from "../dtos/register-request.dto";
 import { updateProfileRequestSchema, type UpdateProfileRequestDto } from "../dtos/update-profile-request.dto";
+import { completeOnboardingRequestSchema, type CompleteOnboardingRequestDto } from "../dtos/complete-onboarding-request.dto";
 import { AuthService } from "../services/auth.service";
 
 @Controller("auth")
@@ -17,6 +19,11 @@ export class AuthController {
   @Post("login")
   login(@Body(new ZodValidationPipe(loginRequestSchema)) credentials: LoginRequestDto) {
     return this.authService.login(credentials);
+  }
+
+  @Post("google")
+  googleLogin(@Body(new ZodValidationPipe(googleAuthRequestSchema)) credentials: GoogleAuthRequestDto) {
+    return this.authService.loginWithGoogle(credentials);
   }
 
   @Post("session")
@@ -48,6 +55,14 @@ export class AuthController {
     @Headers("authorization") authorizationHeader?: string
   ) {
     return this.authService.updatePreferences(preferencesDto, authorizationHeader);
+  }
+
+  @Post("onboarding/complete")
+  completeOnboarding(
+    @Body(new ZodValidationPipe(completeOnboardingRequestSchema)) onboardingDto: CompleteOnboardingRequestDto,
+    @Headers("authorization") authorizationHeader?: string
+  ) {
+    return this.authService.completeOnboarding(onboardingDto, authorizationHeader);
   }
 
   @Get("friends")
@@ -84,4 +99,3 @@ export class AuthController {
     return this.authService.updateProfile(profileDto, authorizationHeader);
   }
 }
-

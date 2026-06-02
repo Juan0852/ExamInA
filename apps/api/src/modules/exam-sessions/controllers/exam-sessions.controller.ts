@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Headers, Inject, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Headers, Inject, Param, Patch, Post, Query } from "@nestjs/common";
 import { ZodValidationPipe } from "../../../shared/validation/zod-validation.pipe";
 import {
   createExamSessionRequestSchema,
@@ -15,8 +15,11 @@ export class ExamSessionsController {
   constructor(@Inject(ExamSessionsService) private readonly examSessionsService: ExamSessionsService) {}
 
   @Get("me")
-  findAllForUser(@Headers("authorization") authorizationHeader?: string) {
-    return this.examSessionsService.findAllForUser(authorizationHeader);
+  findAllForUser(
+    @Headers("authorization") authorizationHeader?: string,
+    @Query("subjectId") subjectId?: string
+  ) {
+    return this.examSessionsService.findAllForUser(authorizationHeader, subjectId);
   }
 
   @Get(":examSessionId")
