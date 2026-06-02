@@ -23,6 +23,7 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 | P2 | Tokens visuales hardcodeados en frontends | Web/Mobile | Abierto |
 | P2 | Estrategia de assets compartidos entre web/mobile | Monorepo | Abierto |
 | P2 | Tecnologia del tablero/pizarra de examen | Mobile | En evaluacion |
+| P3 | Micro-recompensas de XP (anti-farming) y Toasts | API/Web/Mobile | Idea |
 | P3 | Logs de debug en parser/proveedor IA | API | Abierto |
 | Cerrado | Mobile no pasa typecheck | Mobile | Cerrado 2026-06-01 |
 
@@ -384,6 +385,19 @@ Accion propuesta:
 - Definir si los seeds oficiales corren solo manualmente o tambien en bootstrap de desarrollo.
 - Revisar que documentos de `docs/` son fuente de verdad.
 - Definir contrato final de errores API/frontend.
+
+### 18. Micro-recompensas de XP independientes por acciones y Toasts (anti-farming)
+
+Estado: Idea (dejado para el futuro).
+
+Propuesta de nueva feature:
+- Otorgar pequenas recompensas de XP ("micro-recompensas") por acciones aisladas: crear examenes, responder preguntas, crear posts en la comunidad, anadir el primer amigo, el 10mo amigo, etc. (independientemente de las medallas).
+- Mostrar notificaciones ("Toasts") atractivos cada vez que se gane XP de esta manera en la interfaz.
+
+Riesgos detectados y reglas de negocio (Anti-Farming):
+- Los usuarios podrian anadir/eliminar amigos o crear/borrar posts masivamente solo para farmear puntos de XP. Se deben controlar o limitar las veces que una accion otorga puntos de forma permanente por entidad.
+- Para el caso de los examenes completos, se requiere una funcion matematica decreciente. Si es el intento #70 de un examen oficial, no deberia otorgar los mismos puntos que el primer o segundo intento.
+- Se requiere disenar cuidadosamente los algoritmos y limites diarios/semanales de farmeo.
 
 ## Siguiente paso recomendado
 
