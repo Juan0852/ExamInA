@@ -18,7 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useExamSessionViewModel } from "../../src/viewmodels/useExamSessionViewModel";
 import { theme } from "../../src/theme";
-import { X, Check, ArrowLeft, Layers, Flame, Lightbulb, Edit3, Target, Camera, Image as ImageIcon, PenTool, AlertTriangle, Key, List, XCircle } from "lucide-react-native";
+import { X, Check, ArrowLeft, Layers, Flame, Lightbulb, Edit3, Target, Camera, Image as ImageIcon, PenTool, AlertTriangle, Key, List, XCircle, Sparkles } from "lucide-react-native";
 import { MathText } from "../../src/components/MathText";
 import { WhiteboardModal } from "../../src/components/WhiteboardModal";
 import { Image } from "expo-image";
@@ -413,7 +413,7 @@ export default function ExamSessionScreen() {
                   onPress={handleVerify}
                 >
                   <Sparkles size={20} color="#ffffff" />
-                  <Text style={styles.verifyButtonText}>
+                  <Text style={styles.primaryButtonText}>
                     {isUploadingAttachments ? "Subiendo imágenes..." : isEvaluating ? "La IA está evaluando..." : "Verificar con IA"}
                   </Text>
                 </TouchableOpacity>

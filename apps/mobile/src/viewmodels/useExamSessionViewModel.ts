@@ -139,11 +139,6 @@ export function useSubjectExams(subjectId: string) {
     exams: query.data?.data ?? [],
     isLoading: query.isLoading,
     error: query.error?.message ?? null,
-    refetch: query.refetch,
-    startExam: async (): Promise<ExamSession | null> => {
-      // Just a placeholder since the component uses it
-      console.log("startExam placeholder");
-      return null;
-    }
+    refetch: query.refetch
   };
 }

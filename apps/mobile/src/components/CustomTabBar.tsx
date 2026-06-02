@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Home, User, Plus, BookOpen, FileText } from "lucide-react-native";
 import Svg, { Path } from "react-native-svg";
@@ -105,7 +105,23 @@ export function CustomTabBar({ state, navigation }: CustomTabBarProps) {
           <TouchableOpacity
             style={styles.fab}
             activeOpacity={0.85}
-            onPress={() => console.log("FAB → Crear examen")}
+            onPress={() => {
+              Alert.alert(
+                "¿Qué deseas crear?",
+                "Elige una opción",
+                [
+                  { text: "Cancelar", style: "cancel" },
+                  { 
+                    text: "Nuevo Examen", 
+                    onPress: () => navigation.navigate("temario") 
+                  },
+                  { 
+                    text: "Nueva Publicación", 
+                    onPress: () => console.log("Próximamente: Feed activo") 
+                  }
+                ]
+              );
+            }}
           >
             <Plus size={28} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>

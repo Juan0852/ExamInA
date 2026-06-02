@@ -18,7 +18,7 @@ export default function SubjectDetailScreen() {
   const { subjects } = useTemarioViewModel();
   const subject = subjects.find(s => s.id === id);
   
-  const { exams, isLoading: isLoadingExams, startExam } = useSubjectExams(id);
+  const { exams, isLoading: isLoadingExams } = useSubjectExams(id);
 
   const [examFilter, setExamFilter] = useState<"todos" | "completados" | "pendientes">("todos");
 
@@ -29,17 +29,6 @@ export default function SubjectDetailScreen() {
     if (examFilter === "pendientes") return exams.filter(e => e.status !== "COMPLETED");
     return exams;
   }, [exams, examFilter]);
-
-  const handleStartPractice = async () => {
-    try {
-      const examSession = await startExam(); 
-      if (examSession) {
-        router.push(`/exam/${examSession.id}`);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const renderExam = ({ item }: { item: any }) => {
     const isCompleted = item.status === "COMPLETED";
@@ -127,13 +116,6 @@ export default function SubjectDetailScreen() {
             ListEmptyComponent={<Text style={styles.emptyText}>No has realizado exámenes de esta materia.</Text>}
           />
         )}
-      </View>
-
-      <View style={styles.fabContainer}>
-        <TouchableOpacity style={styles.fabButton} onPress={handleStartPractice} activeOpacity={0.9}>
-          <Play size={20} color="#ffffff" fill="#ffffff" />
-          <Text style={styles.fabText}>Simulacro Rápido</Text>
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -228,29 +210,4 @@ const styles = StyleSheet.create({
   examStats: { flexDirection: "row", alignItems: "center" },
   examStatItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   examStatText: { fontSize: 14, fontWeight: "500", color: "#64748b" },
-
-  fabContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 24,
-    paddingBottom: 34,
-    paddingTop: 16,
-    backgroundColor: "transparent", 
-  },
-  fabButton: {
-    flexDirection: "row",
-    backgroundColor: "#0879F2",
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#0879F2",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  fabText: { fontSize: 16, fontWeight: "800", color: "#ffffff", marginLeft: 8 },
 });
