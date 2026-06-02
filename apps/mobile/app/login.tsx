@@ -13,8 +13,36 @@ import {
 } from "../src/services/mobile-auth.service";
 import { theme } from "../src/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { loginSchema, registerSchema } from "../src/utils/schemas";
 
 WebBrowser.maybeCompleteAuthSession();
+
+function getPasswordStrength(pass: string) {
+  if (!pass) return { count: 0, label: "", color: "#e2e8f0" };
+
+  let count = 0;
+  if (pass.length >= 8) count++;
+  if (/[A-Z]/.test(pass)) count++;
+  if (/[a-z]/.test(pass)) count++;
+  if (/[0-9]/.test(pass)) count++;
+  if (/[^A-Za-z0-9]/.test(pass)) count++;
+
+  let label = "Muy débil";
+  let color = "#ef4444"; // red-500
+
+  if (count === 2) {
+    label = "Débil";
+    color = "#eab308"; // yellow-500
+  } else if (count === 3 || count === 4) {
+    label = "Media";
+    color = "#f97316"; // orange-500
+  } else if (count === 5) {
+    label = "Fuerte";
+    color = "#22c55e"; // green-500
+  }
+
+  return { count, label, color };
+}
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -31,13 +59,23 @@ export default function LoginScreen() {
   const [view, setView] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAuth = async () => {
-    if (!email || !password) {
-      setError("Por favor, introduce tu email y contraseña.");
-      return;
+    if (view === "login") {
+      const result = loginSchema.safeParse({ email, password });
+      if (!result.success) {
+        setError(result.error.issues[0].message);
+        return;
+      }
+    } else {
+      const result = registerSchema.safeParse({ email, password, confirmPassword });
+      if (!result.success) {
+        setError(result.error.issues[0].message);
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -198,7 +236,49 @@ export default function LoginScreen() {
                 autoCapitalize="none"
               />
             </View>
+            {view === "register" && password.length > 0 && (
+              <View style={styles.strengthContainer}>
+                <View style={styles.strengthHeader}>
+                  <Text style={styles.strengthLabelText}>Fuerza de la contraseña:</Text>
+                  <Text style={[styles.strengthValueText, { color: getPasswordStrength(password).color }]}>
+                    {getPasswordStrength(password).label}
+                  </Text>
+                </View>
+                <View style={styles.strengthTrack}>
+                  <View 
+                    style={[
+                      styles.strengthFill, 
+                      { 
+                        width: `${(getPasswordStrength(password).count / 5) * 100}%`,
+                        backgroundColor: getPasswordStrength(password).color 
+                      }
+                    ]} 
+                  />
+                </View>
+              </View>
+            )}
           </View>
+
+          {view === "register" && (
+            <View style={styles.inputWrapper}>
+              <Text style={styles.label}>Repetir contraseña</Text>
+              <View style={[styles.inputContainer, confirmPassword.length > 0 && password !== confirmPassword ? styles.inputError : null]}>
+                <Ionicons name="lock-closed-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  placeholderTextColor="#94a3b8"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                />
+              </View>
+              {confirmPassword.length > 0 && password !== confirmPassword && (
+                <Text style={styles.helperTextError}>las contraseñas no coinciden...</Text>
+              )}
+            </View>
+          )}
 
           <TouchableOpacity
             style={styles.primaryButton}
@@ -218,7 +298,11 @@ export default function LoginScreen() {
             <Text style={styles.toggleText}>
               {view === "login" ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
             </Text>
-            <TouchableOpacity onPress={() => { setView(view === "login" ? "register" : "login"); setError(null); }}>
+            <TouchableOpacity onPress={() => { 
+              setView(view === "login" ? "register" : "login"); 
+              setError(null); 
+              setConfirmPassword("");
+            }}>
               <Text style={styles.toggleTextBold}>
                 {view === "login" ? "Créala aquí" : "Inicia sesión"}
               </Text>
@@ -335,11 +419,47 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f8fafc",
-    borderColor: "#e2e8f0",
+    backgroundColor: "#f1f5f9",
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderRadius: theme.radius.md,
-    height: 48,
+    borderColor: "#e2e8f0",
+  },
+  inputError: {
+    borderColor: "#ef4444",
+  },
+  helperTextError: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#ef4444",
+    marginTop: 4,
+  },
+  strengthContainer: {
+    marginTop: 8,
+  },
+  strengthHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  strengthLabelText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#64748b",
+  },
+  strengthValueText: {
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  strengthTrack: {
+    height: 6,
+    backgroundColor: "#f1f5f9",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  strengthFill: {
+    height: "100%",
+    borderRadius: 3,
   },
   inputIcon: {
     paddingHorizontal: 12,
