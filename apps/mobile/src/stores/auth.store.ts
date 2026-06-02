@@ -21,17 +21,19 @@ export interface User {
 
 interface AuthState {
   token: string | null;
+  refreshToken: string | null;
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   
   initializeSession: () => Promise<void>;
-  setSession: (token: string, user: User) => Promise<void>;
+  setSession: (token: string, user: User, refreshToken?: string | null) => Promise<void>;
   clearSession: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   token: null,
+  refreshToken: null,
   user: null,
   isAuthenticated: false,
   isLoading: true,
@@ -39,10 +41,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   initializeSession: async () => {
     try {
       const persistedToken = await AsyncStorage.getItem("examina_token");
+      const persistedRefreshToken = await AsyncStorage.getItem("examina_refresh_token");
       const persistedUserJson = await AsyncStorage.getItem("examina_user");
       if (persistedToken && persistedUserJson) {
         set({
           token: persistedToken,
+          refreshToken: persistedRefreshToken,
           user: JSON.parse(persistedUserJson) as User,
           isAuthenticated: true,
           isLoading: false,
@@ -50,6 +54,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       } else {
         set({
           token: null,
+          refreshToken: null,
           user: null,
           isAuthenticated: false,
           isLoading: false,
@@ -58,12 +63,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       try {
         await AsyncStorage.removeItem("examina_token");
+        await AsyncStorage.removeItem("examina_refresh_token");
         await AsyncStorage.removeItem("examina_user");
       } catch (e) {
         // Ignore secondary storage errors
       }
       set({
         token: null,
+        refreshToken: null,
         user: null,
         isAuthenticated: false,
         isLoading: false,
@@ -71,12 +78,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  setSession: async (token, user) => {
+  setSession: async (token, user, refreshToken) => {
     try {
       await AsyncStorage.setItem("examina_token", token);
+      if (refreshToken) {
+        await AsyncStorage.setItem("examina_refresh_token", refreshToken);
+      } else {
+        await AsyncStorage.removeItem("examina_refresh_token");
+      }
       await AsyncStorage.setItem("examina_user", JSON.stringify(user));
       set({
         token,
+        refreshToken: refreshToken || null,
         user,
         isAuthenticated: true,
       });
@@ -88,9 +101,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   clearSession: async () => {
     try {
       await AsyncStorage.removeItem("examina_token");
+      await AsyncStorage.removeItem("examina_refresh_token");
       await AsyncStorage.removeItem("examina_user");
       set({
         token: null,
+        refreshToken: null,
         user: null,
         isAuthenticated: false,
       });

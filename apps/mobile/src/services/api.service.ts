@@ -9,6 +9,32 @@ const localIp = debuggerHost ? debuggerHost.split(":")[0] : (Platform.OS === "an
 const DEV_FALLBACK_URL = `http://${localIp}:3000/api/v1`;
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEV_FALLBACK_URL;
 
+let refreshPromise: Promise<{ idToken: string; refreshToken: string } | null> | null = null;
+
+async function refreshFirebaseToken(refreshToken: string): Promise<{ idToken: string; refreshToken: string } | null> {
+  const apiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const url = `https://securetoken.googleapis.com/v1/token?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `grant_type=refresh_token&refresh_token=${refreshToken}`
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return {
+      idToken: data.id_token,
+      refreshToken: data.refresh_token || refreshToken
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
 /**
  * Define las opciones de configuración para las peticiones HTTP.
  */
@@ -67,9 +93,54 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
         errorMessage = response.statusText || "Error de red o servidor offline.";
       }
       
-      // Si la sesión expiró (401) o el token de Firebase caducó, deslogueamos automáticamente
+      // Si la sesión expiró (401) o el token de Firebase caducó
       if (response.status === 401 || errorMessage.includes("Firebase ID token has expired") || errorMessage.includes("auth/id-token-expired")) {
-        await useAuthStore.getState().clearSession();
+        const authStore = useAuthStore.getState();
+        
+        if (path === "/auth/login" || path === "/auth/register" || path === "/auth/google") {
+          await authStore.clearSession();
+          throw new Error(errorMessage);
+        }
+
+        if (authStore.refreshToken && authStore.user) {
+          if (!refreshPromise) {
+            refreshPromise = refreshFirebaseToken(authStore.refreshToken).then(async (newTokens) => {
+              if (newTokens) {
+                await useAuthStore.getState().setSession(newTokens.idToken, useAuthStore.getState().user!, newTokens.refreshToken);
+                return newTokens;
+              } else {
+                await useAuthStore.getState().clearSession();
+                return null;
+              }
+            }).finally(() => {
+              refreshPromise = null;
+            });
+          }
+
+          const newTokens = await refreshPromise;
+          if (newTokens) {
+            const retryHeaders = new Headers(options.headers || {});
+            retryHeaders.set("Authorization", `Bearer ${newTokens.idToken}`);
+            if (!retryHeaders.has("Content-Type") && !(options.body instanceof FormData)) {
+              retryHeaders.set("Content-Type", "application/json");
+            }
+            
+            const retryResponse = await fetch(url, {
+              ...options,
+              headers: retryHeaders,
+              body,
+            });
+
+            if (!retryResponse.ok) {
+              throw new Error(errorMessage);
+            }
+
+            if (retryResponse.status === 204) return {} as T;
+            return (await retryResponse.json()) as T;
+          }
+        } else {
+          await authStore.clearSession();
+        }
       }
       
       throw new Error(errorMessage);

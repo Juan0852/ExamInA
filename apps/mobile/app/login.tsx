@@ -52,7 +52,7 @@ export default function LoginScreen() {
         throw new Error("El servidor no devolvió un token de sesión válido.");
       }
 
-      await setSession(response.data.auth.idToken, response.data.user);
+      await setSession(response.data.auth.idToken, response.data.user, response.data.auth.refreshToken);
       router.replace("/(tabs)/dashboard");
     } catch (err: any) {
       setError(getReadableAuthError(err));
@@ -100,7 +100,7 @@ export default function LoginScreen() {
           throw new Error("El servidor no devolvió un token de sesión válido.");
         }
 
-        await setSession(response.data.auth.idToken, response.data.user);
+        await setSession(response.data.auth.idToken, response.data.user, response.data.auth.refreshToken);
 
         if (isMounted) {
           router.replace("/(tabs)/dashboard");
