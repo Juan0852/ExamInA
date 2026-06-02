@@ -118,6 +118,15 @@ export function ProfilePage() {
     0
   );
 
+  const currentLevel = user?.profile?.level ?? 1;
+  const currentXP = user?.profile?.experience ?? 0;
+  const currentLevelBaseXP = 50 * (currentLevel - 1) * currentLevel;
+  const nextLevelXP = 50 * currentLevel * (currentLevel + 1);
+  const xpIntoCurrentLevel = Math.max(0, currentXP - currentLevelBaseXP);
+  const xpRequiredForNextLevel = nextLevelXP - currentLevelBaseXP;
+  const progressPercentage = Math.min(100, Math.round((xpIntoCurrentLevel / xpRequiredForNextLevel) * 100));
+  const xpRemaining = nextLevelXP - currentXP;
+
   const achievements = [...rawAchievements].sort((a, b) => {
     if (a.unlocked && !b.unlocked) return -1;
     if (!a.unlocked && b.unlocked) return 1;
@@ -262,14 +271,35 @@ export function ProfilePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-center sm:min-w-64">
-              <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur">
-                <p className="text-2xl font-black">{unlockedAchievements.length}</p>
-                <p className="text-[11px] font-bold uppercase text-white/75">Medallas</p>
+            <div className="flex flex-col gap-3 sm:min-w-64">
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur border border-white/10">
+                  <p className="text-2xl font-black">{unlockedAchievements.length}</p>
+                  <p className="text-[11px] font-bold uppercase text-white/75">Medallas</p>
+                </div>
+                <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur border border-white/10">
+                  <p className="text-2xl font-black">{totalXp}</p>
+                  <p className="text-[11px] font-bold uppercase text-white/75">XP logros</p>
+                </div>
               </div>
-              <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur">
-                <p className="text-2xl font-black">{totalXp}</p>
-                <p className="text-[11px] font-bold uppercase text-white/75">XP logros</p>
+              
+              <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur border border-white/10 text-left">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="text-xs text-white/75 font-bold uppercase tracking-wider">Nivel {currentLevel}</div>
+                  <div className="text-[10px] font-bold text-amber-300">
+                    Faltan {xpRemaining} XP
+                  </div>
+                </div>
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-black/20">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-300 to-orange-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
+                <div className="mt-1 flex justify-between text-[10px] font-bold text-white/60">
+                  <span>{currentLevelBaseXP}</span>
+                  <span>{currentXP} / {nextLevelXP}</span>
+                </div>
               </div>
             </div>
           </div>

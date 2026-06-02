@@ -47,6 +47,15 @@ export function DashboardPage() {
     formatMonthLabel
   } = useDashboardViewModel();
 
+  const currentLevel = summary?.progress.level ?? 1;
+  const currentXP = summary?.progress.experience ?? 0;
+  const currentLevelBaseXP = 50 * (currentLevel - 1) * currentLevel;
+  const nextLevelXP = 50 * currentLevel * (currentLevel + 1);
+  const xpIntoCurrentLevel = Math.max(0, currentXP - currentLevelBaseXP);
+  const xpRequiredForNextLevel = nextLevelXP - currentLevelBaseXP;
+  const progressPercentage = Math.min(100, Math.round((xpIntoCurrentLevel / xpRequiredForNextLevel) * 100));
+  const xpRemaining = nextLevelXP - currentXP;
+
   useEffect(() => {
     if (!isStreakLightboxOpen && !isStudyTimeLightboxOpen) {
       return;
@@ -105,14 +114,26 @@ export function DashboardPage() {
             Continúa preparando tus exámenes PAU de Selectividad hoy.
           </p>
         </div>
-        <div className="flex items-center space-x-4 bg-slate-50 dark:bg-brand-navy/20 px-4 py-3 rounded-xl border border-slate-100 dark:border-brand-navy/40">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
+        <div className="flex items-center space-x-4 bg-slate-50 dark:bg-brand-navy/20 px-4 py-3 rounded-xl border border-slate-100 dark:border-brand-navy/40 min-w-[200px]">
+          <div className="w-10 h-10 shrink-0 rounded-lg bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
             <Trophy size={20} />
           </div>
-          <div>
-            <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Nivel actual</div>
-            <div className="text-sm font-black text-slate-800 dark:text-slate-200">
-              Nivel {summary?.progress.level ?? 1} ({summary?.progress.experience ?? 0} XP)
+          <div className="flex-1">
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Nivel {currentLevel}</div>
+              <div className="text-[10px] font-bold text-orange-500">
+                Faltan {xpRemaining} XP
+              </div>
+            </div>
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500"
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+            <div className="mt-1 flex justify-between text-[10px] font-bold text-slate-400">
+              <span>{currentLevelBaseXP}</span>
+              <span>{currentXP} / {nextLevelXP}</span>
             </div>
           </div>
         </div>
@@ -130,12 +151,14 @@ export function DashboardPage() {
               <span className="text-xs font-semibold text-slate-450 dark:text-slate-400">
                 Racha de Estudio
               </span>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-slate-800 dark:text-slate-150">
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-2xl font-black text-slate-800 dark:text-slate-150 shrink-0">
                   {summary?.streak.currentCount ?? 0} {summary?.streak.currentCount === 1 ? "día" : "días"}
                 </span>
-                <span className="text-xs font-bold text-orange-500">
-                  {(summary?.streak.currentCount ?? 0) > 0 ? "activa" : "inactiva"}
+                <span className="text-[10px] font-bold text-orange-500 leading-tight">
+                  {(summary?.streak.currentCount ?? 0) > 0 
+                    ? "activa" 
+                    : "Haz un examen por temas u oficial para comenzar tu racha de estudio"}
                 </span>
               </div>
             </div>

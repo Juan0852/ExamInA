@@ -97,10 +97,24 @@ export function Sidebar() {
       disabled: false,
     },
     {
-      label: "Temario",
+      isHeader: true,
+      label: "Exámenes",
+    },
+    {
+      label: "Por temas",
       path: "/subjects",
       icon: BookOpen,
       disabled: false,
+    },
+    {
+      label: "Oficiales completos",
+      path: "/official-exams",
+      icon: GraduationCap,
+      disabled: false,
+    },
+    {
+      isHeader: true,
+      label: "Cuenta",
     },
     {
       label: "Perfil",
@@ -109,17 +123,15 @@ export function Sidebar() {
       disabled: false,
     },
     {
+      isHeader: true,
+      label: "Social",
+    },
+    {
       label: "Modo Arquitecto",
       path: "/architect",
       icon: DraftingCompass,
       disabled: true,
       badge: "Próximamente",
-    },
-    {
-      label: "Exámenes oficiales",
-      path: "/official-exams",
-      icon: GraduationCap,
-      disabled: false,
     },
     {
       label: "Comunidad / Feed",
@@ -171,8 +183,22 @@ export function Sidebar() {
         {/* Enlaces de navegación */}
         <div className={`flex-1 py-6 space-y-1.5 overflow-y-auto ${isCollapsed ? "px-0 flex flex-col items-center" : "px-4"}`}>
           {navItems.map((item, idx) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
+            if (item.isHeader) {
+              return !isCollapsed ? (
+                <div key={idx} className="pt-5 pb-1 px-4">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                    {item.label}
+                  </span>
+                </div>
+              ) : (
+                <div key={idx} className="pt-5 pb-1 w-full flex justify-center">
+                  <div className="w-5 h-[3px] rounded-full bg-slate-200 dark:bg-slate-800" />
+                </div>
+              );
+            }
+
+            const Icon = item.icon!;
+            const active = isActive(item.path!);
             
             if (item.disabled) {
               return (
