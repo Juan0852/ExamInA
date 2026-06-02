@@ -11,9 +11,9 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 | Cerrado | Placeholders en flujos reales | Mobile/API | Cerrado 2026-06-02 |
 | Cerrado | Auditoria de documentos vivos restantes | Docs | Cerrado 2026-06-02 |
 | Cerrado | Backend permite reevaluar una pregunta IA dentro de la misma sesion | API/ExamSessions/Corrections | Cerrado 2026-06-02 |
-| P1 | Heartbeat/tiempo de estudio incompleto en mobile | Mobile/API | Abierto |
+| Cerrado | Heartbeat/tiempo de estudio incompleto en mobile | Mobile/API | Cerrado 2026-06-02 |
 | Cerrado | Imagenes subidas no persisten visualmente al reabrir sesion | Storage/Mobile/API | Cerrado 2026-06-02 |
-| P1 | Endpoints actuales no estan inventariados contra implementacion real | API/Docs | Abierto |
+| Cerrado | Endpoints actuales no estan inventariados contra implementacion real | API/Docs | Cerrado 2026-06-02 |
 | P1 | Seeds oficiales de examenes y limpieza de datos de prueba | API/DB | Abierto |
 | P1 | Gestion de errores sin estrategia clara | API/Web/Mobile | Abierto |
 | P1 | Validaciones incompletas en registro mobile | Mobile/Auth | Abierto |
@@ -94,19 +94,13 @@ Referencia:
 
 ### 5. Heartbeat y tiempo de estudio incompletos en mobile
 
-El backend ya tiene endpoint para sincronizar actividad por `elapsedSeconds`, pero mobile no esta enviando heartbeat real.
+Estado: cerrado el 2026-06-02.
 
-Estado actual detectado:
-
-- `exam/[id].tsx` llama `saveActivity(10)` al avanzar pregunta.
-- No hay `setInterval` ni sincronizacion periodica.
-- Si el usuario estudia una pregunta durante varios minutos y cierra sin avanzar, ese tiempo puede perderse.
-
-Accion propuesta:
-
-- Implementar heartbeat cada 30 segundos por sesion activa.
-- Enviar tambien un ultimo sync al cerrar/salir del modo enfoque.
-- El backend debe mantener el calculo por delta para evitar duplicar tiempo.
+Se implementó con éxito el heartbeat en React Native (`exam/[id].tsx`).
+- Se cuenta el tiempo de estudio de manera precisa con `setInterval`.
+- Se envía el `elapsedSeconds` cada 15 segundos al backend mediante `syncActivity`.
+- Se escucha el evento nativo `AppState` para sincronizar justo antes de enviar la app a background o cerrarla, evitando pérdida de tiempo.
+- Se agregó el cronómetro visual en la TopBar para lograr paridad con la plataforma Web.
 
 ### 6. Imagenes subidas no persisten visualmente al reabrir sesion
 
@@ -116,22 +110,9 @@ Se conectó el flujo completo en la app móvil. Ahora, antes de llamar a la IA, 
 
 ### 7. Endpoints actuales no inventariados contra implementacion real
 
-El documento viejo de endpoints fue eliminado porque era una propuesta inicial y no reflejaba los controllers reales.
+Estado: cerrado el 2026-06-02.
 
-Accion propuesta:
-
-- Listar todos los controllers actuales de `apps/api/src/modules`.
-- Generar una tabla de endpoints implementados reales.
-- Comparar contra endpoints requeridos por web y mobile.
-- Marcar cada endpoint como:
-  - implementado;
-  - parcial;
-  - faltante;
-  - propuesto pero no necesario aun.
-
-Nota:
-
-- Este documento debe evitar exponer informacion sensible. Es documentacion interna de desarrollo, no documentacion publica de seguridad.
+Se ha generado el documento `docs/API_ENDPOINTS.md` mediante una auditoría real del código de los controladores backend (`apps/api/src/modules`). El documento lista todos los endpoints actuales, su estado de implementación y notas sobre casos faltantes descubiertos (como la ausencia de un controlador para actualizar datos de perfil de usuario sin depender del onboarding completo).
 
 ### 8. Seeds oficiales de examenes y limpieza de datos de prueba
 
