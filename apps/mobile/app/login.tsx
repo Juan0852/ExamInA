@@ -91,7 +91,12 @@ export default function LoginScreen() {
       }
 
       await setSession(response.data.auth.idToken, response.data.user, response.data.auth.refreshToken);
-      router.replace("/(tabs)/dashboard");
+      
+      if (!response.data.user.profile) {
+        router.replace("/onboarding");
+      } else {
+        router.replace("/(tabs)/dashboard");
+      }
     } catch (err: any) {
       setError(getReadableAuthError(err));
     } finally {
@@ -140,7 +145,9 @@ export default function LoginScreen() {
 
         await setSession(response.data.auth.idToken, response.data.user, response.data.auth.refreshToken);
 
-        if (isMounted) {
+        if (!response.data.user.profile) {
+          router.replace("/onboarding");
+        } else {
           router.replace("/(tabs)/dashboard");
         }
       } catch (err) {
