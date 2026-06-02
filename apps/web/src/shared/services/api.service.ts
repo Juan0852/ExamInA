@@ -4,6 +4,32 @@ import { useAchievementToastStore } from "../achievements/achievement-toast.stor
 // Base URL de la API obtenida desde variables de entorno de Vite o fallback de desarrollo
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
 
+let refreshPromise: Promise<{ idToken: string; refreshToken: string } | null> | null = null;
+
+async function refreshFirebaseToken(refreshToken: string): Promise<{ idToken: string; refreshToken: string } | null> {
+  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const url = `https://securetoken.googleapis.com/v1/token?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `grant_type=refresh_token&refresh_token=${refreshToken}`
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return {
+      idToken: data.id_token,
+      refreshToken: data.refresh_token || refreshToken
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
 /**
  * Define las opciones de configuración para las peticiones HTTP.
  */
@@ -61,9 +87,59 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
       errorMessage = response.statusText || "Error de red o servidor offline.";
     }
     
-    // Si la sesión expiró (401), deslogueamos automáticamente
-    if (response.status === 401) {
-      useAuthStore.getState().clearSession();
+    // Si la sesión expiró (401), intentamos refrescar o deslogueamos
+    if (response.status === 401 || errorMessage.includes("Firebase ID token has expired") || errorMessage.includes("auth/id-token-expired")) {
+      const authStore = useAuthStore.getState();
+      
+      if (path === "/auth/login" || path === "/auth/register" || path === "/auth/google") {
+        authStore.clearSession();
+        throw new Error(errorMessage);
+      }
+
+      if (authStore.refreshToken && authStore.user) {
+        if (!refreshPromise) {
+          refreshPromise = refreshFirebaseToken(authStore.refreshToken).then((newTokens) => {
+            if (newTokens) {
+              useAuthStore.getState().setSession(newTokens.idToken, useAuthStore.getState().user!, newTokens.refreshToken);
+              return newTokens;
+            } else {
+              useAuthStore.getState().clearSession();
+              return null;
+            }
+          }).finally(() => {
+            refreshPromise = null;
+          });
+        }
+
+        const newTokens = await refreshPromise;
+        if (newTokens) {
+          const retryHeaders = new Headers(options.headers || {});
+          retryHeaders.set("Authorization", `Bearer ${newTokens.idToken}`);
+          if (!retryHeaders.has("Content-Type") && !(options.body instanceof FormData)) {
+            retryHeaders.set("Content-Type", "application/json");
+          }
+          
+          const retryResponse = await fetch(url, {
+            ...options,
+            headers: retryHeaders,
+            body,
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error(errorMessage);
+          }
+
+          if (retryResponse.status === 204) return {} as T;
+          
+          const result = await retryResponse.json();
+          if (result && typeof result === "object" && (result as any).meta && Array.isArray((result as any).meta.newlyUnlockedAchievements)) {
+            useAchievementToastStore.getState().pushAchievements((result as any).meta.newlyUnlockedAchievements);
+          }
+          return result as T;
+        }
+      } else {
+        authStore.clearSession();
+      }
     }
     
     throw new Error(errorMessage);

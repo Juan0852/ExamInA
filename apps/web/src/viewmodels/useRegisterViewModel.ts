@@ -90,7 +90,7 @@ export function useRegisterViewModel() {
       const { user, auth } = response.data;
 
       // Guardamos la sesión en el Zustand store y localStorage
-      setSession(auth.idToken, user);
+      setSession(auth.idToken, user, auth.refreshToken);
 
       // Redirigimos a la pantalla de Onboarding
       navigate("/onboarding");

@@ -227,7 +227,7 @@ export function Sidebar() {
             return (
               <Link
                 key={idx}
-                to={item.path}
+                to={item.path || "#"}
                 onClick={closeSidebar}
                 className={`flex items-center rounded-xl text-sm font-bold transition-all ${
                   isCollapsed 

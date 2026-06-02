@@ -72,6 +72,7 @@ export function useLoginViewModel() {
           };
           auth?: {
             idToken: string;
+            refreshToken: string;
           };
         };
       }>("/auth/login", {
@@ -83,7 +84,7 @@ export function useLoginViewModel() {
         throw new Error("El backend no devolvió un token de sesión válido.");
       }
 
-      setSession(response.data.auth.idToken, response.data.user);
+      setSession(response.data.auth.idToken, response.data.user, response.data.auth.refreshToken);
       
       navigate("/dashboard");
     } catch (err: any) {

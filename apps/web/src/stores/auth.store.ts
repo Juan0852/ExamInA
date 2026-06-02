@@ -26,6 +26,7 @@ export interface User {
  */
 interface AuthState {
   token: string | null;
+  refreshToken: string | null;
   user: User | null;
   isAuthenticated: boolean;
   
@@ -37,7 +38,7 @@ interface AuthState {
   /**
    * Guarda el token y los datos de usuario en el estado y los persiste en localStorage.
    */
-  setSession: (token: string, user: User) => void;
+  setSession: (token: string, user: User, refreshToken?: string | null) => void;
   
   /**
    * Limpia el estado de autenticación y remueve la sesión persistida.
@@ -45,21 +46,24 @@ interface AuthState {
   clearSession: () => void;
 }
 
-function readPersistedSession(): Pick<AuthState, "token" | "user" | "isAuthenticated"> {
+function readPersistedSession(): Pick<AuthState, "token" | "refreshToken" | "user" | "isAuthenticated"> {
   if (typeof localStorage === "undefined") {
     return {
       token: null,
+      refreshToken: null,
       user: null,
       isAuthenticated: false,
     };
   }
 
   const persistedToken = localStorage.getItem("examina_token");
+  const persistedRefreshToken = localStorage.getItem("examina_refresh_token");
   const persistedUserJson = localStorage.getItem("examina_user");
 
   if (!persistedToken || !persistedUserJson) {
     return {
       token: null,
+      refreshToken: null,
       user: null,
       isAuthenticated: false,
     };
@@ -68,14 +72,17 @@ function readPersistedSession(): Pick<AuthState, "token" | "user" | "isAuthentic
   try {
     return {
       token: persistedToken,
+      refreshToken: persistedRefreshToken,
       user: JSON.parse(persistedUserJson) as User,
       isAuthenticated: true,
     };
   } catch {
     localStorage.removeItem("examina_token");
+    localStorage.removeItem("examina_refresh_token");
     localStorage.removeItem("examina_user");
     return {
       token: null,
+      refreshToken: null,
       user: null,
       isAuthenticated: false,
     };
@@ -94,13 +101,19 @@ export const useAuthStore = create<AuthState>((set) => ({
     set(readPersistedSession());
   },
 
-  setSession: (token, user) => {
+  setSession: (token, user, refreshToken) => {
     if (typeof localStorage !== "undefined") {
       localStorage.setItem("examina_token", token);
+      if (refreshToken) {
+        localStorage.setItem("examina_refresh_token", refreshToken);
+      } else {
+        localStorage.removeItem("examina_refresh_token");
+      }
       localStorage.setItem("examina_user", JSON.stringify(user));
     }
     set({
       token,
+      refreshToken: refreshToken || null,
       user,
       isAuthenticated: true,
     });
@@ -109,10 +122,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   clearSession: () => {
     if (typeof localStorage !== "undefined") {
       localStorage.removeItem("examina_token");
+      localStorage.removeItem("examina_refresh_token");
       localStorage.removeItem("examina_user");
     }
     set({
       token: null,
+      refreshToken: null,
       user: null,
       isAuthenticated: false,
     });
