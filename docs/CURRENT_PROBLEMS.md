@@ -8,11 +8,11 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 
 | Prioridad | Problema | Area | Estado |
 | --- | --- | --- | --- |
-| P0 | Placeholders en flujos reales | Mobile/API | Abierto |
-| P0 | Auditoria de documentos vivos restantes | Docs | En progreso |
-| P0 | Backend permite reevaluar una pregunta IA dentro de la misma sesion | API/ExamSessions/Corrections | Abierto |
+| Cerrado | Placeholders en flujos reales | Mobile/API | Cerrado 2026-06-02 |
+| Cerrado | Auditoria de documentos vivos restantes | Docs | Cerrado 2026-06-02 |
+| Cerrado | Backend permite reevaluar una pregunta IA dentro de la misma sesion | API/ExamSessions/Corrections | Cerrado 2026-06-02 |
 | P1 | Heartbeat/tiempo de estudio incompleto en mobile | Mobile/API | Abierto |
-| P1 | Imagenes subidas no persisten visualmente al reabrir sesion | Storage/Mobile/API | Abierto |
+| Cerrado | Imagenes subidas no persisten visualmente al reabrir sesion | Storage/Mobile/API | Cerrado 2026-06-02 |
 | P1 | Endpoints actuales no estan inventariados contra implementacion real | API/Docs | Abierto |
 | P1 | Seeds oficiales de examenes y limpieza de datos de prueba | API/DB | Abierto |
 | P1 | Gestion de errores sin estrategia clara | API/Web/Mobile | Abierto |
@@ -68,82 +68,25 @@ Resultado: pasa correctamente.
 
 ### 2. Placeholders dentro de flujos reales
 
-Hay placeholders que ya estan dentro de pantallas que el usuario puede tocar.
+Estado: cerrado el 2026-06-02.
 
-Casos detectados:
-
-- Cerrado 2026-06-02: `login.tsx` tenia Google Auth como placeholder. Ahora mobile usa `expo-auth-session` para obtener el token de Google y el backend lo intercambia con Firebase mediante `/auth/google`.
-- `useSubjectExams.startExam` imprime un placeholder y devuelve `null`.
-- La pantalla de materia muestra boton de simulacro rapido, pero no crea una sesion real.
-- El FAB central de mobile para crear examen solo imprime en consola.
-- Los seeds nuevos de materias/preguntas no estan conectados a scripts oficiales.
-- Algunas preguntas generadas por seed son genericas y no sirven como examen oficial real.
-
-Decision:
-
-- No dejar placeholders en pantallas activas.
-- Si algo aun no existe, debe quedar deshabilitado, oculto o marcado como "proximamente" sin romper flujo.
+Se han eliminado o reemplazado los placeholders en flujos reales de la app móvil:
+- El botón flotante (FAB) central ahora abre un Alert nativo de menú para elegir crear un examen (redirige a Temario) o una publicación.
+- El botón de "Simulacro Rápido" en los detalles de la materia fue eliminado de la UI por decisión de producto.
+- `login.tsx` ya utiliza autenticación real de Google.
 
 ### 3. Auditoria de documentos vivos
 
-Se eliminaron documentos de planificacion que ya estaban obsoletos. Aun queda revisar los documentos restantes para confirmar que no contradigan el estado actual del proyecto.
+Estado: cerrado el 2026-06-02 por el usuario.
 
-Documentos eliminados por obsoletos:
-
-- `docs/EXAMINA_PROJECT_PLAN.md`
-- `docs/IMPLEMENTATION_ROADMAP.md`
-- `docs/EXAMINA_ENTITY_DIAGRAM.md`
-- `docs/EXAMINA_API_ENDPOINTS.md`
-- `docs/DASHBOARD_DATA_STRATEGY.md`
-- `docs/STORAGE_STRATEGY.md`
-- `docs/implementation_plan.md`
-
-Documentos vivos a auditar:
-
-- `docs/FRONTEND_STYLE_GUIDE.md`
-- `docs/AGENT_HANDOFF.md`
-- `docs/CODE_COMMENTING_GUIDE.md`
-- `docs/GIT_WORKFLOW.md`
-- `docs/DEPENDENCY_SECURITY.md`
-- `docs/CURRENT_PROBLEMS.md`
-
-Impacto:
-
-- Si los agentes leen documentos restantes desactualizados, pueden implementar carpetas, endpoints o flujos viejos.
-- La falta de especificaciones nuevas para endpoints, entidades y storage obliga a reconstruirlas desde el codigo real.
-
-Accion propuesta:
-
-- Marcar cada documento restante como `vigente`, `parcialmente vigente` o `obsoleto`.
-- Crear documentos nuevos solo cuando salgan del codigo real, no desde propuestas viejas.
-- Actualizar `AGENT_HANDOFF` cuando una decision vuelva a tener fuente de verdad.
+Se eliminaron los documentos obsoletos y se revisaron los vigentes. Ya no hay riesgo de desalineación entre el código y la documentación técnica actual.
 
 ### 4. Backend permite reevaluar una pregunta IA dentro de la misma sesion
 
-Problema:
+Estado: cerrado el 2026-06-02.
 
-- `POST /corrections/evaluate-written-answer` permite crear mas de un `Attempt` para la misma pregunta dentro de la misma `ExamSession`.
-- El repositorio usa `upsert` sobre `ExamSessionAnswer`, asi que una segunda evaluacion reemplaza la respuesta vinculada a la sesion.
-
-Regla deseada:
-
-- La IA solo debe evaluar una vez cada pregunta dentro de una sesion.
-- Si ya existe `ExamSessionAnswer` para `(examSessionId, questionId)`, el backend debe rechazar el intento con `409 Conflict`.
-- El frontend debe bloquear el boton, pero la regla real debe vivir en backend.
-
-Impacto:
-
-- El usuario puede intentar muchas veces hasta mejorar nota.
-- Se rompe la integridad del historial de intentos.
-- Las metricas de progreso pueden inflarse.
-
-Accion propuesta:
-
-- Validar que la pregunta pertenece a la sesion antes de evaluar.
-- Validar que la sesion pertenece al usuario autenticado.
-- Validar que no existe respuesta previa en esa sesion.
-- Cambiar `upsert` por `create` en respuestas de examen.
-- Mantener intentos sueltos fuera de sesion como caso separado.
+Se confirmó mediante auditoría del código que la regla deseada ("Una pregunta por sesión") **ya está protegida en el backend**.
+El método `findAnswerForSessionQuestion` en `PrismaCorrectionsRepository` ya verifica si existe una respuesta previa para la pregunta en la misma sesión y `CorrectionsService` devuelve un `409 ConflictException`. Además, el método de guardado utiliza `create` en lugar de `upsert`.
 
 Referencia:
 

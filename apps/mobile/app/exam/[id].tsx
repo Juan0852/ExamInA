@@ -11,14 +11,16 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Keyboard
+  Keyboard,
+  AppState,
+  AppStateStatus
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useExamSessionViewModel } from "../../src/viewmodels/useExamSessionViewModel";
 import { theme } from "../../src/theme";
-import { X, Check, ArrowLeft, Layers, Flame, Lightbulb, Edit3, Target, Camera, Image as ImageIcon, PenTool, AlertTriangle, Key, List, XCircle, Sparkles } from "lucide-react-native";
+import { X, Check, ArrowLeft, Layers, Flame, Lightbulb, Edit3, Target, Camera, Image as ImageIcon, PenTool, AlertTriangle, Key, List, XCircle, Sparkles, Clock } from "lucide-react-native";
 import { MathText } from "../../src/components/MathText";
 import { WhiteboardModal } from "../../src/components/WhiteboardModal";
 import { Image } from "expo-image";
@@ -42,6 +44,96 @@ export default function ExamSessionScreen() {
   const [isWhiteboardVisible, setIsWhiteboardVisible] = useState(false);
   const [evaluations, setEvaluations] = useState<Record<string, any>>({});
   const [isUploadingAttachments, setIsUploadingAttachments] = useState(false);
+
+  // Heartbeat & Time Tracking
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isTimerOpen, setIsTimerOpen] = useState(true);
+  const elapsedSecondsRef = useRef(0);
+  const activityBaseStartedAtRef = useRef(Date.now());
+  const lastSyncedElapsedSecondsRef = useRef(0);
+  const isExamClosed = Boolean(
+    examSession &&
+      (examSession.status === "COMPLETED" ||
+        examSession.status === "ABANDONED" ||
+        examSession.finishedAt)
+  );
+
+  useEffect(() => {
+    elapsedSecondsRef.current = elapsedSeconds;
+  }, [elapsedSeconds]);
+
+  useEffect(() => {
+    if (!examSession?.startedAt) return;
+
+    if (isExamClosed) {
+      if (examSession.totalTimeSeconds > 0) {
+        setElapsedSeconds(examSession.totalTimeSeconds);
+      }
+      return;
+    }
+
+    activityBaseStartedAtRef.current = Date.now();
+    lastSyncedElapsedSecondsRef.current = examSession.totalTimeSeconds ?? 0;
+    setElapsedSeconds(examSession.totalTimeSeconds ?? 0);
+
+    const updateTimer = () => {
+      const activeDiff = Math.floor((Date.now() - activityBaseStartedAtRef.current) / 1000);
+      setElapsedSeconds((examSession.totalTimeSeconds ?? 0) + Math.max(0, activeDiff));
+    };
+
+    updateTimer();
+    const intervalId = setInterval(updateTimer, 1000);
+    return () => clearInterval(intervalId);
+  }, [
+    examSession?.startedAt,
+    examSession?.status,
+    examSession?.totalTimeSeconds,
+    isExamClosed
+  ]);
+
+  const syncExamActivity = React.useCallback(async () => {
+    if (!id || isExamClosed) return;
+    const elapsed = elapsedSecondsRef.current;
+    if (elapsed <= lastSyncedElapsedSecondsRef.current) return;
+
+    try {
+      await saveActivity(elapsed);
+      lastSyncedElapsedSecondsRef.current = elapsed;
+    } catch (err) {
+      console.warn("No se pudo sincronizar el tiempo de estudio:", err);
+    }
+  }, [id, isExamClosed, saveActivity]);
+
+  useEffect(() => {
+    if (!id || isExamClosed) return;
+
+    const intervalId = setInterval(() => {
+      syncExamActivity();
+    }, 15000);
+
+    const subscription = AppState.addEventListener("change", (nextAppState: AppStateStatus) => {
+      if (nextAppState === "background" || nextAppState === "inactive") {
+        syncExamActivity();
+      }
+    });
+
+    return () => {
+      clearInterval(intervalId);
+      subscription.remove();
+      syncExamActivity();
+    };
+  }, [id, isExamClosed, syncExamActivity]);
+
+  const formatTime = (totalSecs: number) => {
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    return [
+      hrs.toString().padStart(2, "0"),
+      mins.toString().padStart(2, "0"),
+      secs.toString().padStart(2, "0")
+    ].join(":");
+  };
 
   const position = useRef(new Animated.ValueXY()).current;
   const faceAnim = useRef(new Animated.Value(0)).current;
@@ -142,7 +234,7 @@ export default function ExamSessionScreen() {
     const currentQuestion = questions[currentIndex];
     
     if (currentQuestion) {
-      saveActivity(10);
+      // Intentional empty block: saveActivity is now handled automatically
     }
 
     if (currentIndex < questions.length - 1) {
@@ -154,7 +246,7 @@ export default function ExamSessionScreen() {
         faceAnim.setValue(0);
       });
     } else {
-      finishExam();
+      finishExam(elapsedSecondsRef.current);
       router.back();
     }
   };
@@ -246,6 +338,15 @@ export default function ExamSessionScreen() {
               <View style={[styles.progressFill, { width: `${((currentIndex) / questions.length) * 100}%` }]} />
             </View>
           </View>
+          <TouchableOpacity 
+            style={styles.timerContainer}
+            onPress={() => setIsTimerOpen(!isTimerOpen)}
+          >
+            <Clock size={16} color="#64748b" />
+            {isTimerOpen && (
+              <Text style={styles.timerText}>{formatTime(elapsedSeconds)}</Text>
+            )}
+          </TouchableOpacity>
         </View>
 
         <View style={styles.cardContainer}>
@@ -884,5 +985,23 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  timerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginLeft: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  timerText: {
+    marginLeft: 6,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#334155",
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   }
 });

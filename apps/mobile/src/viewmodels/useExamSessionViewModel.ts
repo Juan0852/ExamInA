@@ -80,8 +80,10 @@ export function useExamSessionViewModel(examSessionId: string | undefined) {
   });
 
   const finishMutation = useMutation({
-    mutationFn: () => {
-      return apiService.patch(`/exam-sessions/${examSessionId}/finish`, {});
+    mutationFn: (data: { totalTimeSeconds: number }) => {
+      return apiService.patch(`/exam-sessions/${examSessionId}/finish`, {
+        totalTimeSeconds: data.totalTimeSeconds
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["exam-session", examSessionId] });
@@ -107,7 +109,7 @@ export function useExamSessionViewModel(examSessionId: string | undefined) {
     handleRetry: query.refetch,
     saveActivity: (elapsedSeconds: number) => activityMutation.mutate({ elapsedSeconds }),
     evaluateAnswer: (data: { questionId: string; userAnswer: string; attachmentIds?: string[] }) => evaluateAnswerMutation.mutateAsync(data),
-    finishExam: () => finishMutation.mutate(),
+    finishExam: (totalTimeSeconds: number) => finishMutation.mutate({ totalTimeSeconds }),
     isSaving: activityMutation.isPending || finishMutation.isPending,
     isEvaluating: evaluateAnswerMutation.isPending
   };
