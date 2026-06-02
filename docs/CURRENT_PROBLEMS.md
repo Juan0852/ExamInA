@@ -16,9 +16,12 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 | Cerrado | Endpoints actuales no estan inventariados contra implementacion real | API/Docs | Cerrado 2026-06-02 |
 | P1 | Seeds oficiales de examenes y limpieza de datos de prueba | API/DB | Abierto |
 | P1 | Gestion de errores sin estrategia clara | API/Web/Mobile | Abierto |
-| P1 | Validaciones incompletas en registro mobile | Mobile/Auth | Abierto |
-| P1 | Token Firebase expirado justo despues del registro mobile | Mobile/Auth/API | Abierto |
+| Cerrado | Validaciones incompletas en registro mobile | Mobile/Auth | Cerrado 2026-06-02 |
+| Cerrado | Token Firebase expirado al inicio de sesión | Mobile/Auth/API | Cerrado 2026-06-02 |
 | P1 | Onboarding post-registro faltante en mobile | Mobile/Auth/Profile | Abierto |
+| P2 | Unificar UI Dashboard y Mensajes Racha | Web/Mobile | Abierto |
+| P2 | Refactorizar Bottom Navigation Bar (Unir Temario y Exámenes) | Mobile | Abierto |
+| P2 | Diccionario de frases motivacionales al login | Web/Mobile | Abierto |
 | P2 | Prisma/pg warning al iniciar o ejecutar API | API/DB | Abierto |
 | P2 | Tokens visuales hardcodeados en frontends | Web/Mobile | Abierto |
 | P2 | Estrategia de assets compartidos entre web/mobile | Monorepo | Abierto |
@@ -398,6 +401,36 @@ Riesgos detectados y reglas de negocio (Anti-Farming):
 - Los usuarios podrian anadir/eliminar amigos o crear/borrar posts masivamente solo para farmear puntos de XP. Se deben controlar o limitar las veces que una accion otorga puntos de forma permanente por entidad.
 - Para el caso de los examenes completos, se requiere una funcion matematica decreciente. Si es el intento #70 de un examen oficial, no deberia otorgar los mismos puntos que el primer o segundo intento.
 - Se requiere disenar cuidadosamente los algoritmos y limites diarios/semanales de farmeo.
+
+### 19. Unificar UI del Dashboard y Mensaje de Racha (Web/Mobile)
+
+Estado: Abierto
+
+Problema:
+La UI del Dashboard difiere demasiado entre Web y Mobile. Por ejemplo:
+- La tarjeta de "Racha de estudio" tiene diferencias visuales marcadas.
+- En Web se añadió el estado vacío de racha con el mensaje "Haz un examen por temas o oficial para comenzar tu racha de estudio", pero Mobile aún no lo tiene.
+- Falta la Progress Bar del XP faltante para subir de nivel en el Dashboard y Perfil de Mobile.
+
+Impacto: Fragmentación de la UX/UI entre plataformas.
+
+### 20. Refactorizar Bottom Navigation Bar en Mobile
+
+Estado: Abierto
+
+Problema:
+La barra de navegación inferior (Bottom Bar) de Mobile tiene separados "Temario" y "Exámenes" como secciones independientes, pero a nivel de UX deben agruparse bajo un solo concepto de "Exámenes" (ya que ambos son exámenes).
+
+Impacto: Confusión en la navegación para el usuario móvil.
+
+### 21. Diccionario de frases motivacionales al inicio de sesión
+
+Estado: Abierto
+
+Problema:
+Se requiere implementar (y unificar en ambas plataformas) el diccionario de 30 frases motivacionales ("frases para iniciar el día") que se muestran cuando el usuario inicia sesión.
+
+Impacto: Oportunidad perdida de deleite del usuario (gamification/engagement).
 
 ## Siguiente paso recomendado
 
