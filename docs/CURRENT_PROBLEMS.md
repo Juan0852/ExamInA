@@ -8,17 +8,8 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 
 | Prioridad | Problema | Area | Estado |
 | --- | --- | --- | --- |
-| Cerrado | Placeholders en flujos reales | Mobile/API | Cerrado 2026-06-02 |
-| Cerrado | Auditoria de documentos vivos restantes | Docs | Cerrado 2026-06-02 |
-| Cerrado | Backend permite reevaluar una pregunta IA dentro de la misma sesion | API/ExamSessions/Corrections | Cerrado 2026-06-02 |
-| Cerrado | Heartbeat/tiempo de estudio incompleto en mobile | Mobile/API | Cerrado 2026-06-02 |
-| Cerrado | Imagenes subidas no persisten visualmente al reabrir sesion | Storage/Mobile/API | Cerrado 2026-06-02 |
-| Cerrado | Endpoints actuales no estan inventariados contra implementacion real | API/Docs | Cerrado 2026-06-02 |
-| P1 | Seeds oficiales de examenes y limpieza de datos de prueba | API/DB | Abierto |
-| P1 | Gestion de errores sin estrategia clara | API/Web/Mobile | Abierto |
-| Cerrado | Validaciones incompletas en registro mobile | Mobile/Auth | Cerrado 2026-06-02 |
-| Cerrado | Token Firebase expirado al inicio de sesión | Mobile/Auth/API | Cerrado 2026-06-02 |
 | P1 | Onboarding post-registro faltante en mobile | Mobile/Auth/Profile | Abierto |
+| P1 | Gestion de errores sin estrategia clara | API/Web/Mobile | Abierto |
 | P2 | Unificar UI Dashboard y Mensajes Racha | Web/Mobile | Abierto |
 | P2 | Refactorizar Bottom Navigation Bar (Unir Temario y Exámenes) | Mobile | Abierto |
 | P2 | Diccionario de frases motivacionales al login | Web/Mobile | Abierto |
@@ -26,8 +17,17 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 | P2 | Tokens visuales hardcodeados en frontends | Web/Mobile | Abierto |
 | P2 | Estrategia de assets compartidos entre web/mobile | Monorepo | Abierto |
 | P2 | Tecnologia del tablero/pizarra de examen | Mobile | En evaluacion |
+| P3 | Seeds oficiales de examenes y limpieza de datos de prueba | API/DB | Abierto (Diferido) |
 | P3 | Micro-recompensas de XP (anti-farming) y Toasts | API/Web/Mobile | Idea |
 | P3 | Logs de debug en parser/proveedor IA | API | Abierto |
+| Cerrado | Placeholders en flujos reales | Mobile/API | Cerrado 2026-06-02 |
+| Cerrado | Auditoria de documentos vivos restantes | Docs | Cerrado 2026-06-02 |
+| Cerrado | Backend permite reevaluar una pregunta IA dentro de la misma sesion | API/ExamSessions/Corrections | Cerrado 2026-06-02 |
+| Cerrado | Heartbeat/tiempo de estudio incompleto en mobile | Mobile/API | Cerrado 2026-06-02 |
+| Cerrado | Imagenes subidas no persisten visualmente al reabrir sesion | Storage/Mobile/API | Cerrado 2026-06-02 |
+| Cerrado | Endpoints actuales no estan inventariados contra implementacion real | API/Docs | Cerrado 2026-06-02 |
+| Cerrado | Validaciones incompletas en registro mobile | Mobile/Auth | Cerrado 2026-06-02 |
+| Cerrado | Token Firebase expirado al inicio de sesión | Mobile/Auth/API | Cerrado 2026-06-02 |
 | Cerrado | Mobile no pasa typecheck | Mobile | Cerrado 2026-06-01 |
 
 ## Problemas abiertos
