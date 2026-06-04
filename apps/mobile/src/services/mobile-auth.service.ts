@@ -46,6 +46,17 @@ export async function loginWithGoogleToken(idToken: string): Promise<MobileAuthR
   });
 }
 
+export interface UpdateProfilePayload {
+  displayName?: string;
+  username?: string;
+  bio?: string;
+  targetUniversity?: string;
+}
+
+export async function updateProfile(payload: UpdateProfilePayload): Promise<MobileAuthResponse> {
+  return apiService.put<MobileAuthResponse>("/auth/profile", payload);
+}
+
 export function getReadableAuthError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
 

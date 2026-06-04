@@ -81,7 +81,8 @@ export default function ProfileScreen() {
           </View>
           
           <View style={styles.userInfo}>
-            <Text style={styles.displayName}>{profile?.username || user?.displayName || "Usuario"}</Text>
+            <Text style={styles.displayName}>{user?.displayName || "Usuario"}</Text>
+            <Text style={styles.usernameText}>@{profile?.username || "usuario"}</Text>
             {profile?.targetUniversity && (
               <Text style={styles.universityText}>🎓 {profile.targetUniversity}</Text>
             )}
@@ -106,7 +107,7 @@ export default function ProfileScreen() {
             </View>
 
             {/* Edit Profile Button */}
-            <TouchableOpacity style={styles.editProfileButton}>
+            <TouchableOpacity style={styles.editProfileButton} onPress={() => router.push("/edit-profile")}>
               <Text style={styles.editProfileText}>Editar Perfil</Text>
             </TouchableOpacity>
           </View>
@@ -341,6 +342,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "900",
     color: "#0f172a",
+    marginBottom: 2,
+  },
+  usernameText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#64748b",
     marginBottom: 4,
   },
   universityText: {
