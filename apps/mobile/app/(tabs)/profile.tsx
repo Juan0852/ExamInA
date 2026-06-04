@@ -5,9 +5,11 @@ import { useRouter } from "expo-router";
 import { useAuthStore } from "../../src/stores/auth.store";
 import { theme } from "../../src/theme";
 import { 
-  UserRound, LogOut, Trophy, ChevronRight, Settings, 
-  Flame, Zap, BookOpen, Target, Clock, Lock, Award
+  UserRound, LogOut, ChevronRight, Settings, Lock
 } from "lucide-react-native";
+import { 
+  FlameIcon, LightningIcon, TrophyIcon, BookIcon, TargetIcon, ClockIcon, AwardIcon 
+} from "../../src/components/icons/CustomIcons";
 
 const { width } = Dimensions.get("window");
 
@@ -84,6 +86,24 @@ export default function ProfileScreen() {
               <Text style={styles.universityText}>🎓 {profile.targetUniversity}</Text>
             )}
             <Text style={styles.emailText}>{user?.email}</Text>
+
+            {/* Social Row */}
+            <View style={styles.socialRow}>
+              <TouchableOpacity style={styles.socialStat}>
+                <Text style={styles.socialStatValue}>0</Text>
+                <Text style={styles.socialStatLabel}>Amigos</Text>
+              </TouchableOpacity>
+              <View style={styles.socialDivider} />
+              <TouchableOpacity style={styles.socialStat}>
+                <Text style={styles.socialStatValue}>0</Text>
+                <Text style={styles.socialStatLabel}>Publicaciones</Text>
+              </TouchableOpacity>
+              <View style={styles.socialDivider} />
+              <TouchableOpacity style={styles.socialStat}>
+                <Text style={styles.socialStatValue}>0</Text>
+                <Text style={styles.socialStatLabel}>Exámenes</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -101,24 +121,24 @@ export default function ProfileScreen() {
         {/* Core Stats Row */}
         <View style={styles.coreStatsRow}>
           <View style={styles.coreStatCard}>
-            <View style={[styles.coreStatIconBg, { backgroundColor: "#fff1f2" }]}>
-              <Flame size={24} color="#e11d48" />
+            <View style={styles.coreStatIconBg}>
+              <FlameIcon size={32} gradient={true} />
             </View>
             <Text style={styles.coreStatValue}>{profile?.currentStreakDays || 0}</Text>
             <Text style={styles.coreStatLabel}>Días Seguidos</Text>
           </View>
           
           <View style={styles.coreStatCard}>
-            <View style={[styles.coreStatIconBg, { backgroundColor: "#fef3c7" }]}>
-              <Zap size={24} color="#d97706" />
+            <View style={styles.coreStatIconBg}>
+              <LightningIcon size={32} gradient={true} />
             </View>
             <Text style={styles.coreStatValue}>{profile?.experience || 0}</Text>
             <Text style={styles.coreStatLabel}>Total XP</Text>
           </View>
 
           <View style={styles.coreStatCard}>
-            <View style={[styles.coreStatIconBg, { backgroundColor: "#eff6ff" }]}>
-              <Trophy size={24} color="#2563eb" />
+            <View style={styles.coreStatIconBg}>
+              <TrophyIcon size={32} gradient={true} />
             </View>
             <Text style={styles.coreStatValue}>{profile?.level || 1}</Text>
             <Text style={styles.coreStatLabel}>Nivel Actual</Text>
@@ -180,7 +200,7 @@ export default function ProfileScreen() {
             {/* Stat 1 */}
             <View style={styles.detailedStatCard}>
               <View style={styles.detailedStatHeader}>
-                <BookOpen size={18} color="#0ea5e9" />
+                <BookIcon size={20} gradient={true} />
                 <Text style={styles.detailedStatTitle}>Exámenes</Text>
               </View>
               <Text style={styles.detailedStatNumber}>{progress?.totalExamsCompleted || 0}</Text>
@@ -190,7 +210,7 @@ export default function ProfileScreen() {
             {/* Stat 2 */}
             <View style={styles.detailedStatCard}>
               <View style={styles.detailedStatHeader}>
-                <Target size={18} color="#10b981" />
+                <TargetIcon size={20} gradient={true} />
                 <Text style={styles.detailedStatTitle}>Precisión</Text>
               </View>
               <Text style={styles.detailedStatNumber}>{hitRate}%</Text>
@@ -200,7 +220,7 @@ export default function ProfileScreen() {
             {/* Stat 3 */}
             <View style={styles.detailedStatCard}>
               <View style={styles.detailedStatHeader}>
-                <Clock size={18} color="#8b5cf6" />
+                <ClockIcon size={20} gradient={true} />
                 <Text style={styles.detailedStatTitle}>Tiempo</Text>
               </View>
               <Text style={styles.detailedStatNumber}>
@@ -212,7 +232,7 @@ export default function ProfileScreen() {
             {/* Stat 4 */}
             <View style={styles.detailedStatCard}>
               <View style={styles.detailedStatHeader}>
-                <Award size={18} color="#f59e0b" />
+                <AwardIcon size={20} gradient={true} />
                 <Text style={styles.detailedStatTitle}>Flashcards</Text>
               </View>
               <Text style={styles.detailedStatNumber}>{progress?.totalFlashcardsReviewed || 0}</Text>
@@ -273,7 +293,11 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 32,
   },
   bannerOverlay: {
-    ...StyleSheet.absoluteFill,
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: "rgba(0,0,0,0.1)",
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
@@ -323,6 +347,40 @@ const styles = StyleSheet.create({
   emailText: {
     fontSize: 13,
     color: "#64748b",
+  },
+
+  // Social Row
+  socialRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+    backgroundColor: "#f8fafc",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  socialStat: {
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  socialStatValue: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#0f172a",
+  },
+  socialStatLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#64748b",
+    marginTop: 2,
+  },
+  socialDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: "#e2e8f0",
   },
 
   // Level Progress Bar
@@ -388,6 +446,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
+    backgroundColor: "#f8fafc",
   },
   coreStatValue: {
     fontSize: 20,
