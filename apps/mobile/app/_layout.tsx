@@ -33,8 +33,13 @@ export default function RootLayout() {
       // Redirigir al login si no está autenticado y no está en la pantalla de login
       router.replace("/login");
     } else if (isAuthenticated && isLoginScreen) {
-      // Redirigir al dashboard si está autenticado pero intenta ir al login
-      router.replace("/(tabs)/dashboard");
+      // Redirigir al dashboard o al onboarding si está autenticado pero intenta ir al login
+      const user = useAuthStore.getState().user;
+      if (user && !user.profile) {
+        router.replace("/onboarding");
+      } else {
+        router.replace("/(tabs)/dashboard");
+      }
     }
   }, [isLoading, isAuthenticated, segments]);
 

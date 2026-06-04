@@ -1,6 +1,6 @@
 # ExamInA - Problemas actuales y deuda tecnica
 
-Ultima revision: 2026-06-01.
+Ultima revision: 2026-06-03.
 
 Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pendientes. No reemplaza al roadmap: sirve para no perder contexto antes de priorizar el siguiente bloque de trabajo.
 
@@ -8,11 +8,12 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 
 | Prioridad | Problema | Area | Estado |
 | --- | --- | --- | --- |
-| P1 | Onboarding post-registro faltante en mobile | Mobile/Auth/Profile | Abierto |
 | P1 | Gestion de errores sin estrategia clara | API/Web/Mobile | Abierto |
 | P2 | Unificar UI Dashboard y Mensajes Racha | Web/Mobile | Abierto |
 | P2 | Refactorizar Bottom Navigation Bar (Unir Temario y Exámenes) | Mobile | Abierto |
-| P2 | Diccionario de frases motivacionales al login | Web/Mobile | Abierto |
+| P2 | Diccionario de frases motivacionales al login | Web/Mobile | Cerrado 2026-06-03 |
+| P2 | Toasts globales de logros en mobile con paridad web | Mobile/Achievements | Abierto |
+| P2 | Retirar Firebase Client SDK/config del frontend web | Web/Auth/API | Abierto |
 | P2 | Prisma/pg warning al iniciar o ejecutar API | API/DB | Abierto |
 | P2 | Tokens visuales hardcodeados en frontends | Web/Mobile | Abierto |
 | P2 | Estrategia de assets compartidos entre web/mobile | Monorepo | Abierto |
@@ -29,6 +30,9 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 | Cerrado | Validaciones incompletas en registro mobile | Mobile/Auth | Cerrado 2026-06-02 |
 | Cerrado | Token Firebase expirado al inicio de sesión | Mobile/Auth/API | Cerrado 2026-06-02 |
 | Cerrado | Mobile no pasa typecheck | Mobile | Cerrado 2026-06-01 |
+| Cerrado | Salida del modo examen web usaba reload bruto | Web/ExamSessions | Cerrado 2026-06-03 |
+| Cerrado | Heartbeat podia inflar tiempo y desbloquear logros de estudio | API/Web/Mobile/Achievements | Cerrado 2026-06-03 |
+| Cerrado | Onboarding post-registro faltante en mobile | Mobile/Auth/Profile | Cerrado 2026-06-03 |
 
 ## Problemas abiertos
 
@@ -216,6 +220,8 @@ Accion propuesta:
 
 ### 12. Token Firebase expirado justo despues del registro mobile
 
+Estado: reforzado el 2026-06-03 tras reproducirse en endpoints protegidos de mobile.
+
 Problema reportado:
 
 ```txt
@@ -232,8 +238,7 @@ Contexto:
 Hipotesis a revisar:
 
 - Mobile esta guardando un ID token viejo en `AsyncStorage`.
-- Despues del registro no se esta llamando `getIdToken(true)` para forzar token fresco.
-- La sesion local se crea antes de que Firebase termine de refrescar credenciales.
+- La sesion local se crea con un ID token que puede expirar mientras la app sigue abierta.
 - El reloj del dispositivo/emulador esta desincronizado.
 - El wrapper HTTP solo limpia sesion al detectar expiracion, pero no intenta refrescar token.
 - Web y mobile tienen flujos distintos para obtener/renovar token.
@@ -247,42 +252,45 @@ Impacto:
 Accion propuesta:
 
 - Auditar flujo de register/login mobile.
-- Usar Firebase client SDK como fuente de verdad del token.
-- Forzar token fresco despues de register/login con `getIdToken(true)`.
+- Usar el backend como fuente de verdad para refrescar el token.
 - Antes de cada request protegida, considerar refresh si el token esta vencido o cerca de vencer.
 - Si la API responde `auth/id-token-expired`, intentar refresh una vez y repetir request.
 - Si el refresh falla, limpiar sesion y llevar al login con mensaje claro.
 
+Actualizacion aplicada:
+
+- `apps/mobile/src/services/api.service.ts` ahora decodifica el JWT y refresca proactivamente si el token expira en menos de 120 segundos.
+- Si la API responde `auth/id-token-expired`, mobile fuerza refresh y reintenta la request una vez.
+- Se evita limpiar sesion por un fallo de refresh en una query de fondo; asi una llamada como `/exam-sessions/me` no expulsa al usuario automaticamente.
+- El refresh ahora pasa por `POST /auth/refresh`; `FIREBASE_WEB_API_KEY` queda en `apps/api/.env` y no en mobile.
+
 ### 13. Onboarding post-registro faltante en mobile
+
+Estado: cerrado el 2026-06-03.
 
 Problema:
 
-- Web tiene un formulario post-registro para completar perfil y preferencias, pero mobile aun no tiene ese flujo.
+- Web tenia un formulario post-registro para completar perfil y preferencias, pero mobile no estaba replicando el flujo real.
+- El backend crea `profile` desde el registro, asi que mobile podia saltarse onboarding si solo revisaba `user.profile`.
+- El avatar mobile usaba un endpoint viejo (`/files/upload/avatar`) en vez del flujo real de archivos.
 
-Contexto:
+Solucion aplicada:
 
-- En web, despues del registro se pregunta por materias, descripcion, datos opcionales de perfil y configuracion inicial.
-- Ese flujo ayuda a completar el perfil y desbloquear/medir logros como perfil al 80%.
-- Mobile actualmente puede dejar al usuario registrado pero sin capturar esa informacion inicial.
+- La navegacion mobile ahora usa `preferences.onboardingCompleted` como fuente de verdad.
+- Login, register, Google auth, index y layout redirigen a `/onboarding` si el usuario aun no completo onboarding.
+- Onboarding mobile quedo en 4 pasos: asignaturas, ritmo semanal, origen de registro y perfil.
+- Se eliminaron materias fallback falsas; si `/subjects` falla, se muestra estado de error y reintento.
+- La foto de perfil usa el flujo real de S3: `/files/presign`, subida al bucket y `/files/confirm`.
+- El perfil mantiene la regla de logro al 80%: nombre publico, descripcion suficiente e imagen.
+- Al finalizar se guarda en `/auth/onboarding/complete`, se actualiza la sesion local y se evalua `/achievements/me/evaluate`.
 
-Impacto:
+Validacion:
 
-- La experiencia web y mobile queda inconsistente.
-- Faltan datos de perfil/preferencias que luego usa dashboard, comunidad, recomendaciones y logros.
-- El logro de completar perfil puede no dispararse correctamente desde mobile.
+```bash
+corepack pnpm --filter mobile typecheck
+```
 
-Accion propuesta:
-
-- Auditar el onboarding web y replicar el flujo equivalente en mobile.
-- Reutilizar el mismo contrato de API para perfil, preferencias y materias.
-- Incluir pasos mobile para:
-  - materias o asignaturas de interes;
-  - nombre publico/perfil;
-  - descripcion;
-  - universidad objetivo si aplica;
-  - avatar o placeholder;
-  - preferencias iniciales.
-- Al finalizar, evaluar logros y mostrar toast/feedback mobile cuando aplique.
+Resultado: pasa correctamente.
 
 ### 14. Tokens visuales hardcodeados en frontends
 
@@ -396,13 +404,45 @@ Estado: Idea (dejado para el futuro).
 Propuesta de nueva feature:
 - Otorgar pequenas recompensas de XP ("micro-recompensas") por acciones aisladas: crear examenes, responder preguntas, crear posts en la comunidad, anadir el primer amigo, el 10mo amigo, etc. (independientemente de las medallas).
 - Mostrar notificaciones ("Toasts") atractivos cada vez que se gane XP de esta manera en la interfaz.
+- Mobile debe tener el mismo sistema global de toasts de logros que web: notificacion especial animada, medalla, XP y auto-cierre. No debe resolverse con pantallas finales sueltas dentro de flujos como onboarding.
+- El onboarding mobile puede evaluar `/achievements/me/evaluate`, pero la presentacion visual debe quedar delegada al provider/hook global de achievements cuando se implemente.
 
 Riesgos detectados y reglas de negocio (Anti-Farming):
 - Los usuarios podrian anadir/eliminar amigos o crear/borrar posts masivamente solo para farmear puntos de XP. Se deben controlar o limitar las veces que una accion otorga puntos de forma permanente por entidad.
 - Para el caso de los examenes completos, se requiere una funcion matematica decreciente. Si es el intento #70 de un examen oficial, no deberia otorgar los mismos puntos que el primer o segundo intento.
 - Se requiere disenar cuidadosamente los algoritmos y limites diarios/semanales de farmeo.
 
-### 19. Unificar UI del Dashboard y Mensaje de Racha (Web/Mobile)
+### 19. Toasts globales de logros en mobile con paridad web
+
+Estado: Abierto
+
+Problema:
+Mobile aun no tiene el sistema global de achievement toasts que ya se planteo para la app y que web usa como referencia visual. Al terminar onboarding se estaba mostrando un bloque final de "Logro desbloqueado", pero esa UX no corresponde: los logros deben aparecer como notificaciones especiales de la app, no como contenido fijo de la pantalla de cierre.
+
+Requerimientos:
+- Crear un provider global en mobile para encolar logros desbloqueados.
+- Reutilizar el contrato `meta.newlyUnlockedAchievements` de las respuestas de API.
+- Toast animado desde arriba, medalla SVG/redonda, XP ganado y auto-cierre.
+- Mantener paridad visual y de comportamiento con web.
+- Conectar onboarding, examenes, comunidad y perfil al mismo mecanismo.
+
+### 20. Retirar Firebase Client SDK/config del frontend web
+
+Estado: Abierto
+
+Problema:
+Mobile ya no requiere `EXPO_PUBLIC_FIREBASE_API_KEY`, pero web todavia usa `firebase-client.service.ts` para inicializar Firebase client SDK y abrir login/registro con Google. Esto requiere `VITE_FIREBASE_API_KEY` y otras variables `VITE_FIREBASE_*` en el bundle web.
+
+Nota de seguridad:
+La API key web de Firebase no es una credencial secreta como `FIREBASE_PRIVATE_KEY` o el JSON de service account, pero bajo nuestra arquitectura backend-first no queremos que los frontends dependan de Firebase directamente.
+
+Accion propuesta:
+- Reemplazar el login Google web basado en Firebase client SDK por un flujo OAuth/Google Identity que entregue `idToken` al backend.
+- Mantener `/auth/google` como unico punto de intercambio con Firebase.
+- Eliminar `firebase-client.service.ts`, `VITE_FIREBASE_*` y la dependencia `firebase` del frontend web si ya no se usa para nada mas.
+- Mantener Firebase Admin y `FIREBASE_WEB_API_KEY` solo en `apps/api`.
+
+### 21. Unificar UI del Dashboard y Mensaje de Racha (Web/Mobile)
 
 Estado: Abierto
 
@@ -414,7 +454,7 @@ La UI del Dashboard difiere demasiado entre Web y Mobile. Por ejemplo:
 
 Impacto: Fragmentación de la UX/UI entre plataformas.
 
-### 20. Refactorizar Bottom Navigation Bar en Mobile
+### 22. Refactorizar Bottom Navigation Bar en Mobile
 
 Estado: Abierto
 
@@ -423,21 +463,80 @@ La barra de navegación inferior (Bottom Bar) de Mobile tiene separados "Temario
 
 Impacto: Confusión en la navegación para el usuario móvil.
 
-### 21. Diccionario de frases motivacionales al inicio de sesión
+### 23. Diccionario de frases motivacionales al inicio de sesión
 
-Estado: Abierto
+Estado: cerrado el 2026-06-03.
 
 Problema:
-Se requiere implementar (y unificar en ambas plataformas) el diccionario de 30 frases motivacionales ("frases para iniciar el día") que se muestran cuando el usuario inicia sesión.
+Se requería implementar (y unificar en ambas plataformas) el diccionario de 30 frases motivacionales que se muestran al entrar al dashboard.
 
-Impacto: Oportunidad perdida de deleite del usuario (gamification/engagement).
+Solución aplicada:
+- Mobile ya contaba con el diccionario en el dashboard.
+- Web: se añadió el array `GREETINGS` de 30 frases en `DashboardPage.tsx`, seleccionando una aleatoria con `useMemo`. Se usa solo el primer nombre del usuario para personalizar.
+- Ambas plataformas muestran ahora frases motivacionales dinámicas al cargar el dashboard.
+
+Impacto: Paridad de engagement entre web y mobile.
+
+### 24. Salida del modo examen web usaba reload bruto
+
+Estado: cerrado el 2026-06-03.
+
+Problema:
+
+- Al salir de una sesion de examen, la URL podia cambiar a `/dashboard`, pero visualmente el overlay fijo del modo enfoque podia quedarse en pantalla.
+- Se habia usado `window.location.href = "/dashboard"` como workaround, lo que fuerza un reload completo del navegador.
+- Ese enfoque rompe el flujo SPA de React y puede ocultar problemas reales de estado/navegacion.
+
+Solucion aplicada:
+
+- Se reemplazo el reload por navegacion declarativa de React Router con `<Navigate to="/dashboard" replace />`.
+- Se centralizo la salida en `leaveExam()` para sincronizar actividad, cerrar modal y activar la redireccion.
+- `handleFinish()` intenta finalizar la sesion y luego redirige por Router, sin recargar la app.
+
+Validacion:
+
+```bash
+corepack pnpm --filter web typecheck
+```
+
+Resultado: pasa correctamente.
+
+### 25. Heartbeat podia inflar tiempo y desbloquear logros de estudio
+
+Estado: cerrado el 2026-06-03.
+
+Problema:
+
+- Los logros `STUDY_1_HOUR` y `STUDY_10_HOURS` usan `UserProgress.totalStudyTimeSeconds`.
+- Los umbrales eran correctos: 1 hora = `3600`, 10 horas = `36000`.
+- El riesgo estaba en el acumulador de tiempo: `syncActivity` calculaba delta y luego hacia `increment`.
+- Dos heartbeats concurrentes podian leer el mismo `totalTimeSeconds` y sumar dos veces el mismo delta.
+- Ademas se aceptaban saltos de hasta 6 horas por sync, demasiado para un heartbeat de estudio activo.
+
+Solucion aplicada:
+
+- `syncActivity` ahora usa actualizacion optimista contra el `totalTimeSeconds` leido.
+- Si otro heartbeat actualizo primero, el segundo no incrementa progreso.
+- El maximo aceptado por sync bajo a 5 minutos.
+- Si un cliente manda un salto mayor, ese delta se ignora en vez de caparlo y seguir sumando.
+- Web y mobile bloquean syncs concurrentes con `isActivitySyncingRef`.
+- Mobile ahora espera `mutateAsync` y usa `response.data.totalTimeSeconds`, igual que web.
+
+Validacion:
+
+```bash
+corepack pnpm --filter api typecheck
+corepack pnpm --filter web typecheck
+corepack pnpm --filter mobile typecheck
+```
+
+Resultado: pasan correctamente.
 
 ## Siguiente paso recomendado
 
-Antes de seguir agregando features, cerrar este orden:
+Despues del cierre del diccionario de frases y la bottom bar flotante, el siguiente orden recomendado queda asi:
 
-1. Quitar o deshabilitar placeholders en flujos reales.
-2. Arreglar auth mobile: refresh de token, validaciones de registro y onboarding post-registro.
-3. Auditar documentos vivos.
-4. Inventariar endpoints reales.
-5. Arreglar flujo de imagenes persistentes y heartbeat.
+1. Gestion de errores unificada en API/Web/Mobile.
+2. Unificar UI del dashboard entre web y mobile, especialmente racha, XP y estados vacios.
+3. Refactorizar bottom navigation mobile para agrupar Temario/Examenes.
+4. Investigar el warning Prisma/pg y decidir si es bug de dependencia o instanciacion.

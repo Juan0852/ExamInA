@@ -23,8 +23,8 @@ export default function TabLayout() {
           options={{ title: "Temario" }}
         />
         <Tabs.Screen
-          name="exams"
-          options={{ title: "Exámenes" }}
+          name="logros"
+          options={{ title: "Medallas" }}
         />
         <Tabs.Screen
           name="profile"

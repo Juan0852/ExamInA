@@ -7,8 +7,7 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "db:validate": "prisma validate --schema prisma/schema.prisma",
-    "db:generate": "prisma generate --schema prisma/schema.prisma",
-    "db:seed:official": "tsx src/seed-official-exams.ts"
+    "db:generate": "prisma generate --schema prisma/schema.prisma"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1052.0",

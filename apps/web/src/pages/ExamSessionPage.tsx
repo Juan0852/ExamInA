@@ -62,6 +62,7 @@ export function ExamSessionPage() {
   const [correction, setCorrection] = useState<CorrectionFeedback | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [exitError, setExitError] = useState<string | null>(null);
   const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
 
   // Estados de la UI del Modo Enfoque
@@ -368,13 +369,10 @@ export function ExamSessionPage() {
       await apiService.patch(`/exam-sessions/${examSessionId}/finish`, {
         totalTimeSeconds: elapsedSeconds
       });
-      setShowExitConfirmation(false);
-      navigate("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Error finishing exam:", err);
-      navigate("/dashboard");
-    } finally {
-      setIsFinishing(false);
+      window.location.href = "/dashboard";
     }
   };
 
@@ -416,7 +414,14 @@ export function ExamSessionPage() {
 
         {/* Botón Salir (X) */}
         <button
-          onClick={() => setShowExitConfirmation(true)}
+          onClick={() => {
+            setExitError(null);
+            if (isExamClosed) {
+              window.location.href = "/dashboard";
+            } else {
+              setShowExitConfirmation(true);
+            }
+          }}
           className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer focus:outline-none"
           title="Salir del examen"
         >
@@ -727,25 +732,42 @@ export function ExamSessionPage() {
             </div>
             <div className="space-y-1">
               <h4 className="text-base font-black text-brand-navy dark:text-white">
-                {currentIdx === totalQuestions - 1 && isQuestionAnswered
+                {currentIdx === totalQuestions - 1 && isQuestionAnswered && !isExamClosed
                   ? "¿Deseas finalizar el examen?"
                   : "¿Quieres salir del examen?"}
               </h4>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
-                {currentIdx === totalQuestions - 1 && isQuestionAnswered
+                {currentIdx === totalQuestions - 1 && isQuestionAnswered && !isExamClosed
                   ? "Has completado todas las preguntas. Tu progreso quedará guardado para tu estudio."
+                  : isExamClosed 
+                  ? "Saliendo del modo revisión."
                   : "Tu progreso se guardará y podrás continuar en cualquier otro momento."}
               </p>
+              {exitError && (
+                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-bold p-3 rounded-xl border border-red-200 dark:border-red-900/30">
+                  {exitError}
+                </div>
+              )}
             </div>
             <div className="flex flex-col gap-2 pt-2">
               <button
                 onClick={async () => {
-                  if (currentIdx === totalQuestions - 1 && isQuestionAnswered) {
+                  setExitError(null);
+                  if (currentIdx === totalQuestions - 1 && isQuestionAnswered && !isExamClosed) {
                     handleFinish();
                   } else {
-                    await syncExamActivity();
-                    setShowExitConfirmation(false);
-                    navigate("/dashboard");
+                    setIsFinishing(true);
+                    try {
+                      // Esperar máximo 5 segundos para el guardado
+                      await Promise.race([
+                        syncExamActivity(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout al guardar el progreso")), 5000))
+                      ]);
+                      window.location.href = "/dashboard";
+                    } catch (err: any) {
+                      setExitError(err.message || "Error al sincronizar tu progreso. Revisa tu conexión.");
+                      setIsFinishing(false);
+                    }
                   }
                 }}
                 disabled={isFinishing}
@@ -756,7 +778,7 @@ export function ExamSessionPage() {
                     <Loader2 size={14} className="animate-spin" />
                     Guardando...
                   </span>
-                ) : currentIdx === totalQuestions - 1 && isQuestionAnswered ? (
+                ) : currentIdx === totalQuestions - 1 && isQuestionAnswered && !isExamClosed ? (
                   "Sí, finalizar"
                 ) : (
                   "Sí, salir"

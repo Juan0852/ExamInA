@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiService } from "../services/api.service";
 
@@ -58,10 +59,45 @@ export function useDashboardViewModel() {
     queryFn: () => apiService.get<DashboardSummaryApiResponse>("/dashboard/summary"),
   });
 
+  const [monthCursor, setMonthCursor] = useState<string | null>(null);
+
   const monthStreakQuery = useQuery<any, Error>({
-    queryKey: ["dashboard-streak-month", 0],
-    queryFn: () => apiService.get<any>("/dashboard/streak/months?offset=0"),
+    queryKey: ["dashboard-streak-month", monthCursor],
+    queryFn: () => apiService.get<any>(
+      `/dashboard/streak/months?limit=1${monthCursor ? `&cursor=${monthCursor}` : ""}`
+    ),
   });
+
+  const pageInfo = monthStreakQuery.data?.meta?.pageInfo;
+  const hasMorePrevious = pageInfo?.hasMorePrevious ?? false;
+  const previousCursor = pageInfo?.previousCursor;
+
+  const goToPreviousMonth = () => {
+    if (hasMorePrevious && previousCursor) {
+      setMonthCursor(previousCursor);
+    }
+  };
+
+  const goToNextMonth = () => {
+    if (!monthCursor) return;
+    const [year, month] = monthCursor.split("-").map(Number);
+    let nextMonth = month + 1;
+    let nextYear = year;
+    if (nextMonth > 12) {
+      nextMonth = 1;
+      nextYear += 1;
+    }
+    
+    const nextCursor = `${nextYear}-${nextMonth.toString().padStart(2, "0")}`;
+    const now = new Date();
+    const currentMonthCursor = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}`;
+    
+    if (nextCursor >= currentMonthCursor) {
+      setMonthCursor(null);
+    } else {
+      setMonthCursor(nextCursor);
+    }
+  };
 
   const getMappedStreakDays = (windowDays?: DashboardStreakDay[]) => {
     if (!windowDays || windowDays.length === 0) return [];
@@ -131,6 +167,11 @@ export function useDashboardViewModel() {
       summaryQuery.refetch();
       monthStreakQuery.refetch();
     },
+    monthCursor,
+    hasMorePrevious,
+    canGoNext: monthCursor !== null,
+    goToPreviousMonth,
+    goToNextMonth,
     getMappedStreakDays,
     formatSecondsSmart,
     formatRelativeDate,

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import { useDashboardViewModel, DashboardStudyTimePoint } from "../viewmodels/useDashboardViewModel";
+import { formatSignedSecondsSmart } from "../shared/utils/time-format";
 
 import {
   Trophy,
@@ -16,8 +17,43 @@ import {
   FileText,
   CalendarClock,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
+
+const GREETINGS = [
+  "¡A por todas, {name}!",
+  "¡Vamos a romperla hoy, {name}!",
+  "Un día más cerca de tu meta, {name}.",
+  "¡Concéntrate y vencerás, {name}!",
+  "¿Listo para dar el máximo, {name}?",
+  "El esfuerzo de hoy es tu éxito de mañana.",
+  "¡A comernos el temario, {name}!",
+  "¡Dale duro a esos apuntes, {name}!",
+  "Tu futuro empieza hoy, {name}.",
+  "¡No hay excusas que valgan, {name}!",
+  "Haz que cada minuto cuente, {name}.",
+  "¡A brillar en ese examen, {name}!",
+  "Demuestra lo que vales, {name}.",
+  "¡Con todo el power, {name}!",
+  "Hoy es un buen día para aprender, {name}.",
+  "¡A dar el 100%, {name}!",
+  "La constancia es la clave, {name}.",
+  "¡Rendirse no es opción, {name}!",
+  "¡Vamos a por ese 10, {name}!",
+  "Sigue adelante, {name}, lo estás haciendo genial.",
+  "¡A sumar conocimientos, {name}!",
+  "Tu mejor versión te espera, {name}.",
+  "¡Actitud imparable, {name}!",
+  "¡Cada repaso cuenta, {name}!",
+  "Un pequeño paso hoy, un gran logro mañana.",
+  "¡Tú puedes con esto y más, {name}!",
+  "Apunta alto, {name}, el límite lo pones tú.",
+  "¡Cree en ti, {name}, tienes talento!",
+  "El conocimiento es poder, ¡a por él!",
+  "¡Que nada te detenga, {name}!"
+];
 
 const weekDays = ["L", "M", "X", "J", "V", "S", "D"];
 
@@ -26,10 +62,16 @@ const weekDays = ["L", "M", "X", "J", "V", "S", "D"];
  * Muestra métricas de estudio y simulacros consumidos de forma dinámica del backend.
  */
 export function DashboardPage() {
-  const user = useAuthStore((state) => state.user);
+  const { user } = useAuthStore();
   const [isStreakLightboxOpen, setIsStreakLightboxOpen] = useState(false);
   const [isStudyTimeLightboxOpen, setIsStudyTimeLightboxOpen] = useState(false);
   const [studyTimeMode, setStudyTimeMode] = useState<"total" | "average">("total");
+
+  const randomGreeting = useMemo(() => {
+    const greetingTemplate = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+    const name = user?.displayName?.split(" ")[0] || "Estudiante";
+    return greetingTemplate.replace("{name}", name);
+  }, [user?.displayName]);
 
   const {
     summary,
@@ -44,7 +86,12 @@ export function DashboardPage() {
     formatSecondsSmart,
     formatRelativeDate,
     formatExamStatus,
-    formatMonthLabel
+    formatMonthLabel,
+    monthCursor,
+    hasMorePrevious,
+    canGoNext,
+    goToPreviousMonth,
+    goToNextMonth
   } = useDashboardViewModel();
 
   const currentLevel = summary?.progress.level ?? 1;
@@ -108,7 +155,7 @@ export function DashboardPage() {
       <div className="bg-white dark:bg-[#0E1B2F] rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-brand-navy/30 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-brand-navy dark:text-white tracking-tight">
-            ¡Hola, {user?.displayName || "Estudiante"}! 👋
+            {randomGreeting} 👋
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base font-medium mt-1">
             Continúa preparando tus exámenes PAU de Selectividad hoy.
@@ -168,10 +215,16 @@ export function DashboardPage() {
           </div>
 
           <div className="relative">
-            <div className="absolute left-[10%] right-[10%] top-[22px] h-1 rounded-full bg-slate-100 dark:bg-slate-800" />
             <div className="relative grid grid-cols-5 gap-2">
-              {getMappedStreakDays(summary?.streak.window).map((day) => (
-                <div key={day.date} className="flex flex-col items-center gap-2">
+              {getMappedStreakDays(summary?.streak.window).map((day, idx, arr) => (
+                <div key={day.date} className="relative flex flex-col items-center gap-2">
+                  {idx < arr.length - 1 && (
+                    <div className={`absolute top-[20px] left-[50%] right-[-50%] h-1 z-0 ${
+                      day.completed && arr[idx + 1].completed
+                        ? "bg-orange-400"
+                        : "bg-slate-100 dark:bg-slate-800"
+                    }`} />
+                  )}
                   <div
                     className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 text-xs font-black transition-all ${
                       day.completed
@@ -275,7 +328,7 @@ export function DashboardPage() {
             summary.recentExams.map((exam) => (
               <Link
                 key={exam.id}
-                to={`/subjects`}
+                to={`/exam-sessions/${exam.id}`}
                 className="group rounded-xl border border-slate-200 bg-slate-50 p-4 transition-all hover:-translate-y-0.5 hover:border-brand-blue/35 hover:bg-white hover:shadow-md dark:border-brand-navy/30 dark:bg-[#12243B] dark:hover:bg-[#0E1B2F]"
               >
                 <div className="flex items-start gap-3">
@@ -308,7 +361,7 @@ export function DashboardPage() {
                       <span className="text-[11px] font-black text-slate-500 dark:text-slate-350">{exam.progressPercentage}%</span>
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-450 dark:text-slate-450">
                         <Clock size={12} />
-                        {formatSecondsToMinutes(exam.totalTimeSeconds)}
+                        {formatSecondsSmart(exam.totalTimeSeconds)}
                       </span>
                     </div>
                     <div className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-slate-400">
@@ -386,8 +439,24 @@ export function DashboardPage() {
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-brand-navy/30 dark:bg-[#07111F]">
               <div className="mb-4 flex items-center justify-between gap-3">
-                <h3 className="text-sm font-black uppercase tracking-wide text-slate-700 dark:text-slate-200">
-                  {formatMonthLabel(streakMonth?.month)}
+                <h3 className="text-sm font-black uppercase tracking-wide text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={goToPreviousMonth}
+                    disabled={!hasMorePrevious}
+                    className="p-1 rounded-lg bg-slate-200/50 dark:bg-slate-800/50 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="w-24 text-center">{formatMonthLabel(streakMonth?.month || monthCursor)}</span>
+                  <button
+                    type="button"
+                    onClick={goToNextMonth}
+                    disabled={!canGoNext}
+                    className="p-1 rounded-lg bg-slate-200/50 dark:bg-slate-800/50 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
                 </h3>
                 <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500 dark:text-slate-400">
                   <span className="inline-flex items-center gap-1">
@@ -508,8 +577,7 @@ export function DashboardPage() {
                 ? dayNames[new Date(bestPoint.date + "T00:00:00").getDay()] 
                 : "Ninguno";
                 
-              const maxMinutes = Math.max(1, ...dailyPoints.map(d => Math.round(d.studySeconds / 60)));
-              const avgWeekMinutes = Math.round(avgWeekSecs / 60);
+              const maxStudySeconds = Math.max(60, ...dailyPoints.map((day) => day.studySeconds), avgWeekSecs);
               const modeIsTotal = studyTimeMode === "total";
 
               return (
@@ -564,10 +632,10 @@ export function DashboardPage() {
                   <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-brand-navy/30 dark:bg-[#07111F]">
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <h3 className="text-sm font-black uppercase tracking-wide text-slate-700 dark:text-slate-200">
-                        {modeIsTotal ? "Minutos por día" : "Comparación contra promedio diario"}
+                        {modeIsTotal ? "Tiempo por día" : "Comparación contra promedio diario"}
                       </h3>
                       <span className="text-[11px] font-bold text-slate-400">
-                        {modeIsTotal ? "Semana actual" : `Promedio: ${avgWeekMinutes}m`}
+                        {modeIsTotal ? "Semana actual" : `Promedio: ${formatSecondsSmart(avgWeekSecs)}`}
                       </span>
                     </div>
 
@@ -576,14 +644,13 @@ export function DashboardPage() {
                         <div
                           className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-brand-cyan/60"
                           style={{
-                            bottom: `${Math.max(18, (avgWeekMinutes / maxMinutes) * 176 + 34)}px`
+                            bottom: `${Math.max(18, (avgWeekSecs / maxStudySeconds) * 176 + 34)}px`
                           }}
                         />
                       )}
                       {dailyPoints.map((day) => {
-                        const mins = Math.round(day.studySeconds / 60);
-                        const height = (mins / maxMinutes) * 100;
-                        const diff = mins - avgWeekMinutes;
+                        const height = (day.studySeconds / maxStudySeconds) * 100;
+                        const diffSeconds = day.studySeconds - avgWeekSecs;
                         const dateObj = new Date(day.date + "T00:00:00");
                         const label = dayNames[dateObj.getDay()];
 
@@ -593,13 +660,13 @@ export function DashboardPage() {
                               <div
                                 className="w-full rounded-lg bg-gradient-to-t from-brand-blue to-brand-cyan shadow-lg shadow-brand-blue/10 transition-all"
                                 style={{ height: `${Math.max(5, height)}%` }}
-                                title={`${mins} minutos`}
+                                title={formatSecondsSmart(day.studySeconds)}
                               />
                             </div>
                             <div className="text-center">
                               <div className="text-[11px] font-black text-slate-650 dark:text-slate-350">{label}</div>
                               <div className="text-[10px] font-bold text-slate-450">
-                                {modeIsTotal ? `${mins}m` : diff === 0 ? "0m" : `${diff > 0 ? "+" : ""}${diff}m`}
+                                {modeIsTotal ? formatSecondsSmart(day.studySeconds) : formatSignedSecondsSmart(diffSeconds)}
                               </div>
                             </div>
                           </div>

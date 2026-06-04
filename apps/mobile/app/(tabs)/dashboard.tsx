@@ -14,7 +14,9 @@ import {
   X, 
   Clock, 
   FileText, 
-  CalendarClock 
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react-native";
 
 const GREETINGS = [
@@ -55,7 +57,22 @@ import { useRouter } from "expo-router";
 export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { summary, isLoading, isError, error, refetch, getMappedStreakDays, formatSecondsSmart, formatExamStatus, formatRelativeDate, monthStreak } = useDashboardViewModel();
+  const { 
+    summary, 
+    isLoading, 
+    isError, 
+    error, 
+    refetch, 
+    getMappedStreakDays, 
+    formatSecondsSmart, 
+    formatExamStatus, 
+    formatRelativeDate, 
+    monthStreak,
+    hasMorePrevious,
+    canGoNext,
+    goToPreviousMonth,
+    goToNextMonth 
+  } = useDashboardViewModel();
 
   const [streakModalVisible, setStreakModalVisible] = useState(false);
   const [timeModalVisible, setTimeModalVisible] = useState(false);
@@ -114,21 +131,6 @@ export default function DashboardScreen() {
 
   const streakDays = getMappedStreakDays(summary?.streak.window);
 
-  // Calcular el porcentaje de la línea naranja de conexión
-  const completedCount = streakDays.filter(d => d.completed).length;
-  // Buscamos hasta qué índice están completados secuencialmente desde la izquierda, o simplemente los completados
-  // Si la racha es actual, coloreamos la línea según cuántos días seguidos hay completados
-  let lastCompletedIndex = -1;
-  for (let i = streakDays.length - 1; i >= 0; i--) {
-    if (streakDays[i].completed) {
-      lastCompletedIndex = i;
-      break;
-    }
-  }
-  const streakLineFillPercentage = streakDays.length > 1 && lastCompletedIndex > 0 
-    ? (lastCompletedIndex / (streakDays.length - 1)) * 100 
-    : 0;
-
   const monthData = monthStreak?.months?.[0] || null;
   const bestStreakCount = Math.max(
     summary?.streak.currentCount ?? 0,
@@ -184,7 +186,6 @@ export default function DashboardScreen() {
                   
                   const isLast = idx === streakDays.length - 1;
                   const nextDay = streakDays[idx + 1];
-                  // Solo dibujamos línea naranja si ESTE día y el SIGUIENTE están completados
                   const connectNext = day.completed && nextDay && nextDay.completed;
                   
                   return (
@@ -192,7 +193,7 @@ export default function DashboardScreen() {
                       {!isLast && (
                         <View style={{
                           position: "absolute",
-                          top: 15, // mitad de 32 (height del circulo es 32, el borde es 2, centro = 16. top 15 + height 2 = centrado)
+                          top: 15,
                           left: "50%",
                           width: "100%",
                           height: 2,
@@ -346,7 +347,27 @@ export default function DashboardScreen() {
             {/* Vista del mes actual */}
             {monthData && (
               <View style={styles.modalMonthContainer}>
-                <Text style={styles.modalMonthTitle}>Actividad de este mes</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <TouchableOpacity 
+                    onPress={goToPreviousMonth} 
+                    disabled={!hasMorePrevious}
+                    style={{ padding: 6, borderRadius: 8, backgroundColor: hasMorePrevious ? "#f1f5f9" : "transparent", opacity: hasMorePrevious ? 1 : 0.3 }}
+                  >
+                    <ChevronLeft size={20} color="#64748b" />
+                  </TouchableOpacity>
+                  
+                  <Text style={styles.modalMonthTitle}>
+                    {monthData.month}
+                  </Text>
+                  
+                  <TouchableOpacity 
+                    onPress={goToNextMonth} 
+                    disabled={!canGoNext}
+                    style={{ padding: 6, borderRadius: 8, backgroundColor: canGoNext ? "#f1f5f9" : "transparent", opacity: canGoNext ? 1 : 0.3 }}
+                  >
+                    <ChevronRight size={20} color="#64748b" />
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.modalMonthGrid}>
                   {monthData.days.map((day: any) => {
                     const isCompleted = day.status === "completed";
@@ -843,23 +864,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "500",
   },
-  streakLineBackground: {
-    position: "absolute",
-    top: 16, 
-    left: 20,
-    right: 20,
-    height: 2,
-    backgroundColor: "#e2e8f0",
-    zIndex: -1,
-  },
-  streakLineFill: {
-    position: "absolute",
-    top: 16,
-    left: 20,
-    height: 2,
-    backgroundColor: "#f97316",
-    zIndex: -1,
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(15, 23, 42, 0.4)",
@@ -944,13 +948,11 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
   },
   modalMonthTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#64748b",
-    marginBottom: 12,
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#0f172a",
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    textAlign: "center",
   },
   modalMonthGrid: {
     flexDirection: "row",

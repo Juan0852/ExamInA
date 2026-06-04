@@ -94,7 +94,14 @@ export class DashboardService {
       });
     }
 
-    const previousCursor = this.toMonthKey(this.addMonths(oldestMonth, -1));
+    const previousCursorDate = this.addMonths(oldestMonth, -1);
+    const previousCursor = this.toMonthKey(previousCursorDate);
+    
+    let hasMorePrevious = false;
+    if (userCreatedAt) {
+      const userCreationMonth = this.startOfMonth(userCreatedAt);
+      hasMorePrevious = previousCursorDate.getTime() >= userCreationMonth.getTime();
+    }
 
     return {
       data: {
@@ -103,7 +110,7 @@ export class DashboardService {
       meta: {
         pageInfo: {
           previousCursor,
-          hasMorePrevious: true
+          hasMorePrevious
         }
       },
       error: null
