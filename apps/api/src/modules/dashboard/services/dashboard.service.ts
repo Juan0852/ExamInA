@@ -73,7 +73,13 @@ export class DashboardService {
     authorizationHeader?: string
   ): Promise<DashboardStreakMonthsResponseDto> {
     const user = await this.authService.resolveAuthenticatedUser(authorizationHeader);
-    const cursorDate = query.cursor ? this.monthFromCursor(query.cursor) : this.startOfMonth(new Date());
+    const currentMonth = this.startOfMonth(new Date());
+    const requestedCursorDate = query.cursor
+      ? this.monthFromCursor(query.cursor)
+      : this.addMonths(currentMonth, -query.offset);
+    const cursorDate = requestedCursorDate.getTime() > currentMonth.getTime()
+      ? currentMonth
+      : requestedCursorDate;
     const oldestMonth = this.addMonths(cursorDate, -(query.limit - 1));
     const newestMonth = cursorDate;
     const from = this.startOfMonth(oldestMonth);
@@ -95,13 +101,13 @@ export class DashboardService {
     }
 
     const previousCursorDate = this.addMonths(oldestMonth, -1);
-    const previousCursor = this.toMonthKey(previousCursorDate);
-    
     let hasMorePrevious = false;
     if (userCreatedAt) {
       const userCreationMonth = this.startOfMonth(userCreatedAt);
       hasMorePrevious = previousCursorDate.getTime() >= userCreationMonth.getTime();
     }
+    const nextCursorDate = this.addMonths(newestMonth, 1);
+    const hasMoreNext = nextCursorDate.getTime() <= currentMonth.getTime();
 
     return {
       data: {
@@ -109,10 +115,10 @@ export class DashboardService {
       },
       meta: {
         pageInfo: {
-          previousCursor,
+          previousCursor: hasMorePrevious ? this.toMonthKey(previousCursorDate) : null,
           hasMorePrevious,
-          nextCursor: null,
-          hasMoreNext: false
+          nextCursor: hasMoreNext ? this.toMonthKey(nextCursorDate) : null,
+          hasMoreNext
         }
       },
       error: null

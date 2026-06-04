@@ -89,7 +89,7 @@ export function DashboardPage() {
     formatMonthLabel,
     monthCursor,
     hasMorePrevious,
-    canGoNext,
+    hasMoreNext,
     goToPreviousMonth,
     goToNextMonth
   } = useDashboardViewModel();
@@ -219,7 +219,7 @@ export function DashboardPage() {
               {getMappedStreakDays(summary?.streak.window).map((day, idx, arr) => (
                 <div key={day.date} className="relative flex flex-col items-center gap-2">
                   {idx < arr.length - 1 && (
-                    <div className={`absolute top-[20px] left-[50%] right-[-50%] h-1 z-0 ${
+                    <div className={`absolute left-1/2 top-[20px] z-0 h-1 w-[calc(100%+0.5rem)] rounded-full ${
                       day.completed && arr[idx + 1].completed
                         ? "bg-orange-400"
                         : "bg-slate-100 dark:bg-slate-800"
@@ -452,7 +452,7 @@ export function DashboardPage() {
                   <button
                     type="button"
                     onClick={goToNextMonth}
-                    disabled={!canGoNext}
+                    disabled={!hasMoreNext}
                     className="p-1 rounded-lg bg-slate-200/50 dark:bg-slate-800/50 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
                   >
                     <ChevronRight size={16} />

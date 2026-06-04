@@ -53,6 +53,24 @@ interface DashboardSummaryApiResponse {
   error: any;
 }
 
+interface DashboardStreakMonthsApiResponse {
+  data: {
+    months: Array<{
+      month: string;
+      days: DashboardStreakDay[];
+    }>;
+  };
+  meta: {
+    pageInfo?: {
+      previousCursor?: string | null;
+      hasMorePrevious?: boolean;
+      nextCursor?: string | null;
+      hasMoreNext?: boolean;
+    };
+  };
+  error: any;
+}
+
 export function useDashboardViewModel() {
   const summaryQuery = useQuery<DashboardSummaryApiResponse, Error>({
     queryKey: ["dashboard-summary"],
@@ -61,9 +79,9 @@ export function useDashboardViewModel() {
 
   const [monthCursor, setMonthCursor] = useState<string | null>(null);
 
-  const monthStreakQuery = useQuery<any, Error>({
+  const monthStreakQuery = useQuery<DashboardStreakMonthsApiResponse, Error>({
     queryKey: ["dashboard-streak-month", monthCursor],
-    queryFn: () => apiService.get<any>(
+    queryFn: () => apiService.get<DashboardStreakMonthsApiResponse>(
       `/dashboard/streak/months?limit=1${monthCursor ? `&cursor=${monthCursor}` : ""}`
     ),
   });
@@ -71,6 +89,8 @@ export function useDashboardViewModel() {
   const pageInfo = monthStreakQuery.data?.meta?.pageInfo;
   const hasMorePrevious = pageInfo?.hasMorePrevious ?? false;
   const previousCursor = pageInfo?.previousCursor;
+  const hasMoreNext = pageInfo?.hasMoreNext ?? false;
+  const nextCursor = pageInfo?.nextCursor;
 
   const goToPreviousMonth = () => {
     if (hasMorePrevious && previousCursor) {
@@ -79,22 +99,7 @@ export function useDashboardViewModel() {
   };
 
   const goToNextMonth = () => {
-    if (!monthCursor) return;
-    const [year, month] = monthCursor.split("-").map(Number);
-    let nextMonth = month + 1;
-    let nextYear = year;
-    if (nextMonth > 12) {
-      nextMonth = 1;
-      nextYear += 1;
-    }
-    
-    const nextCursor = `${nextYear}-${nextMonth.toString().padStart(2, "0")}`;
-    const now = new Date();
-    const currentMonthCursor = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}`;
-    
-    if (nextCursor >= currentMonthCursor) {
-      setMonthCursor(null);
-    } else {
+    if (hasMoreNext && nextCursor) {
       setMonthCursor(nextCursor);
     }
   };
@@ -157,6 +162,16 @@ export function useDashboardViewModel() {
     }
   };
 
+  const formatMonthLabel = (monthKey?: string): string => {
+    if (!monthKey) return "";
+    const [year, month] = monthKey.split("-");
+    const monthNames = [
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+    return `${monthNames[parseInt(month, 10) - 1]} ${year}`;
+  };
+
   return {
     summary: summaryQuery.data?.data || null,
     monthStreak: monthStreakQuery.data?.data || null,
@@ -169,12 +184,13 @@ export function useDashboardViewModel() {
     },
     monthCursor,
     hasMorePrevious,
-    canGoNext: monthCursor !== null,
+    hasMoreNext,
     goToPreviousMonth,
     goToNextMonth,
     getMappedStreakDays,
     formatSecondsSmart,
     formatRelativeDate,
     formatExamStatus,
+    formatMonthLabel,
   };
 }

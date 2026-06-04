@@ -1,6 +1,6 @@
 # ExamInA - Problemas actuales y deuda tecnica
 
-Ultima revision: 2026-06-03.
+Ultima revision: 2026-06-04.
 
 Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pendientes. No reemplaza al roadmap: sirve para no perder contexto antes de priorizar el siguiente bloque de trabajo.
 
@@ -26,6 +26,7 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 | P2 | Sistema de amigos (Friends) | API/Web/Mobile | Abierto |
 | P2 | Mejorar pantalla de perfil en mobile | Mobile | Abierto |
 | P2 | Medallas y toasts de logros dentro del perfil mobile | Mobile/Achievements | Abierto |
+| P2 | Dashboard mobile no conserva paridad visual con web | Mobile/Web | Abierto |
 | Cerrado | Placeholders en flujos reales | Mobile/API | Cerrado 2026-06-02 |
 | Cerrado | Auditoria de documentos vivos restantes | Docs | Cerrado 2026-06-02 |
 | Cerrado | Backend permite reevaluar una pregunta IA dentro de la misma sesion | API/ExamSessions/Corrections | Cerrado 2026-06-02 |
@@ -624,6 +625,29 @@ Impacto: Sin esto, los logros son invisibles para el usuario en mobile, eliminan
 
 Branch sugerida: `feature/mobile-achievements-ui`
 
+### 31. Dashboard mobile no conserva paridad visual con web
+
+Estado: Abierto
+
+Problema:
+El dashboard mobile ya es funcional, pero todavia no se siente suficientemente alineado con el dashboard web. Hay diferencias visuales en componentes clave que hacen que la experiencia mobile parezca una version paralela en vez de la misma app adaptada a otro formato.
+
+Detalles detectados:
+- La tarjeta de nivel actual en mobile no replica la jerarquia de web: debe incluir una barra clara de progreso hacia el siguiente nivel y comunicar cuanto falta para subir.
+- La card de racha de estudio usa un icono/estilo distinto al de web; en web el icono tiene un look mas intenso con brillo/neon y mejor presencia visual.
+- La card de tiempo de hoy tambien usa un tratamiento visual distinto al de web; deberia mantener la misma direccion de icono, color y sensacion premium.
+- Las medallas mostradas actualmente en perfil/mobile son placeholders utiles para maquetar, pero no deben considerarse finales hasta conectar el sistema real de logros.
+
+Requerimientos:
+- Revisar dashboard web como referencia visual principal.
+- Adaptar las cards mobile de nivel, racha y tiempo para conservar la misma identidad visual.
+- Mantener layout mobile ergonomico, sin copiar pixel a pixel el desktop.
+- Centralizar o reutilizar tokens visuales donde sea posible para evitar divergencias futuras.
+
+Impacto: Mejora consistencia de marca entre plataformas y evita que mobile se perciba como una app distinta.
+
+Branch sugerida: `feature/mobile-dashboard-visual-parity`
+
 ## Siguiente paso recomendado
 
 Orden sugerido teniendo en cuenta dependencias:
@@ -634,4 +658,4 @@ Orden sugerido teniendo en cuenta dependencias:
 4. Sistema de amigos (se integra con el feed).
 5. Modo Arquitecto en web (creacion de contenido desde la plataforma).
 6. Gestion de errores unificada (deuda tecnica transversal).
-7. Unificar UI del dashboard entre web y mobile.
+7. Dashboard mobile con paridad visual web.

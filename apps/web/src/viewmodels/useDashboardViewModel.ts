@@ -69,8 +69,10 @@ interface DashboardStreakMonthsApiResponse {
   };
   meta: {
     pageInfo?: {
-      previousCursor?: string;
+      previousCursor?: string | null;
       hasMorePrevious?: boolean;
+      nextCursor?: string | null;
+      hasMoreNext?: boolean;
     }
   };
   error: any;
@@ -103,6 +105,8 @@ export function useDashboardViewModel() {
   const pageInfo = streakMonthsQuery.data?.meta?.pageInfo;
   const hasMorePrevious = pageInfo?.hasMorePrevious ?? false;
   const previousCursor = pageInfo?.previousCursor;
+  const hasMoreNext = pageInfo?.hasMoreNext ?? false;
+  const nextCursor = pageInfo?.nextCursor;
 
   // Helpers para la navegación mensual
   const goToPreviousMonth = () => {
@@ -112,26 +116,7 @@ export function useDashboardViewModel() {
   };
 
   const goToNextMonth = () => {
-    if (!monthCursor) return; // Ya estamos en el mes más reciente
-    // Calcular el mes siguiente sumando 1 al mes del cursor
-    const [year, month] = monthCursor.split("-").map(Number);
-    let nextMonth = month + 1;
-    let nextYear = year;
-    if (nextMonth > 12) {
-      nextMonth = 1;
-      nextYear += 1;
-    }
-    
-    // Formatear a YYYY-MM
-    const nextCursor = `${nextYear}-${nextMonth.toString().padStart(2, "0")}`;
-    
-    // Comparar con el mes actual del sistema
-    const now = new Date();
-    const currentMonthCursor = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}`;
-    
-    if (nextCursor >= currentMonthCursor) {
-      setMonthCursor(null); // Volver al mes por defecto (el actual)
-    } else {
+    if (hasMoreNext && nextCursor) {
       setMonthCursor(nextCursor);
     }
   };
@@ -225,7 +210,7 @@ export function useDashboardViewModel() {
     // Helpers de paginación de racha
     monthCursor,
     hasMorePrevious,
-    canGoNext: monthCursor !== null,
+    hasMoreNext,
     goToPreviousMonth,
     goToNextMonth,
     // Helpers de formato

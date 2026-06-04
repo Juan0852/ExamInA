@@ -67,9 +67,10 @@ export default function DashboardScreen() {
     formatSecondsSmart, 
     formatExamStatus, 
     formatRelativeDate, 
+    formatMonthLabel,
     monthStreak,
     hasMorePrevious,
-    canGoNext,
+    hasMoreNext,
     goToPreviousMonth,
     goToNextMonth 
   } = useDashboardViewModel();
@@ -357,13 +358,13 @@ export default function DashboardScreen() {
                   </TouchableOpacity>
                   
                   <Text style={styles.modalMonthTitle}>
-                    {monthData.month}
+                    {formatMonthLabel(monthData.month)}
                   </Text>
                   
                   <TouchableOpacity 
                     onPress={goToNextMonth} 
-                    disabled={!canGoNext}
-                    style={{ padding: 6, borderRadius: 8, backgroundColor: canGoNext ? "#f1f5f9" : "transparent", opacity: canGoNext ? 1 : 0.3 }}
+                    disabled={!hasMoreNext}
+                    style={{ padding: 6, borderRadius: 8, backgroundColor: hasMoreNext ? "#f1f5f9" : "transparent", opacity: hasMoreNext ? 1 : 0.3 }}
                   >
                     <ChevronRight size={20} color="#64748b" />
                   </TouchableOpacity>
