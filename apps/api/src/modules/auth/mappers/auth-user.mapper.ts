@@ -17,6 +17,7 @@ export class AuthUserMapper {
             username: user.profile.username,
             bio: user.profile.bio,
             targetUniversity: user.profile.targetUniversity,
+            bannerUrl: user.profile.bannerUrl,
             level: user.profile.level,
             experience: user.profile.experience,
             currentStreakDays: user.profile.currentStreakDays,

@@ -12,9 +12,12 @@ export function ProfilePage() {
   const setSession = useAuthStore((state) => state.setSession);
   const token = useAuthStore((state) => state.token);
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"ACHIEVEMENTS" | "EXAMS" | "FRIENDS" | "POSTS">("ACHIEVEMENTS");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerFileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFriend, setSelectedFriend] = useState<any | null>(null);
 
 
@@ -150,6 +153,41 @@ export function ProfilePage() {
     }
   });
 
+  
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Selecciona un archivo de imagen.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("La imagen no puede superar 5 MB.");
+      return;
+    }
+
+    setIsUploadingBanner(true);
+    setAvatarError(null);
+
+    try {
+      const result = await fileUploadService.uploadImage(file, "BANNER");
+      await apiService.put("/auth/profile", { bannerUrl: result.url });
+
+      if (user) {
+        setSession(token, {
+          ...user,
+          profile: user.profile ? { ...user.profile, bannerUrl: result.url } : user.profile
+        });
+      }
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : "Error al subir la portada.");
+    } finally {
+      setIsUploadingBanner(false);
+      if (bannerFileInputRef.current) bannerFileInputRef.current.value = "";
+    }
+  };
+
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !token) return;
@@ -261,6 +299,23 @@ export function ProfilePage() {
                     Universidad objetivo: <span className="text-brand-cyan">{user.profile.targetUniversity}</span>
                   </p>
                 )}
+                
+                <div className="mt-4 flex items-center gap-4 text-white/90">
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg font-black">{myFriendsQuery.data?.data?.length || 0}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">Amigos</span>
+                  </div>
+                  <div className="h-6 w-px bg-white/20" />
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg font-black">{myPostsQuery.data?.data?.length || 0}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">Publicaciones</span>
+                  </div>
+                  <div className="h-6 w-px bg-white/20" />
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg font-black">{myExamsQuery.data?.data?.length || 0}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">Exámenes</span>
+                  </div>
+                </div>
                 <button
                   onClick={openEditModal}
                   className="mt-3.5 flex items-center gap-1.5 rounded-2xl bg-white/15 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-white hover:bg-white/25 border border-white/10 hover:border-white/25 backdrop-blur transition cursor-pointer"
@@ -312,10 +367,59 @@ export function ProfilePage() {
         )}
       </section>
 
-      {/* Unified Single-Screen Layout Grid */}
-      <div className="grid gap-8 lg:grid-cols-3">
-        {/* Left Column (Sidebar): Medallas & Amigos */}
-        <div className="lg:col-span-1 space-y-6">
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200 dark:border-brand-navy/30 mb-6">
+        <button
+          onClick={() => setActiveTab("ACHIEVEMENTS")}
+          className={`flex items-center gap-2 rounded-t-2xl border-b-2 px-5 py-3 text-sm font-black transition-colors ${
+            activeTab === "ACHIEVEMENTS"
+              ? "border-brand-cyan bg-brand-cyan/10 text-brand-cyan dark:text-brand-cyan"
+              : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-brand-navy/20 dark:hover:text-white"
+          }`}
+        >
+          <Trophy size={16} />
+          Logros
+        </button>
+        <button
+          onClick={() => setActiveTab("EXAMS")}
+          className={`flex items-center gap-2 rounded-t-2xl border-b-2 px-5 py-3 text-sm font-black transition-colors ${
+            activeTab === "EXAMS"
+              ? "border-brand-cyan bg-brand-cyan/10 text-brand-cyan dark:text-brand-cyan"
+              : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-brand-navy/20 dark:hover:text-white"
+          }`}
+        >
+          <CalendarDays size={16} />
+          Mis Exámenes
+        </button>
+        <button
+          onClick={() => setActiveTab("FRIENDS")}
+          className={`flex items-center gap-2 rounded-t-2xl border-b-2 px-5 py-3 text-sm font-black transition-colors ${
+            activeTab === "FRIENDS"
+              ? "border-brand-cyan bg-brand-cyan/10 text-brand-cyan dark:text-brand-cyan"
+              : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-brand-navy/20 dark:hover:text-white"
+          }`}
+        >
+          <Users size={16} />
+          Amigos
+        </button>
+        <button
+          onClick={() => setActiveTab("POSTS")}
+          className={`flex items-center gap-2 rounded-t-2xl border-b-2 px-5 py-3 text-sm font-black transition-colors ${
+            activeTab === "POSTS"
+              ? "border-brand-cyan bg-brand-cyan/10 text-brand-cyan dark:text-brand-cyan"
+              : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-brand-navy/20 dark:hover:text-white"
+          }`}
+        >
+          <MessageSquare size={16} />
+          Publicaciones
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+
+        {activeTab === "ACHIEVEMENTS" && (
+          <div className="max-w-4xl mx-auto space-y-6">
           <AchievementSection
             title="Medallas"
             description="Tu progreso y logros desbloqueados."
@@ -324,6 +428,11 @@ export function ProfilePage() {
           />
 
 
+          </div>
+        )}
+
+        {activeTab === "FRIENDS" && (
+          <div className="max-w-2xl mx-auto space-y-6">
           {/* Amigos Section */}
           <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl shadow-brand-blue/5 dark:border-brand-cyan/15 dark:bg-[#0E1B2F] space-y-4">
             <div>
@@ -384,12 +493,11 @@ export function ProfilePage() {
               </div>
             )}
           </div>
-        </div>
+          </div>
+        )}
 
-
-
-        {/* Right Column (Main Content): Exámenes & Publicaciones */}
-        <div className="lg:col-span-2 space-y-6">
+        {activeTab === "EXAMS" && (
+          <div className="max-w-4xl mx-auto space-y-6">
           {/* Mis Exámenes Section */}
           <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl shadow-brand-blue/5 dark:border-brand-cyan/15 dark:bg-[#0E1B2F] space-y-4">
             <div>
@@ -468,7 +576,11 @@ export function ProfilePage() {
               </div>
             )}
           </div>
+          </div>
+        )}
 
+        {activeTab === "POSTS" && (
+          <div className="max-w-4xl mx-auto space-y-6">
           {/* Mis Publicaciones Section */}
           <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl shadow-brand-blue/5 dark:border-brand-cyan/15 dark:bg-[#0E1B2F] space-y-4">
             <div>
@@ -530,7 +642,8 @@ export function ProfilePage() {
               </div>
             )}
           </div>
-        </div>
+          </div>
+        )}
       </div>
 
 

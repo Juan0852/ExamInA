@@ -12,7 +12,8 @@ export const updateProfileRequestSchema = z.object({
     .optional(),
   bio: z.string().trim().max(240).optional(),
   targetUniversity: z.string().trim().max(100).optional(),
-  photoUrl: z.string().trim().url().max(500).optional().or(z.literal(""))
+  photoUrl: z.string().trim().url().max(500).optional().or(z.literal("")),
+  bannerUrl: z.string().trim().url().max(500).optional().or(z.literal(""))
 });
 
 export type UpdateProfileRequestDto = z.infer<typeof updateProfileRequestSchema>;

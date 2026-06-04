@@ -185,9 +185,10 @@ export class PrismaAuthRepository implements AuthRepository {
       bio?: string;
       targetUniversity?: string;
       photoUrl?: string;
+      bannerUrl?: string;
     }
   ): Promise<AuthenticatedUserEntity> {
-    const hasProfileUpdates = data.username !== undefined || data.bio !== undefined || data.targetUniversity !== undefined;
+    const hasProfileUpdates = data.username !== undefined || data.bio !== undefined || data.targetUniversity !== undefined || data.bannerUrl !== undefined;
     
     await this.prismaService.getClient().user.update({
       where: { id: userId },
@@ -200,6 +201,7 @@ export class PrismaAuthRepository implements AuthRepository {
               ...(data.username !== undefined && { username: data.username }),
               ...(data.bio !== undefined && { bio: data.bio }),
               ...(data.targetUniversity !== undefined && { targetUniversity: data.targetUniversity }),
+              ...(data.bannerUrl !== undefined && { bannerUrl: data.bannerUrl }),
             }
           }
         })

@@ -51,6 +51,8 @@ export interface UpdateProfilePayload {
   username?: string;
   bio?: string;
   targetUniversity?: string;
+  photoUrl?: string;
+  bannerUrl?: string;
 }
 
 export async function updateProfile(payload: UpdateProfilePayload): Promise<MobileAuthResponse> {

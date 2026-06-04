@@ -14,6 +14,7 @@ export interface User {
     username: string;
     bio: string | null;
     targetUniversity: string | null;
+    bannerUrl?: string | null;
     level: number;
     experience: number;
     currentStreakDays: number;
