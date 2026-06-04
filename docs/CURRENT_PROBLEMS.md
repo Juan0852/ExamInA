@@ -21,6 +21,11 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 | P3 | Seeds oficiales de examenes y limpieza de datos de prueba | API/DB | Abierto (Diferido) |
 | P3 | Micro-recompensas de XP (anti-farming) y Toasts | API/Web/Mobile | Idea |
 | P3 | Logs de debug en parser/proveedor IA | API | Abierto |
+| P1 | Feed/Comunidad: publicaciones tipo red social | API/Web/Mobile | Abierto |
+| P1 | Modo Arquitecto de examenes en web | Web | Abierto |
+| P2 | Sistema de amigos (Friends) | API/Web/Mobile | Abierto |
+| P2 | Mejorar pantalla de perfil en mobile | Mobile | Abierto |
+| P2 | Medallas y toasts de logros dentro del perfil mobile | Mobile/Achievements | Abierto |
 | Cerrado | Placeholders en flujos reales | Mobile/API | Cerrado 2026-06-02 |
 | Cerrado | Auditoria de documentos vivos restantes | Docs | Cerrado 2026-06-02 |
 | Cerrado | Backend permite reevaluar una pregunta IA dentro de la misma sesion | API/ExamSessions/Corrections | Cerrado 2026-06-02 |
@@ -532,11 +537,106 @@ corepack pnpm --filter mobile typecheck
 
 Resultado: pasan correctamente.
 
+### 26. Feed/Comunidad: publicaciones tipo red social
+
+Estado: Abierto
+
+Problema:
+No existe un feed social dentro de la aplicacion. Se necesita un espacio tipo Facebook/Instagram donde los usuarios puedan crear publicaciones, compartir su progreso, hacer preguntas y interactuar con la comunidad.
+
+Requerimientos:
+- Disenar modelo de datos para posts (texto, imagenes, autor, timestamps, likes, comentarios).
+- Crear endpoints CRUD en la API para publicaciones.
+- Implementar la pantalla de Feed tanto en Web como en Mobile.
+- Decidir si los posts seran publicos, por asignatura, o por grupo de amigos.
+- Moderar contenido (reportar, ocultar, borrar).
+- Paginacion infinita con scroll.
+
+Impacto: Feature core de engagement y retencion. Sin esto, la app es solo un sistema de examenes individual.
+
+Branch sugerida: `feature/feed-community`
+
+### 27. Modo Arquitecto de examenes en web
+
+Estado: Abierto
+
+Problema:
+En web no existe el "Modo Arquitecto" para crear o gestionar examenes de forma visual. Actualmente los examenes solo se pueden insertar por seed o directamente en la base de datos.
+
+Requerimientos:
+- Pantalla en web donde un usuario con rol adecuado pueda disenar examenes: seleccionar materia, tema, tipo de preguntas, anadir preguntas manualmente o asistido por IA.
+- Preview del examen antes de publicarlo.
+- Gestion de borradores.
+- Decidir si es exclusivo para administradores/profesores o si cualquier usuario puede crear examenes personalizados.
+
+Impacto: Sin esto, no hay forma de crear contenido desde la propia plataforma.
+
+Branch sugerida: `feature/architect-mode-web`
+
+### 28. Sistema de amigos (Friends)
+
+Estado: Abierto
+
+Problema:
+No existe un sistema de relaciones sociales entre usuarios. Los usuarios no pueden encontrar, agregar ni interactuar con otros usuarios.
+
+Requerimientos:
+- Modelo de datos para relaciones de amistad (solicitud, aceptacion, bloqueo).
+- Endpoints en API: enviar solicitud, aceptar/rechazar, listar amigos, buscar usuarios.
+- UI en Web y Mobile para buscar usuarios, ver solicitudes pendientes y lista de amigos.
+- Decidir si la amistad es bidireccional (ambos aceptan) o unidireccional (seguir).
+- Integrar con el feed (ver posts de amigos) y con logros (medallas sociales).
+- Proteccion anti-farming de XP por agregar/eliminar amigos.
+
+Impacto: Base para todas las features sociales (feed filtrado, rankings, retos entre amigos).
+
+Branch sugerida: `feature/friends-system`
+
+### 29. Mejorar pantalla de perfil en mobile
+
+Estado: Abierto
+
+Problema:
+La pantalla de perfil en mobile es funcional pero basica. Necesita mejoras visuales y de contenido para estar al nivel del resto de la app.
+
+Requerimientos:
+- Redisenar la UI del perfil con un look mas premium (cabecera con avatar grande, stats visuales, etc.).
+- Mostrar estadisticas clave: nivel, XP, racha, tiempo de estudio, examenes completados.
+- Boton de editar perfil con formulario completo.
+- Seccion de medallas/logros obtenidos.
+- Boton de cerrar sesion y gestion de cuenta.
+- Progress bar de XP para el siguiente nivel.
+
+Impacto: El perfil es la "casa" del usuario; si se ve pobre, toda la app se siente incompleta.
+
+Branch sugerida: `feature/mobile-profile-v2`
+
+### 30. Medallas y toasts de logros dentro del perfil mobile
+
+Estado: Abierto
+
+Problema:
+Las medallas existen en el backend y se evaluan correctamente, pero en mobile no se muestran de forma apropiada en el perfil ni se notifican al usuario con toasts animados.
+
+Requerimientos:
+- Mostrar la coleccion de medallas en el perfil de mobile (obtenidas y bloqueadas).
+- Crear un provider global de toasts de logros (reutilizar contrato `meta.newlyUnlockedAchievements`).
+- Toast animado desde arriba con icono de medalla, nombre del logro, XP ganado y auto-cierre.
+- Conectar todos los flujos que evaluan logros (examenes, onboarding, perfil, estudio) al mismo mecanismo de toast.
+- Paridad visual con el sistema de toasts que se defina para web.
+
+Impacto: Sin esto, los logros son invisibles para el usuario en mobile, eliminando el factor de gamificacion.
+
+Branch sugerida: `feature/mobile-achievements-ui`
+
 ## Siguiente paso recomendado
 
-Despues del cierre del diccionario de frases y la bottom bar flotante, el siguiente orden recomendado queda asi:
+Orden sugerido teniendo en cuenta dependencias:
 
-1. Gestion de errores unificada en API/Web/Mobile.
-2. Unificar UI del dashboard entre web y mobile, especialmente racha, XP y estados vacios.
-3. Refactorizar bottom navigation mobile para agrupar Temario/Examenes.
-4. Investigar el warning Prisma/pg y decidir si es bug de dependencia o instanciacion.
+1. Mejorar pantalla de perfil mobile (base para mostrar medallas y stats).
+2. Medallas y toasts de logros en mobile (necesita perfil listo).
+3. Feed/Comunidad (feature core de engagement, backend + ambas plataformas).
+4. Sistema de amigos (se integra con el feed).
+5. Modo Arquitecto en web (creacion de contenido desde la plataforma).
+6. Gestion de errores unificada (deuda tecnica transversal).
+7. Unificar UI del dashboard entre web y mobile.
