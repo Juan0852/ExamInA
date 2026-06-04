@@ -6,6 +6,7 @@ import type { EvaluateWrittenAnswerResponseDto } from "../dtos/correction-respon
 import { CorrectionMapper } from "../mappers/correction.mapper";
 import type { CorrectionsRepository } from "../repositories/corrections.repository";
 import { AchievementsService } from "../../achievements/services/achievements.service";
+import { AiProviderException } from "../../../shared/errors/ai-provider.exception";
 
 import type { FilesRepository } from "../../files/repositories/files.repository";
 import { FILES_REPOSITORY } from "../../files/services/files.service.constants";
@@ -92,8 +93,7 @@ export class CorrectionsService {
         }
       };
     } catch (e: any) {
-      console.error("DEBUG AI EVAL ERROR:", e);
-      throw new BadRequestException("AI Eval Failed: " + (e?.message || String(e)));
+      throw new AiProviderException("AI Eval Failed");
     }
   }
 

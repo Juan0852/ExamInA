@@ -1,29 +1,26 @@
 import { useAuthStore } from "../../stores/auth.store";
 import { useAchievementToastStore } from "../achievements/achievement-toast.store";
+import { ApiError } from "../errors/api-error";
 
 // Base URL de la API obtenida desde variables de entorno de Vite o fallback de desarrollo
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
 
 let refreshPromise: Promise<{ idToken: string; refreshToken: string } | null> | null = null;
 
-async function refreshFirebaseToken(refreshToken: string): Promise<{ idToken: string; refreshToken: string } | null> {
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
-  if (!apiKey) return null;
-
+async function refreshBackendSession(refreshToken: string): Promise<{ idToken: string; refreshToken: string } | null> {
   try {
-    const url = `https://securetoken.googleapis.com/v1/token?key=${apiKey}`;
-    const response = await fetch(url, {
+    const response = await fetch(`${BASE_URL}/auth/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `grant_type=refresh_token&refresh_token=${refreshToken}`
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken })
     });
 
     if (!response.ok) return null;
 
     const data = await response.json();
     return {
-      idToken: data.id_token,
-      refreshToken: data.refresh_token || refreshToken
+      idToken: data.data.auth.idToken,
+      refreshToken: data.data.auth.refreshToken || refreshToken
     };
   } catch (error) {
     return null;
@@ -72,33 +69,37 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
   // Manejo de respuesta de error
   if (!response.ok) {
     let errorMessage = "Ocurrió un error inesperado.";
+    let errorCode = "UNKNOWN_ERROR";
+    let errorDetails: unknown = undefined;
+    let requestId: string | undefined = undefined;
+
     try {
       const errorData = await response.json();
-      if (typeof errorData?.message === "string") {
-        errorMessage = errorData.message;
-      } else if (Array.isArray(errorData?.message)) {
+      
+      errorMessage = errorData?.error?.message ?? errorData?.message ?? response.statusText ?? "Ocurrió un error inesperado.";
+      errorCode = errorData?.error?.code ?? errorData?.code ?? "UNKNOWN_ERROR";
+      errorDetails = errorData?.error?.details;
+      requestId = errorData?.error?.requestId;
+      
+      if (Array.isArray(errorData?.message) && !errorData?.error?.message) {
         errorMessage = errorData.message.join(", ");
-      } else if (errorData?.error?.message) {
-        errorMessage = errorData.error.message;
-      } else if (typeof errorData?.error === "string") {
-        errorMessage = errorData.message || errorData.error;
       }
     } catch {
       errorMessage = response.statusText || "Error de red o servidor offline.";
     }
     
     // Si la sesión expiró (401), intentamos refrescar o deslogueamos
-    if (response.status === 401 || errorMessage.includes("Firebase ID token has expired") || errorMessage.includes("auth/id-token-expired")) {
+    if (response.status === 401 || errorCode === "AUTH_REQUIRED" || errorMessage.includes("Firebase ID token has expired") || errorMessage.includes("auth/id-token-expired")) {
       const authStore = useAuthStore.getState();
       
       if (path === "/auth/login" || path === "/auth/register" || path === "/auth/google") {
         authStore.clearSession();
-        throw new Error(errorMessage);
+        throw new ApiError(errorMessage, errorCode, response.status, errorDetails, requestId);
       }
 
       if (authStore.refreshToken && authStore.user) {
         if (!refreshPromise) {
-          refreshPromise = refreshFirebaseToken(authStore.refreshToken).then((newTokens) => {
+          refreshPromise = refreshBackendSession(authStore.refreshToken).then((newTokens) => {
             if (newTokens) {
               useAuthStore.getState().setSession(newTokens.idToken, useAuthStore.getState().user!, newTokens.refreshToken);
               return newTokens;
@@ -126,7 +127,7 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
           });
 
           if (!retryResponse.ok) {
-            throw new Error(errorMessage);
+            throw new ApiError(errorMessage, errorCode, retryResponse.status, errorDetails, requestId);
           }
 
           if (retryResponse.status === 204) return {} as T;
@@ -138,11 +139,12 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
           return result as T;
         }
       } else {
-        authStore.clearSession();
+        useAuthStore.getState().clearSession();
+        throw new ApiError(errorMessage, errorCode, response.status, errorDetails, requestId);
       }
     }
     
-    throw new Error(errorMessage);
+    throw new ApiError(errorMessage, errorCode, response.status, errorDetails, requestId);
   }
 
   // Si la respuesta no tiene contenido (ej. 204 No Content), retornamos vacío

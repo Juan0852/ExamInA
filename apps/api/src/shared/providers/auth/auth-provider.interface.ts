@@ -20,5 +20,6 @@ export interface AuthProvider {
   ): Promise<AuthLoginResult>;
   signInWithEmailAndPassword(email: string, password: string): Promise<AuthLoginResult>;
   signInWithGoogleIdToken(idToken: string): Promise<AuthLoginResult>;
+  refreshSession(refreshToken: string): Promise<Omit<AuthLoginResult, "user">>;
   verifyToken(token: string): Promise<AuthUser>;
 }

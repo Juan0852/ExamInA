@@ -23,12 +23,16 @@ export default function TabLayout() {
           options={{ title: "Temario" }}
         />
         <Tabs.Screen
-          name="logros"
-          options={{ title: "Medallas" }}
+          name="feed"
+          options={{ title: "Feed" }}
         />
         <Tabs.Screen
           name="profile"
           options={{ title: "Perfil" }}
+        />
+        <Tabs.Screen
+          name="logros"
+          options={{ href: null, title: "Medallas" }}
         />
       </Tabs>
     </View>

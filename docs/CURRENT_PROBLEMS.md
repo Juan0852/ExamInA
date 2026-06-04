@@ -8,7 +8,7 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 
 | Prioridad | Problema | Area | Estado |
 | --- | --- | --- | --- |
-| P1 | Gestion de errores sin estrategia clara | API/Web/Mobile | Abierto |
+| P1 | Gestion de errores sin estrategia clara | API/Web/Mobile | Cerrado 2026-06-04 |
 | P2 | Unificar UI Dashboard y Mensajes Racha | Web/Mobile | Abierto |
 | P2 | Refactorizar Bottom Navigation Bar (Unir Temario y Exámenes) | Mobile | Abierto |
 | P2 | Diccionario de frases motivacionales al login | Web/Mobile | Cerrado 2026-06-03 |
@@ -152,21 +152,16 @@ Propuesta:
 
 ### 9. Gestion de errores sin estrategia clara
 
-Actualmente no esta claro si existe una estrategia unificada de errores en API, web y mobile.
+Estado: Cerrado el 2026-06-04.
 
-Preguntas abiertas:
+Problema:
+La app no contaba con un filtro global de errores en NestJS ni códigos estándar. Los errores 500 crudos llegaban a la interfaz o se imprimían con \`console.error\` en consola, y los clientes HTTP de Web y Mobile lanzaban simples \`Error\` de Javascript sin tipado de negocio.
 
-- API: existe filtro global de excepciones?
-- API: todas las respuestas de error siguen `{ data, meta, error }`?
-- API: hay codigos estables de error para frontend?
-- Web/mobile: existe mapper comun para errores de API?
-- Web/mobile: como se decide toast, inline error, modal o fallback screen?
+Solución:
+- **Backend**: Se implementó \`GlobalExceptionFilter\` que inyecta un \`requestId\` autogenerado. Se mapean automáticamente las excepciones comunes a \`ErrorCode\`, enmascarando los errores 500 no capturados y normalizando las respuestas de Zod al array estandarizado \`details.fields\`. Se creó además \`AiProviderException\`.
+- **Frontends**: Ambos entornos (Web/Mobile) ahora declaran un \`ApiError\` común que envuelve código, status, requestId y details. Los clientes HTTP tienen parseo defensivo que da soporte al nuevo formato y al legacy.
 
-Problemas detectados:
-
-- `CorrectionsService` usa `NotFoundException` para fallos de IA.
-- Algunos errores se loguean como debug directamente.
-- Falta distinguir error de validacion, auth, recurso inexistente, proveedor externo y error inesperado.
+Impacto: API 100% predecible, con alta observabilidad y sin filtración de stacktraces. Frontends preparados para reaccionar de forma tipada a la falla de negocio específica.
 
 Accion propuesta:
 

@@ -110,7 +110,9 @@ export class DashboardService {
       meta: {
         pageInfo: {
           previousCursor,
-          hasMorePrevious
+          hasMorePrevious,
+          nextCursor: null,
+          hasMoreNext: false
         }
       },
       error: null

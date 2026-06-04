@@ -2,6 +2,7 @@ import { Body, Controller, Get, Headers, Inject, Post, Put, Query } from "@nestj
 import { ZodValidationPipe } from "../../../shared/validation/zod-validation.pipe";
 import { googleAuthRequestSchema, type GoogleAuthRequestDto } from "../dtos/google-auth-request.dto";
 import { loginRequestSchema, type LoginRequestDto } from "../dtos/login-request.dto";
+import { refreshSessionRequestSchema, type RefreshSessionRequestDto } from "../dtos/refresh-session-request.dto";
 import { registerRequestSchema, type RegisterRequestDto } from "../dtos/register-request.dto";
 import { updateProfileRequestSchema, type UpdateProfileRequestDto } from "../dtos/update-profile-request.dto";
 import { completeOnboardingRequestSchema, type CompleteOnboardingRequestDto } from "../dtos/complete-onboarding-request.dto";
@@ -29,6 +30,11 @@ export class AuthController {
   @Post("session")
   createSession(@Headers("authorization") authorizationHeader?: string) {
     return this.authService.createSession(authorizationHeader);
+  }
+
+  @Post("refresh")
+  refreshSession(@Body(new ZodValidationPipe(refreshSessionRequestSchema)) credentials: RefreshSessionRequestDto) {
+    return this.authService.refreshSession(credentials);
   }
 
   @Get("me")

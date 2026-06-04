@@ -51,6 +51,7 @@ export default function ExamSessionScreen() {
   const elapsedSecondsRef = useRef(0);
   const activityBaseStartedAtRef = useRef(Date.now());
   const lastSyncedElapsedSecondsRef = useRef(0);
+  const isActivitySyncingRef = useRef(false);
   const isExamClosed = Boolean(
     examSession &&
       (examSession.status === "COMPLETED" ||
@@ -92,15 +93,18 @@ export default function ExamSessionScreen() {
   ]);
 
   const syncExamActivity = React.useCallback(async () => {
-    if (!id || isExamClosed) return;
+    if (!id || isExamClosed || isActivitySyncingRef.current) return;
     const elapsed = elapsedSecondsRef.current;
     if (elapsed <= lastSyncedElapsedSecondsRef.current) return;
 
     try {
-      await saveActivity(elapsed);
-      lastSyncedElapsedSecondsRef.current = elapsed;
+      isActivitySyncingRef.current = true;
+      const response = await saveActivity(elapsed);
+      lastSyncedElapsedSecondsRef.current = response.data.totalTimeSeconds;
     } catch (err) {
       console.warn("No se pudo sincronizar el tiempo de estudio:", err);
+    } finally {
+      isActivitySyncingRef.current = false;
     }
   }, [id, isExamClosed, saveActivity]);
 

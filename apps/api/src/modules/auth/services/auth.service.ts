@@ -4,6 +4,7 @@ import type { AuthResponseDto } from "../dtos/auth-response.dto";
 import type { GoogleAuthRequestDto } from "../dtos/google-auth-request.dto";
 import type { LoginRequestDto } from "../dtos/login-request.dto";
 import type { RegisterRequestDto } from "../dtos/register-request.dto";
+import type { RefreshSessionRequestDto } from "../dtos/refresh-session-request.dto";
 import type { UpdateProfileRequestDto } from "../dtos/update-profile-request.dto";
 import type { CompleteOnboardingRequestDto } from "../dtos/complete-onboarding-request.dto";
 import type { AuthenticatedUserEntity } from "../entities/authenticated-user.entity";
@@ -65,6 +66,19 @@ export class AuthService {
       loginResult.idToken,
       loginResult.refreshToken,
       loginResult.expiresIn
+    );
+  }
+
+  async refreshSession(credentials: RefreshSessionRequestDto): Promise<AuthResponseDto> {
+    const refreshResult = await this.authProvider.refreshSession(credentials.refreshToken);
+    const authUser = await this.authProvider.verifyToken(refreshResult.idToken);
+    const user = await this.authRepository.findOrCreateFromAuthUser(authUser);
+
+    return this.createAuthResponse(
+      user,
+      refreshResult.idToken,
+      refreshResult.refreshToken,
+      refreshResult.expiresIn
     );
   }
 

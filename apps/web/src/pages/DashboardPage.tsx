@@ -448,7 +448,7 @@ export function DashboardPage() {
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <span className="w-24 text-center">{formatMonthLabel(streakMonth?.month || monthCursor)}</span>
+                  <span className="w-24 text-center">{formatMonthLabel(streakMonth?.month ?? monthCursor ?? undefined)}</span>
                   <button
                     type="button"
                     onClick={goToNextMonth}

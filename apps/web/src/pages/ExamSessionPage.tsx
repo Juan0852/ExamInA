@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Navigate, useParams, useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   Clock,
@@ -64,6 +64,7 @@ export function ExamSessionPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [exitError, setExitError] = useState<string | null>(null);
   const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
+  const [shouldRedirectToDashboard, setShouldRedirectToDashboard] = useState(false);
 
   // Estados de la UI del Modo Enfoque
   const [isTimerOpen, setIsTimerOpen] = useState(true);
@@ -71,6 +72,7 @@ export function ExamSessionPage() {
   const elapsedSecondsRef = useRef(0);
   const activityBaseStartedAtRef = useRef(Date.now());
   const lastSyncedElapsedSecondsRef = useRef(0);
+  const isActivitySyncingRef = useRef(false);
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const sessionQuestions = examSession?.questions;
@@ -162,7 +164,7 @@ export function ExamSessionPage() {
   ]);
 
   const syncExamActivity = useCallback(async () => {
-    if (!examSessionId || isExamClosed) {
+    if (!examSessionId || isExamClosed || isActivitySyncingRef.current) {
       return;
     }
 
@@ -172,6 +174,7 @@ export function ExamSessionPage() {
     }
 
     try {
+      isActivitySyncingRef.current = true;
       const response = await apiService.patch<SyncExamActivityApiResponse>(
         `/exam-sessions/${examSessionId}/activity`,
         {
@@ -181,8 +184,31 @@ export function ExamSessionPage() {
       lastSyncedElapsedSecondsRef.current = response.data.totalTimeSeconds;
     } catch (err) {
       console.warn("No se pudo sincronizar el tiempo de estudio:", err);
+    } finally {
+      isActivitySyncingRef.current = false;
     }
   }, [examSessionId, isExamClosed]);
+
+  const redirectToDashboard = useCallback(() => {
+    setShowExitConfirmation(false);
+    setShouldRedirectToDashboard(true);
+  }, []);
+
+  const leaveExam = useCallback(async () => {
+    setExitError(null);
+    setIsFinishing(true);
+
+    try {
+      await Promise.race([
+        syncExamActivity(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout al guardar el progreso")), 5000))
+      ]);
+      redirectToDashboard();
+    } catch (err: any) {
+      setExitError(err.message || "Error al sincronizar tu progreso. Revisa tu conexión.");
+      setIsFinishing(false);
+    }
+  }, [redirectToDashboard, syncExamActivity]);
 
   useEffect(() => {
     if (!examSessionId || isExamClosed) {
@@ -212,6 +238,10 @@ export function ExamSessionPage() {
       syncExamActivity();
     };
   }, [examSessionId, isExamClosed, syncExamActivity]);
+
+  if (shouldRedirectToDashboard) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   if (isLoading) {
     return (
@@ -369,10 +399,10 @@ export function ExamSessionPage() {
       await apiService.patch(`/exam-sessions/${examSessionId}/finish`, {
         totalTimeSeconds: elapsedSeconds
       });
-      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Error finishing exam:", err);
-      window.location.href = "/dashboard";
+    } finally {
+      redirectToDashboard();
     }
   };
 
@@ -417,7 +447,7 @@ export function ExamSessionPage() {
           onClick={() => {
             setExitError(null);
             if (isExamClosed) {
-              window.location.href = "/dashboard";
+              redirectToDashboard();
             } else {
               setShowExitConfirmation(true);
             }
@@ -756,18 +786,7 @@ export function ExamSessionPage() {
                   if (currentIdx === totalQuestions - 1 && isQuestionAnswered && !isExamClosed) {
                     handleFinish();
                   } else {
-                    setIsFinishing(true);
-                    try {
-                      // Esperar máximo 5 segundos para el guardado
-                      await Promise.race([
-                        syncExamActivity(),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout al guardar el progreso")), 5000))
-                      ]);
-                      window.location.href = "/dashboard";
-                    } catch (err: any) {
-                      setExitError(err.message || "Error al sincronizar tu progreso. Revisa tu conexión.");
-                      setIsFinishing(false);
-                    }
+                    leaveExam();
                   }
                 }}
                 disabled={isFinishing}

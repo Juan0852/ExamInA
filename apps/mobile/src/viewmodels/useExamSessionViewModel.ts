@@ -39,6 +39,15 @@ interface ExamSessionApiResponse {
   error: any;
 }
 
+interface SyncExamActivityApiResponse {
+  data: {
+    totalTimeSeconds: number;
+    recordedDeltaSeconds: number;
+  };
+  meta: any;
+  error: any;
+}
+
 interface EvaluateAnswerApiResponse {
   data: {
     correction: {
@@ -69,9 +78,12 @@ export function useExamSessionViewModel(examSessionId: string | undefined) {
 
   const activityMutation = useMutation({
     mutationFn: (data: { elapsedSeconds: number }) => {
-      return apiService.patch(`/exam-sessions/${examSessionId}/activity`, {
-        elapsedSeconds: data.elapsedSeconds
-      });
+      return apiService.patch<SyncExamActivityApiResponse>(
+        `/exam-sessions/${examSessionId}/activity`,
+        {
+          elapsedSeconds: data.elapsedSeconds
+        }
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["exam-session", examSessionId] });
@@ -107,7 +119,7 @@ export function useExamSessionViewModel(examSessionId: string | undefined) {
     isLoading: query.isLoading || !examSessionId,
     error: query.error?.message ?? null,
     handleRetry: query.refetch,
-    saveActivity: (elapsedSeconds: number) => activityMutation.mutate({ elapsedSeconds }),
+    saveActivity: (elapsedSeconds: number) => activityMutation.mutateAsync({ elapsedSeconds }),
     evaluateAnswer: (data: { questionId: string; userAnswer: string; attachmentIds?: string[] }) => evaluateAnswerMutation.mutateAsync(data),
     finishExam: (totalTimeSeconds: number) => finishMutation.mutate({ totalTimeSeconds }),
     isSaving: activityMutation.isPending || finishMutation.isPending,

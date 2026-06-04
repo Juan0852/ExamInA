@@ -20,6 +20,8 @@ export type DashboardStreakMonthsResponseDto = {
     pageInfo: {
       previousCursor: string | null;
       hasMorePrevious: boolean;
+      nextCursor: string | null;
+      hasMoreNext: boolean;
     };
   };
   error: null;

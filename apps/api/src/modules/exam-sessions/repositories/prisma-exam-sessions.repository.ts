@@ -7,7 +7,7 @@ import type { ExamSessionRecord, ExamSessionsRepository } from "./exam-sessions.
 export class PrismaExamSessionsRepository implements ExamSessionsRepository {
   constructor(@Inject(PrismaService) private readonly prismaService: PrismaService) {}
 
-  private readonly maxActivityDeltaSeconds = 6 * 60 * 60;
+  private readonly maxActivityDeltaSeconds = 5 * 60;
 
   async findByIdForUser(examSessionId: string, userId: string): Promise<ExamSessionRecord | null> {
     return this.prismaService.getClient().examSession.findFirst({
@@ -217,11 +217,12 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
         };
       }
 
-      const rawDelta = input.elapsedSeconds - session.totalTimeSeconds;
-      const recordedDeltaSeconds = Math.max(
-        0,
-        Math.min(rawDelta, this.maxActivityDeltaSeconds)
-      );
+      const targetTotalTimeSeconds = Math.max(input.elapsedSeconds, session.totalTimeSeconds);
+      const rawDelta = targetTotalTimeSeconds - session.totalTimeSeconds;
+      const recordedDeltaSeconds = rawDelta > this.maxActivityDeltaSeconds
+        ? 0
+        : Math.max(0, rawDelta);
+      const nextTotalTimeSeconds = session.totalTimeSeconds + recordedDeltaSeconds;
 
       if (recordedDeltaSeconds === 0) {
         await tx.examSession.update({
@@ -237,18 +238,28 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
         };
       }
 
-      const updatedSession = await tx.examSession.update({
-        where: { id: session.id },
-        data: {
-          totalTimeSeconds: {
-            increment: recordedDeltaSeconds
-          },
-          lastActivityAt: now
+      const updateResult = await tx.examSession.updateMany({
+        where: {
+          id: session.id,
+          totalTimeSeconds: session.totalTimeSeconds
         },
-        select: {
-          totalTimeSeconds: true
+        data: {
+          totalTimeSeconds: nextTotalTimeSeconds,
+          lastActivityAt: now
         }
       });
+
+      if (updateResult.count === 0) {
+        const latestSession = await tx.examSession.findUnique({
+          where: { id: session.id },
+          select: { totalTimeSeconds: true }
+        });
+
+        return {
+          totalTimeSeconds: latestSession?.totalTimeSeconds ?? session.totalTimeSeconds,
+          recordedDeltaSeconds: 0
+        };
+      }
 
       await tx.studyActivity.upsert({
         where: {
@@ -283,7 +294,7 @@ export class PrismaExamSessionsRepository implements ExamSessionsRepository {
       });
 
       return {
-        totalTimeSeconds: updatedSession.totalTimeSeconds,
+        totalTimeSeconds: nextTotalTimeSeconds,
         recordedDeltaSeconds
       };
     });

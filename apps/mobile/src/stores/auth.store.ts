@@ -17,6 +17,30 @@ export interface User {
     currentStreakDays: number;
     longestStreakDays: number;
   } | null;
+  preferences?: {
+    id: string;
+    preferredTheme: string;
+    preferredLanguage: string;
+    notificationsEnabled: boolean;
+    studyReminderEnabled: boolean;
+    timerSoundEnabled: boolean;
+    defaultExamDurationSeconds: number;
+    preferredSubjects: unknown;
+    weeklyStudyHours: string | null;
+    referralSource: string | null;
+    onboardingCompleted: boolean;
+  } | null;
+  progress?: {
+    id: string;
+    totalQuestionsAnswered: number;
+    totalCorrectAnswers: number;
+    totalExamsCompleted: number;
+    totalFlashcardsReviewed: number;
+    totalStudyTimeSeconds: number;
+    averageScore: number;
+    level: number;
+    experience: number;
+  } | null;
 }
 
 interface AuthState {

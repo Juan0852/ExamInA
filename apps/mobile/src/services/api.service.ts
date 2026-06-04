@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import { useAuthStore } from "../stores/auth.store";
+import { ApiError } from "./api-error";
 
 // Obtenemos la IP de tu computadora dinámicamente desde Expo (funciona para emulador y dispositivo físico)
 const debuggerHost = Constants.expoConfig?.hostUri;
@@ -10,29 +11,107 @@ const DEV_FALLBACK_URL = `http://${localIp}:3000/api/v1`;
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEV_FALLBACK_URL;
 
 let refreshPromise: Promise<{ idToken: string; refreshToken: string } | null> | null = null;
+const TOKEN_REFRESH_MARGIN_SECONDS = 120;
 
-async function refreshFirebaseToken(refreshToken: string): Promise<{ idToken: string; refreshToken: string } | null> {
-  const apiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
-  if (!apiKey) return null;
+function isAuthEndpoint(path: string): boolean {
+  return path === "/auth/login" || path === "/auth/register" || path === "/auth/google" || path === "/auth/refresh";
+}
+
+function decodeBase64Url(input: string): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+  const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+  let output = "";
+  let buffer = 0;
+  let bits = 0;
+
+  for (const char of padded) {
+    if (char === "=") break;
+    const value = chars.indexOf(char);
+    if (value === -1) continue;
+    buffer = (buffer << 6) | value;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      output += String.fromCharCode((buffer >> bits) & 0xff);
+    }
+  }
+
+  return output;
+}
+
+function getJwtExpirationSeconds(token: string | null): number | null {
+  if (!token) return null;
 
   try {
-    const url = `https://securetoken.googleapis.com/v1/token?key=${apiKey}`;
-    const response = await fetch(url, {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const parsed = JSON.parse(decodeBase64Url(payload));
+    return typeof parsed.exp === "number" ? parsed.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function shouldRefreshToken(token: string | null): boolean {
+  const expirationSeconds = getJwtExpirationSeconds(token);
+  if (!expirationSeconds) return false;
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return expirationSeconds - nowSeconds <= TOKEN_REFRESH_MARGIN_SECONDS;
+}
+
+async function refreshBackendSession(refreshToken: string): Promise<{ idToken: string; refreshToken: string } | null> {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `grant_type=refresh_token&refresh_token=${refreshToken}`
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken })
     });
 
     if (!response.ok) return null;
 
     const data = await response.json();
     return {
-      idToken: data.id_token,
-      refreshToken: data.refresh_token || refreshToken
+      idToken: data.data.auth.idToken,
+      refreshToken: data.data.auth.refreshToken || refreshToken
     };
   } catch (error) {
     return null;
   }
+}
+
+async function getFreshTokenIfNeeded(force = false): Promise<string | null> {
+  const authStore = useAuthStore.getState();
+
+  if (!authStore.token || !authStore.refreshToken || !authStore.user) {
+    return authStore.token;
+  }
+
+  if (!force && !shouldRefreshToken(authStore.token)) {
+    return authStore.token;
+  }
+
+  if (!refreshPromise) {
+    refreshPromise = refreshBackendSession(authStore.refreshToken)
+      .then(async (newTokens) => {
+        if (newTokens) {
+          const currentUser = useAuthStore.getState().user;
+          if (currentUser) {
+            await useAuthStore.getState().setSession(newTokens.idToken, currentUser, newTokens.refreshToken);
+          }
+          return newTokens;
+        }
+
+        return null;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  const newTokens = await refreshPromise;
+  return newTokens?.idToken ?? (force ? null : authStore.token);
 }
 
 /**
@@ -48,7 +127,7 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
  */
 async function httpRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const url = `${BASE_URL}${path}`;
-  const token = useAuthStore.getState().token;
+  const token = isAuthEndpoint(path) ? useAuthStore.getState().token : await getFreshTokenIfNeeded();
 
   // Cabeceras por defecto
   const headers = new Headers(options.headers || {});
@@ -78,49 +157,39 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
     // Manejo de respuesta de error
     if (!response.ok) {
       let errorMessage = "Ocurrió un error inesperado.";
+      let errorCode = "UNKNOWN_ERROR";
+      let errorDetails: unknown = undefined;
+      let requestId: string | undefined = undefined;
+
       try {
         const errorData = await response.json();
-        if (typeof errorData?.message === "string") {
-          errorMessage = errorData.message;
-        } else if (Array.isArray(errorData?.message)) {
+        
+        errorMessage = errorData?.error?.message ?? errorData?.message ?? response.statusText ?? "Ocurrió un error inesperado.";
+        errorCode = errorData?.error?.code ?? errorData?.code ?? "UNKNOWN_ERROR";
+        errorDetails = errorData?.error?.details;
+        requestId = errorData?.error?.requestId;
+        
+        if (Array.isArray(errorData?.message) && !errorData?.error?.message) {
           errorMessage = errorData.message.join(", ");
-        } else if (errorData?.error?.message) {
-          errorMessage = errorData.error.message;
-        } else if (typeof errorData?.error === "string") {
-          errorMessage = errorData.message || errorData.error;
         }
       } catch {
         errorMessage = response.statusText || "Error de red o servidor offline.";
       }
       
       // Si la sesión expiró (401) o el token de Firebase caducó
-      if (response.status === 401 || errorMessage.includes("Firebase ID token has expired") || errorMessage.includes("auth/id-token-expired")) {
+      if (response.status === 401 || errorCode === "AUTH_REQUIRED" || errorMessage.includes("Firebase ID token has expired") || errorMessage.includes("auth/id-token-expired")) {
         const authStore = useAuthStore.getState();
         
-        if (path === "/auth/login" || path === "/auth/register" || path === "/auth/google") {
+        if (isAuthEndpoint(path)) {
           await authStore.clearSession();
-          throw new Error(errorMessage);
+          throw new ApiError(errorMessage, errorCode, response.status, errorDetails, requestId);
         }
 
         if (authStore.refreshToken && authStore.user) {
-          if (!refreshPromise) {
-            refreshPromise = refreshFirebaseToken(authStore.refreshToken).then(async (newTokens) => {
-              if (newTokens) {
-                await useAuthStore.getState().setSession(newTokens.idToken, useAuthStore.getState().user!, newTokens.refreshToken);
-                return newTokens;
-              } else {
-                await useAuthStore.getState().clearSession();
-                return null;
-              }
-            }).finally(() => {
-              refreshPromise = null;
-            });
-          }
-
-          const newTokens = await refreshPromise;
-          if (newTokens) {
+          const freshToken = await getFreshTokenIfNeeded(true);
+          if (freshToken) {
             const retryHeaders = new Headers(options.headers || {});
-            retryHeaders.set("Authorization", `Bearer ${newTokens.idToken}`);
+            retryHeaders.set("Authorization", `Bearer ${freshToken}`);
             if (!retryHeaders.has("Content-Type") && !(options.body instanceof FormData)) {
               retryHeaders.set("Content-Type", "application/json");
             }
@@ -132,18 +201,16 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
             });
 
             if (!retryResponse.ok) {
-              throw new Error(errorMessage);
+              throw new ApiError(errorMessage, errorCode, retryResponse.status, errorDetails, requestId);
             }
 
             if (retryResponse.status === 204) return {} as T;
             return (await retryResponse.json()) as T;
           }
-        } else {
-          await authStore.clearSession();
         }
       }
       
-      throw new Error(errorMessage);
+      throw new ApiError(errorMessage, errorCode, response.status, errorDetails, requestId);
     }
 
     // Si la respuesta no tiene contenido (ej. 204 No Content), retornamos vacío

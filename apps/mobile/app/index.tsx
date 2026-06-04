@@ -3,20 +3,21 @@ import { useRouter } from "expo-router";
 import { useAuthStore } from "../src/stores/auth.store";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { theme } from "../src/theme";
+import { hasCompletedOnboarding } from "../src/utils/onboarding";
 
 export default function IndexScreen() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading) {
       if (isAuthenticated) {
-        router.replace("/(tabs)/dashboard");
+        router.replace(hasCompletedOnboarding(user) ? "/(tabs)/dashboard" : "/onboarding");
       } else {
         router.replace("/login");
       }
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, router, user]);
 
   return (
     <View style={styles.container}>

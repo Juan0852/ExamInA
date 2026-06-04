@@ -6,6 +6,7 @@ import { theme } from "../src/theme";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as NavigationBar from "expo-navigation-bar";
+import { hasCompletedOnboarding } from "../src/utils/onboarding";
 
 LogBox.ignoreLogs(["THREE.WebGLRenderer: WebGL 1 support was deprecated"]);
 
@@ -28,18 +29,17 @@ export default function RootLayout() {
     if (isLoading) return;
 
     const isLoginScreen = segments[0] === "login";
+    const isOnboardingScreen = segments[0] === "onboarding";
+    const user = useAuthStore.getState().user;
+    const onboardingCompleted = hasCompletedOnboarding(user);
 
     if (!isAuthenticated && !isLoginScreen) {
       // Redirigir al login si no está autenticado y no está en la pantalla de login
       router.replace("/login");
-    } else if (isAuthenticated && isLoginScreen) {
-      // Redirigir al dashboard o al onboarding si está autenticado pero intenta ir al login
-      const user = useAuthStore.getState().user;
-      if (user && !user.profile) {
-        router.replace("/onboarding");
-      } else {
-        router.replace("/(tabs)/dashboard");
-      }
+    } else if (isAuthenticated && !onboardingCompleted && !isOnboardingScreen) {
+      router.replace("/onboarding");
+    } else if (isAuthenticated && onboardingCompleted && isLoginScreen) {
+      router.replace("/(tabs)/dashboard");
     }
   }, [isLoading, isAuthenticated, segments]);
 

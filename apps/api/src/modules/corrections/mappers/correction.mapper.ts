@@ -19,7 +19,7 @@ export class CorrectionMapper {
         },
         correction: {
           id: answer.correction.id,
-          examSessionAnswerId: answer.correction.examSessionAnswerId,
+          examSessionAnswerId: answer.id,
           isCorrect: answer.correction.isCorrect,
           score: answer.correction.score,
           summary: answer.correction.summary,

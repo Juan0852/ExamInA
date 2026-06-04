@@ -14,6 +14,7 @@ import {
 import { theme } from "../src/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { loginSchema, registerSchema } from "../src/utils/schemas";
+import { hasCompletedOnboarding } from "../src/utils/onboarding";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -92,7 +93,7 @@ export default function LoginScreen() {
 
       await setSession(response.data.auth.idToken, response.data.user, response.data.auth.refreshToken);
       
-      if (!response.data.user.profile) {
+      if (!hasCompletedOnboarding(response.data.user)) {
         router.replace("/onboarding");
       } else {
         router.replace("/(tabs)/dashboard");
@@ -145,7 +146,7 @@ export default function LoginScreen() {
 
         await setSession(response.data.auth.idToken, response.data.user, response.data.auth.refreshToken);
 
-        if (!response.data.user.profile) {
+        if (!hasCompletedOnboarding(response.data.user)) {
           router.replace("/onboarding");
         } else {
           router.replace("/(tabs)/dashboard");

@@ -15,6 +15,13 @@ interface FirebasePasswordLoginResponse {
   expiresIn: string;
 }
 
+interface FirebaseRefreshTokenResponse {
+  id_token: string;
+  refresh_token: string;
+  expires_in: string;
+  user_id: string;
+}
+
 interface FirebaseErrorResponse {
   error?: {
     message?: string;
@@ -145,6 +152,34 @@ export class FirebaseAuthProvider implements AuthProvider {
       idToken: payload.idToken,
       refreshToken: payload.refreshToken,
       expiresIn: Number(payload.expiresIn)
+    };
+  }
+
+  async refreshSession(refreshToken: string): Promise<Omit<AuthLoginResult, "user">> {
+    const response = await fetch(
+      `https://securetoken.googleapis.com/v1/token?key=${this.webApiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken
+        }).toString()
+      }
+    );
+
+    const payload = (await response.json()) as FirebaseRefreshTokenResponse & FirebaseErrorResponse;
+
+    if (!response.ok) {
+      this.handleAuthError(payload.error?.message);
+    }
+
+    return {
+      idToken: payload.id_token,
+      refreshToken: payload.refresh_token || refreshToken,
+      expiresIn: Number(payload.expires_in)
     };
   }
 
