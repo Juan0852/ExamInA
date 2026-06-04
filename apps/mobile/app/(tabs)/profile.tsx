@@ -120,28 +120,28 @@ export default function ProfileScreen() {
 
         {/* Core Stats Row */}
         <View style={styles.coreStatsRow}>
-          <View style={styles.coreStatCard}>
+          <View style={[styles.coreStatCard, styles.coreStatCardFlame]}>
             <View style={styles.coreStatIconBg}>
-              <FlameIcon size={32} gradient={true} />
+              <FlameIcon size={38} gradient={true} />
             </View>
-            <Text style={styles.coreStatValue}>{profile?.currentStreakDays || 0}</Text>
-            <Text style={styles.coreStatLabel}>Días Seguidos</Text>
+            <Text style={[styles.coreStatValue, { color: "#9f1239" }]}>{profile?.currentStreakDays || 0}</Text>
+            <Text style={[styles.coreStatLabel, { color: "#be123c" }]}>Racha</Text>
           </View>
           
-          <View style={styles.coreStatCard}>
+          <View style={[styles.coreStatCard, styles.coreStatCardZap]}>
             <View style={styles.coreStatIconBg}>
-              <LightningIcon size={32} gradient={true} />
+              <LightningIcon size={38} gradient={true} />
             </View>
-            <Text style={styles.coreStatValue}>{profile?.experience || 0}</Text>
-            <Text style={styles.coreStatLabel}>Total XP</Text>
+            <Text style={[styles.coreStatValue, { color: "#854d0e" }]}>{profile?.experience || 0}</Text>
+            <Text style={[styles.coreStatLabel, { color: "#a16207" }]}>XP Total</Text>
           </View>
 
-          <View style={styles.coreStatCard}>
+          <View style={[styles.coreStatCard, styles.coreStatCardTrophy]}>
             <View style={styles.coreStatIconBg}>
-              <TrophyIcon size={32} gradient={true} />
+              <TrophyIcon size={38} gradient={true} />
             </View>
-            <Text style={styles.coreStatValue}>{profile?.level || 1}</Text>
-            <Text style={styles.coreStatLabel}>Nivel Actual</Text>
+            <Text style={[styles.coreStatValue, { color: "#1e3a8a" }]}>{profile?.level || 1}</Text>
+            <Text style={[styles.coreStatLabel, { color: "#1d4ed8" }]}>Nivel</Text>
           </View>
         </View>
 
@@ -421,44 +421,62 @@ const styles = StyleSheet.create({
   coreStatsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 32,
     gap: 12,
   },
   coreStatCard: {
     flex: 1,
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 16,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 6,
+    borderWidth: 2,
+  },
+  coreStatCardFlame: {
+    backgroundColor: "#fff1f2",
+    borderColor: "#ffe4e6",
+    shadowColor: "#f43f5e",
+  },
+  coreStatCardZap: {
+    backgroundColor: "#fffbeb",
+    borderColor: "#fef3c7",
+    shadowColor: "#fbbf24",
+  },
+  coreStatCardTrophy: {
+    backgroundColor: "#eff6ff",
+    borderColor: "#dbeafe",
+    shadowColor: "#3b82f6",
   },
   coreStatIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 3,
   },
   coreStatValue: {
-    fontSize: 20,
+    fontSize: 26,
     fontWeight: "900",
-    color: "#0f172a",
     marginBottom: 4,
   },
   coreStatLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#64748b",
+    fontSize: 11,
+    fontWeight: "800",
     textAlign: "center",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 
   // Sections Common
