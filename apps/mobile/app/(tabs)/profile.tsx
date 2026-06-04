@@ -104,6 +104,11 @@ export default function ProfileScreen() {
                 <Text style={styles.socialStatLabel}>Exámenes</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Edit Profile Button */}
+            <TouchableOpacity style={styles.editProfileButton}>
+              <Text style={styles.editProfileText}>Editar Perfil</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -381,6 +386,22 @@ const styles = StyleSheet.create({
     width: 1,
     height: 32,
     backgroundColor: "#e2e8f0",
+  },
+
+  // Edit Profile Button
+  editProfileButton: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 32,
+    backgroundColor: "#f8fafc",
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+  },
+  editProfileText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#475569",
   },
 
   // Level Progress Bar
