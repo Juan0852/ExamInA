@@ -24,7 +24,7 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 | P1 | Feed/Comunidad: publicaciones tipo red social | API/Web/Mobile | Abierto |
 | P1 | Modo Arquitecto de examenes en web | Web | Abierto |
 | P2 | Sistema de amigos (Friends) | API/Web/Mobile | Abierto |
-| P2 | Mejorar pantalla de perfil en mobile | Mobile | Abierto |
+| Cerrado | Mejorar pantalla de perfil en mobile | Mobile | Cerrado 2026-06-04 |
 | P2 | Medallas y toasts de logros dentro del perfil mobile | Mobile/Achievements | Abierto |
 | P2 | Dashboard mobile no conserva paridad visual con web | Mobile/Web | Abierto |
 | Cerrado | Placeholders en flujos reales | Mobile/API | Cerrado 2026-06-02 |
@@ -590,7 +590,7 @@ Branch sugerida: `feature/friends-system`
 
 ### 29. Mejorar pantalla de perfil en mobile
 
-Estado: Abierto
+Estado: Cerrado el 2026-06-04.
 
 Problema:
 La pantalla de perfil en mobile es funcional pero basica. Necesita mejoras visuales y de contenido para estar al nivel del resto de la app.
@@ -603,9 +603,8 @@ Requerimientos:
 - Boton de cerrar sesion y gestion de cuenta.
 - Progress bar de XP para el siguiente nivel.
 
-Impacto: El perfil es la "casa" del usuario; si se ve pobre, toda la app se siente incompleta.
-
-Branch sugerida: `feature/mobile-profile-v2`
+Solución aplicada:
+Se reconstruyó la interfaz con pestañas (Logros, Exámenes, Amigos, Publicaciones) conectadas mediante react-query. Se arregló el error de SafeAreaView, se agregó soporte de Banner con edición y se homologaron todos los componentes usando el sistema de diseño.
 
 ### 30. Medallas y toasts de logros dentro del perfil mobile
 
