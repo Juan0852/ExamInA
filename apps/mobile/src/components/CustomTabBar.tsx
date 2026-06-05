@@ -149,7 +149,7 @@ export function CustomTabBar({ state, navigation }: CustomTabBarProps) {
               "Elige una opción",
               [
                 { text: "Cancelar", style: "cancel" },
-                { text: "Nuevo Examen", onPress: () => navigation.navigate("temario") },
+                { text: "Nuevo Examen", onPress: () => navigation.navigate("examenes") },
                 { text: "Nueva Publicación", onPress: () => navigation.navigate("feed") },
               ]
             );
@@ -187,14 +187,14 @@ export function CustomTabBar({ state, navigation }: CustomTabBarProps) {
           <TouchableOpacity
             style={styles.tabItem}
             activeOpacity={0.7}
-            onPress={() => navigation.navigate("temario")}
+            onPress={() => navigation.navigate("examenes")}
           >
             <FileText
               size={22}
-              color={active("temario") ? theme.colors.brandBlue : "#94a3b8"}
-              strokeWidth={active("temario") ? 2.5 : 1.8}
+              color={active("examenes") ? theme.colors.brandBlue : "#94a3b8"}
+              strokeWidth={active("examenes") ? 2.5 : 1.8}
             />
-            <Text style={[styles.label, active("temario") && styles.labelActive]}>
+            <Text style={[styles.label, active("examenes") && styles.labelActive]}>
               Exámenes
             </Text>
           </TouchableOpacity>

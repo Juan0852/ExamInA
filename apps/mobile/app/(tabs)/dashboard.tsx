@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDashboardViewModel } from "../../src/viewmodels/useDashboardViewModel";
 import { useAuthStore } from "../../src/stores/auth.store";
+import { useAchievementToastStore } from "../../src/stores/achievement-toast.store";
 import { theme } from "../../src/theme";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 import { 
   AlertCircle, 
   Trophy, 
@@ -138,24 +140,54 @@ export default function DashboardScreen() {
     user?.profile?.longestStreakDays ?? 0
   );
 
+  const currentLevel = summary?.progress.level ?? 1;
+  const currentXP = summary?.progress.experience ?? 0;
+  const currentLevelBaseXP = 50 * (currentLevel - 1) * currentLevel;
+  const nextLevelXP = 50 * currentLevel * (currentLevel + 1);
+  const xpIntoCurrentLevel = Math.max(0, currentXP - currentLevelBaseXP);
+  const xpRequiredForNextLevel = nextLevelXP - currentLevelBaseXP;
+  const progressPercentage = Math.min(100, Math.max(0, Math.round((xpIntoCurrentLevel / xpRequiredForNextLevel) * 100)));
+  const xpRemaining = Math.max(0, nextLevelXP - currentXP);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
       <ScrollView 
         contentContainerStyle={styles.scrollContainer}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={theme.colors.brandBlue} />}
       >
-        <View style={styles.headerCard}>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.greetingTitle}>{greeting}</Text>
-            <Text style={styles.greetingSubtitle}>Continúa preparando tus exámenes PAU hoy.</Text>
-          </View>
-          <View style={styles.levelBadge}>
-            <View style={styles.trophyIcon}>
-              <Trophy size={20} color="#fff" />
+        <View style={[styles.headerCard, { flexDirection: "column", alignItems: "stretch", padding: 24 }]}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.greetingTitle}>{greeting} 👋</Text>
+              <Text style={styles.greetingSubtitle}>Continúa preparando tus exámenes PAU hoy.</Text>
             </View>
-            <View>
-              <Text style={styles.levelLabel}>Nivel actual</Text>
-              <Text style={styles.levelValue}>Nivel {summary?.progress.level ?? 1}</Text>
+          </View>
+          <View style={[styles.levelBadge, { alignSelf: "stretch", flexDirection: "row", alignItems: "center", backgroundColor: "#f8fafc" }]}>
+            <LinearGradient
+              colors={["#fbbf24", "#f97316"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.trophyIcon, { shadowColor: "#f97316", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }]}
+            >
+              <Trophy size={20} color="#fff" />
+            </LinearGradient>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <Text style={styles.levelLabel}>Nivel {currentLevel}</Text>
+                <Text style={{ fontSize: 10, fontWeight: "bold", color: "#f97316" }}>Faltan {xpRemaining} XP</Text>
+              </View>
+              <View style={{ height: 6, backgroundColor: "#e2e8f0", borderRadius: 3, marginTop: 6, overflow: "hidden" }}>
+                <LinearGradient
+                  colors={["#fbbf24", "#f97316"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ height: "100%", width: `${progressPercentage}%`, borderRadius: 3 }}
+                />
+              </View>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+                <Text style={{ fontSize: 10, fontWeight: "bold", color: "#94a3b8" }}>{currentLevelBaseXP}</Text>
+                <Text style={{ fontSize: 10, fontWeight: "bold", color: "#94a3b8" }}>{currentXP} / {nextLevelXP}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -173,12 +205,22 @@ export default function DashboardScreen() {
                 <View>
                   <Text style={styles.statTitle}>Racha de Estudio</Text>
                   <View style={styles.streakValueContainer}>
-                    <Text style={styles.statValue}>{summary?.streak.currentCount ?? 0} días</Text>
+                    <Text style={styles.statValue}>{summary?.streak.currentCount ?? 0} {(summary?.streak.currentCount === 1) ? "día" : "días"}</Text>
                   </View>
+                  <Text style={{ fontSize: 10, fontWeight: "bold", color: "#f97316", marginTop: 2, width: 180 }}>
+                    {(summary?.streak.currentCount ?? 0) > 0 
+                      ? "activa" 
+                      : "Haz un examen por temas u oficial para comenzar tu racha de estudio"}
+                  </Text>
                 </View>
-                <View style={[styles.statIconBadge, { backgroundColor: "#ffedd5" }]}>
-                  <Flame size={24} color="#f97316" />
-                </View>
+                <LinearGradient
+                  colors={["#fb923c", "#ef4444"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.statIconBadge, { shadowColor: "#f97316", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }]}
+                >
+                  <Flame size={24} color="#fff" />
+                </LinearGradient>
               </View>
               <View style={styles.streakDaysRow}>
                 {streakDays.map((day, idx) => {
@@ -233,9 +275,14 @@ export default function DashboardScreen() {
                   <Text style={styles.statTitle}>Tiempo Hoy</Text>
                   <Text style={styles.statValue}>{formatSecondsSmart(summary?.studyTime.todayStudySeconds ?? 0)}</Text>
                 </View>
-                <View style={[styles.statIconBadge, { backgroundColor: "#e0e7ff" }]}>
-                  <Clock size={24} color="#6366f1" />
-                </View>
+                <LinearGradient
+                  colors={["#3b82f6", "#6366f1"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.statIconBadge, { shadowColor: "#3b82f6", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }]}
+                >
+                  <Clock size={24} color="#fff" />
+                </LinearGradient>
               </View>
               <View style={styles.timeBreakdownRow}>
                 <View style={styles.timeBreakdownBox}>
@@ -502,6 +549,34 @@ export default function DashboardScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* DEV MODE BUTTON FOR TOAST TESTING */}
+      <View style={{ position: "absolute", top: 10, right: 10, zIndex: 9999, elevation: 9999 }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: "#000",
+            padding: 12,
+            borderRadius: 30,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 5
+          }}
+          onPress={() => {
+            const mockAchievements = [
+              { id: Date.now().toString() + "_1", code: "FIRST_ANSWER", title: "Primera Sangre", description: "Has respondido tu primera pregunta", experienceReward: 50 },
+              { id: Date.now().toString() + "_2", code: "PERFECT_EXAM", title: "Examen Perfecto", description: "Has sacado un 10", experienceReward: 500 },
+              { id: Date.now().toString() + "_3", code: "SECRET_NIGHT_OWL", title: "Búho Nocturno", description: "Estudiaste a las 3 AM", experienceReward: 100 }
+            ];
+            useAchievementToastStore.getState().pushAchievements([
+              mockAchievements[Math.floor(Math.random() * mockAchievements.length)] as any
+            ]);
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 12 }}>DEV: Toast</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }

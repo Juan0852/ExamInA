@@ -219,6 +219,13 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
     }
 
     const result = await response.json();
+    
+    // Interceptar respuesta para mostrar toasts de logros desbloqueados globalmente
+    if ((result as any)?.meta?.newlyUnlockedAchievements?.length > 0) {
+      const { useAchievementToastStore } = await import("../stores/achievement-toast.store");
+      useAchievementToastStore.getState().pushAchievements((result as any).meta.newlyUnlockedAchievements);
+    }
+    
     return result as T;
   } catch (e: any) {
     console.error("HTTP request error on path: " + path, e);

@@ -19,8 +19,16 @@ export default function TabLayout() {
           options={{ title: "Inicio" }}
         />
         <Tabs.Screen
-          name="temario"
-          options={{ title: "Temario" }}
+          name="examenes"
+          options={{ title: "Exámenes" }}
+        />
+        <Tabs.Screen
+          name="por-temas"
+          options={{ href: null, title: "Por Temas" }}
+        />
+        <Tabs.Screen
+          name="oficiales-completos"
+          options={{ href: null, title: "Exámenes Oficiales" }}
         />
         <Tabs.Screen
           name="feed"
