@@ -256,7 +256,7 @@ export function DashboardPage() {
           </div>
 
           <p className="mt-5 text-xs font-medium text-slate-500 dark:text-slate-400">
-            La barra muestra dos días anteriores, el día actual y los próximos dos. Si fallas un día, el corte queda marcado en la línea.
+            Mantén tu racha estudiando todos los días sin falta para no perder el progreso.
           </p>
         </button>
 

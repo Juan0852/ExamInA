@@ -3,7 +3,7 @@ import { apiService } from "./api.service";
 export interface PresignUploadRequest {
   fileName: string;
   contentType: string;
-  purpose: "AVATAR" | "BANNER" | "ATTEMPT_ATTACHMENT" | "EXAM_ATTACHMENT" | "OCR_SOURCE" | "OTHER";
+  purpose: "AVATAR" | "BANNER" | "ATTEMPT_ATTACHMENT" | "QUESTION_ATTACHMENT" | "OCR_SOURCE" | "OTHER";
   visibility: "PUBLIC" | "PRIVATE";
 }
 

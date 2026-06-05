@@ -111,6 +111,9 @@ export class SharedExamsService {
       description?: string;
       visibility?: string;
       allowCloning?: boolean;
+      subjectId?: string;
+      topicId?: string;
+      topicName?: string;
       questions: {
         questionId?: string;
         customQuestion?: {
@@ -120,6 +123,8 @@ export class SharedExamsService {
           difficulty: string;
           finalAnswer: string;
           explanation: string;
+          fileAssetId?: string;
+          imageUrl?: string;
         };
       }[];
     },
@@ -141,6 +146,9 @@ export class SharedExamsService {
       description: input.description,
       visibility: prismaVisibility,
       allowCloning: input.allowCloning,
+      subjectId: input.subjectId,
+      topicId: input.topicId,
+      topicName: input.topicName,
       questions: input.questions
     });
 

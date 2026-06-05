@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Medal, Sparkles, Trophy, Camera, Loader2, Edit, Users, MessageSquare, Heart, Lock, Globe, Shield } from "lucide-react";
+import { CalendarDays, Sparkles, Trophy, Camera, Loader2, Edit, Users, MessageSquare, Heart, Lock, Globe, Shield, X, Moon, Sun } from "lucide-react";
 import { useAuthStore } from "../stores/auth.store";
 import { AchievementMedal } from "../shared/achievements/AchievementMedal";
 import type { AchievementsResponse } from "../shared/achievements/types";
@@ -12,21 +12,19 @@ export function ProfilePage() {
   const setSession = useAuthStore((state) => state.setSession);
   const token = useAuthStore((state) => state.token);
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"ACHIEVEMENTS" | "EXAMS" | "FRIENDS" | "POSTS">("ACHIEVEMENTS");
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
-  const [avatarError, setAvatarError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const bannerFileInputRef = useRef<HTMLInputElement>(null);
+  const editAvatarInputRef = useRef<HTMLInputElement>(null);
+  const editBannerInputRef = useRef<HTMLInputElement>(null);
   const [selectedFriend, setSelectedFriend] = useState<any | null>(null);
-
-
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editDisplayName, setEditDisplayName] = useState("");
   const [editUsername, setEditUsername] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editTargetUniversity, setEditTargetUniversity] = useState("");
+  const [editPhotoUrl, setEditPhotoUrl] = useState("");
+  const [editBannerUrl, setEditBannerUrl] = useState("");
+  const [isUploadingEditAvatar, setIsUploadingEditAvatar] = useState(false);
+  const [isUploadingEditBanner, setIsUploadingEditBanner] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -35,6 +33,8 @@ export function ProfilePage() {
     setEditUsername(user?.profile?.username || "");
     setEditBio(user?.profile?.bio || "");
     setEditTargetUniversity(user?.profile?.targetUniversity || "");
+    setEditPhotoUrl(user?.photoUrl || "");
+    setEditBannerUrl(user?.profile?.bannerUrl || "");
     setSaveError(null);
     setIsEditModalOpen(true);
   };
@@ -67,7 +67,9 @@ export function ProfilePage() {
         displayName: editDisplayName.trim() || undefined,
         username: cleanUsername || undefined,
         bio: editBio.trim() || "",
-        targetUniversity: editTargetUniversity.trim() || ""
+        targetUniversity: editTargetUniversity.trim() || "",
+        photoUrl: editPhotoUrl || "",
+        bannerUrl: editBannerUrl || ""
       });
 
       setSession(token, response.data.user);
@@ -82,7 +84,9 @@ export function ProfilePage() {
 
   const achievementsQuery = useQuery<AchievementsResponse, Error>({
     queryKey: ["achievements-me"],
-    queryFn: () => apiService.get<AchievementsResponse>("/achievements/me")
+    queryFn: () => apiService.get<AchievementsResponse>("/achievements/me"),
+    enabled: !!token,
+    refetchOnMount: "always"
   });
 
   const myExamsQuery = useQuery({
@@ -153,286 +157,194 @@ export function ProfilePage() {
     }
   });
 
-  
-  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditImageChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    purpose: "AVATAR" | "BANNER"
+  ) => {
     const file = e.target.files?.[0];
     if (!file || !token) return;
 
     if (!file.type.startsWith("image/")) {
-      setAvatarError("Selecciona un archivo de imagen.");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setAvatarError("La imagen no puede superar 5 MB.");
-      return;
-    }
-
-    setIsUploadingBanner(true);
-    setAvatarError(null);
-
-    try {
-      const result = await fileUploadService.uploadImage(file, "BANNER");
-      await apiService.put("/auth/profile", { bannerUrl: result.url });
-
-      if (user) {
-        setSession(token, {
-          ...user,
-          profile: user.profile ? { ...user.profile, bannerUrl: result.url } : user.profile
-        });
-      }
-    } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : "Error al subir la portada.");
-    } finally {
-      setIsUploadingBanner(false);
-      if (bannerFileInputRef.current) bannerFileInputRef.current.value = "";
-    }
-  };
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !token) return;
-
-    if (!file.type.startsWith("image/")) {
-      setAvatarError("Selecciona un archivo de imagen.");
+      setSaveError("Selecciona un archivo de imagen.");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setAvatarError("La imagen no puede superar 5 MB.");
+      setSaveError("La imagen no puede superar 5 MB.");
       return;
     }
 
-    setIsUploadingAvatar(true);
-    setAvatarError(null);
+    if (purpose === "AVATAR") {
+      setIsUploadingEditAvatar(true);
+    } else {
+      setIsUploadingEditBanner(true);
+    }
+    setSaveError(null);
 
     try {
-      const result = await fileUploadService.uploadImage(file, "AVATAR");
-
-      await apiService.put("/auth/profile", {
-        photoUrl: result.url
-      });
-
-      if (user) {
-        setSession(token, { ...user, photoUrl: result.url });
+      const result = await fileUploadService.uploadImage(file, purpose);
+      if (purpose === "AVATAR") {
+        setEditPhotoUrl(result.url);
+      } else {
+        setEditBannerUrl(result.url);
       }
-
-      await queryClient.invalidateQueries({ queryKey: ["achievements-me"] });
     } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : "Error al subir la imagen.");
+      setSaveError(err instanceof Error ? err.message : "Error al subir la imagen.");
     } finally {
-      setIsUploadingAvatar(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setIsUploadingEditAvatar(false);
+      setIsUploadingEditBanner(false);
+      e.currentTarget.value = "";
     }
   };
+
+  const profileInitial = (user?.profile?.username || user?.displayName || user?.email || "E").charAt(0).toUpperCase();
+  const profileBannerUrl = user?.profile?.bannerUrl || "/galaxy-banner.png";
+  const editPreviewInitial = (editUsername || editDisplayName || user?.email || "E").charAt(0).toUpperCase();
 
   return (
     <div className="space-y-8">
       <section className="overflow-hidden rounded-3xl border border-brand-blue/10 bg-white shadow-xl shadow-brand-blue/5 dark:border-brand-cyan/15 dark:bg-[#0E1B2F]">
-        <div className="relative bg-gradient-to-r from-brand-blue via-brand-cyan to-fuchsia-500 px-6 py-10 text-white">
-          <div className="absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_20%_20%,white_0,transparent_24%),radial-gradient(circle_at_80%_10%,white_0,transparent_18%)]" />
-          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-center gap-4">
-              <label className="group relative cursor-pointer">
-                {user?.photoUrl ? (
-                  <img
-                    src={user.photoUrl}
-                    alt={user.displayName || "Perfil"}
-                    className="h-20 w-20 rounded-3xl border-4 border-white/60 object-cover shadow-xl transition group-hover:brightness-90"
-                  />
-                ) : (
-                  <div className="grid h-20 w-20 place-items-center rounded-3xl border-4 border-white/60 bg-white/20 text-3xl font-black shadow-xl transition group-hover:bg-white/30">
-                    {(user?.profile?.username || user?.displayName || user?.email || "E").charAt(0).toUpperCase()}
-                  </div>
-                )}
-                {isUploadingAvatar ? (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/40">
-                    <Loader2 size={24} className="animate-spin text-white" />
-                  </div>
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
-                    <Camera size={22} className="text-white drop-shadow-lg" />
-                  </div>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="sr-only"
-                  disabled={isUploadingAvatar}
-                  onChange={handleAvatarChange}
-                />
-              </label>
-              <div className="flex-1">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-white/75">
-                  Perfil ExamInA
-                </p>
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <h1 className="text-3xl font-black tracking-tight">
+        <div className="relative">
+          <div className="relative h-48 overflow-hidden bg-brand-navy sm:h-56">
+            <img
+              src={profileBannerUrl}
+              alt="Portada del perfil"
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/85 via-brand-navy/30 to-black/25" />
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent" />
+            <div className="absolute left-6 right-6 top-5 flex items-center justify-between gap-3">
+              <span className="rounded-full border border-white/15 bg-white/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-white shadow-lg backdrop-blur-md">
+                Perfil ExamInA
+              </span>
+              <button
+                onClick={openEditModal}
+                className="inline-flex items-center gap-1.5 rounded-2xl border border-white/15 bg-white/15 px-3.5 py-2 text-xs font-black uppercase tracking-wider text-white shadow-lg backdrop-blur-md transition hover:bg-white/25 cursor-pointer"
+              >
+                <Edit size={14} className="text-brand-cyan" />
+                Editar perfil
+              </button>
+            </div>
+          </div>
+
+          <div className="absolute left-6 top-48 z-20 -translate-y-1/2 sm:top-56">
+            {user?.photoUrl ? (
+              <img
+                src={user.photoUrl}
+                alt={user.displayName || "Perfil"}
+                className="h-32 w-32 rounded-full border-4 border-white bg-white object-cover shadow-2xl shadow-brand-blue/20 dark:border-[#0E1B2F] dark:bg-[#0E1B2F]"
+              />
+            ) : (
+              <div className="grid h-32 w-32 place-items-center rounded-full border-4 border-white bg-gradient-to-br from-brand-blue to-brand-cyan text-4xl font-black text-white shadow-2xl shadow-brand-blue/20 dark:border-[#0E1B2F]">
+                {profileInitial}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="px-6 pb-6 pt-20 sm:pl-44 sm:pt-5">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="min-w-0 pb-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-3xl font-black tracking-tight text-brand-navy dark:text-white">
                     {user?.displayName || user?.profile?.username || "Estudiante"}
                   </h1>
                   {user?.profile?.username && user?.displayName && (
-                    <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-extrabold tracking-wide backdrop-blur">
+                    <span className="rounded-full bg-brand-sky px-2.5 py-1 text-xs font-extrabold tracking-wide text-brand-blue dark:bg-brand-blue/15 dark:text-brand-cyan">
                       @{user.profile.username}
                     </span>
                   )}
                   {user?.role && (
-                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider backdrop-blur flex items-center gap-1 border ${
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
                       user.role === "ADMIN"
-                        ? "bg-amber-500/25 text-amber-100 border-amber-400/30"
+                        ? "border-amber-300/40 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                         : user.role === "MODERATOR"
-                        ? "bg-indigo-500/25 text-indigo-150 border-indigo-400/30"
-                        : "bg-white/15 text-white/95 border-white/10"
+                        ? "border-indigo-300/40 bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300"
+                        : "border-brand-cyan/20 bg-brand-cyan/10 text-brand-blue dark:text-brand-cyan"
                     }`}>
-                      {user.role === "ADMIN" && <Sparkles size={10} className="text-amber-300" />}
-                      {user.role === "MODERATOR" && <Shield size={10} className="text-indigo-300" />}
+                      {user.role === "ADMIN" && <Sparkles size={10} />}
+                      {user.role === "MODERATOR" && <Shield size={10} />}
                       {user.role === "ADMIN" ? "Admin" : user.role === "MODERATOR" ? "Moderador" : "Estudiante"}
                     </span>
                   )}
                 </div>
 
-                <p className="mt-1 max-w-xl text-sm font-semibold text-white/80">
+                <p className="mt-2 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-300">
                   {user?.profile?.bio || "Tu vitrina de progreso, rachas y medallas desbloqueadas."}
                 </p>
                 {user?.profile?.targetUniversity && (
-                  <p className="mt-2 flex items-center gap-1.5 text-xs font-extrabold text-white/95">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-cyan animate-pulse" />
-                    Universidad objetivo: <span className="text-brand-cyan">{user.profile.targetUniversity}</span>
+                  <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-extrabold text-slate-600 dark:bg-brand-navy/30 dark:text-slate-300">
+                    <span className="h-2 w-2 rounded-full bg-brand-cyan shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
+                    Universidad objetivo: <span className="text-brand-blue dark:text-brand-cyan">{user.profile.targetUniversity}</span>
                   </p>
                 )}
-                
-                <div className="mt-4 flex items-center gap-4 text-white/90">
-                  <div className="flex flex-col items-center">
-                    <span className="text-lg font-black">{myFriendsQuery.data?.data?.length || 0}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">Amigos</span>
-                  </div>
-                  <div className="h-6 w-px bg-white/20" />
-                  <div className="flex flex-col items-center">
-                    <span className="text-lg font-black">{myPostsQuery.data?.data?.length || 0}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">Publicaciones</span>
-                  </div>
-                  <div className="h-6 w-px bg-white/20" />
-                  <div className="flex flex-col items-center">
-                    <span className="text-lg font-black">{myExamsQuery.data?.data?.length || 0}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">Exámenes</span>
-                  </div>
-                </div>
-                <button
-                  onClick={openEditModal}
-                  className="mt-3.5 flex items-center gap-1.5 rounded-2xl bg-white/15 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-white hover:bg-white/25 border border-white/10 hover:border-white/25 backdrop-blur transition cursor-pointer"
-                >
-                  <Edit size={13} className="text-brand-cyan" />
-                  Editar Perfil
-                </button>
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 sm:min-w-64">
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur border border-white/10">
-                  <p className="text-2xl font-black">{unlockedAchievements.length}</p>
-                  <p className="text-[11px] font-bold uppercase text-white/75">Medallas</p>
-                </div>
-                <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur border border-white/10">
-                  <p className="text-2xl font-black">{totalXp}</p>
-                  <p className="text-[11px] font-bold uppercase text-white/75">XP logros</p>
+            <div className="flex shrink-0 items-center gap-2 pb-1 sm:pt-1">
+              <button
+                type="button"
+                disabled
+                aria-label="Cambio de tema bloqueado por ahora"
+                className="relative grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm opacity-70 dark:border-brand-cyan/15 dark:bg-brand-navy/20 dark:text-slate-500 cursor-not-allowed"
+                title="Cambio de tema bloqueado por ahora"
+              >
+                <Moon size={18} className="dark:hidden" />
+                <Sun size={18} className="hidden dark:block" />
+                <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full border border-white bg-slate-900 text-white shadow-sm dark:border-[#0E1B2F]">
+                  <Lock size={10} />
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-center dark:border-brand-cyan/10 dark:bg-brand-navy/25">
+              <p className="text-2xl font-black text-brand-blue dark:text-brand-cyan">{unlockedAchievements.length}</p>
+              <p className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400">Medallas</p>
+            </div>
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-center dark:border-brand-cyan/10 dark:bg-brand-navy/25">
+              <p className="text-2xl font-black text-brand-blue dark:text-brand-cyan">{totalXp}</p>
+              <p className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400">XP logros</p>
+            </div>
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 dark:border-brand-cyan/10 dark:bg-brand-navy/25">
+              <div className="flex items-center justify-between gap-4">
+                <div className="text-xs font-black uppercase tracking-wider text-brand-navy dark:text-white">Nivel {currentLevel}</div>
+                <div className="text-[10px] font-black text-amber-500">
+                  Faltan {xpRemaining} XP
                 </div>
               </div>
-              
-              <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur border border-white/10 text-left">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="text-xs text-white/75 font-bold uppercase tracking-wider">Nivel {currentLevel}</div>
-                  <div className="text-[10px] font-bold text-amber-300">
-                    Faltan {xpRemaining} XP
-                  </div>
-                </div>
-                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-black/20">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-amber-300 to-orange-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
-                    style={{ width: `${progressPercentage}%` }}
-                  />
-                </div>
-                <div className="mt-1 flex justify-between text-[10px] font-bold text-white/60">
-                  <span>{currentLevelBaseXP}</span>
-                  <span>{currentXP} / {nextLevelXP}</span>
-                </div>
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-black/25">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-amber-300 to-orange-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
+                  style={{ width: `${progressPercentage}%` }}
+                />
+              </div>
+              <div className="mt-1 flex justify-between text-[10px] font-bold text-slate-400">
+                <span>{currentLevelBaseXP}</span>
+                <span>{currentXP} / {nextLevelXP}</span>
               </div>
             </div>
           </div>
         </div>
-
-        {avatarError && (
-          <div className="mx-6 mt-3 rounded-xl bg-red-50 px-4 py-2 text-xs font-bold text-red-500 dark:bg-red-950/20 dark:text-red-400">
-            {avatarError}
-          </div>
-        )}
       </section>
 
-      {/* Tab Navigation */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200 dark:border-brand-navy/30 mb-6">
-        <button
-          onClick={() => setActiveTab("ACHIEVEMENTS")}
-          className={`flex items-center gap-2 rounded-t-2xl border-b-2 px-5 py-3 text-sm font-black transition-colors ${
-            activeTab === "ACHIEVEMENTS"
-              ? "border-brand-cyan bg-brand-cyan/10 text-brand-cyan dark:text-brand-cyan"
-              : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-brand-navy/20 dark:hover:text-white"
-          }`}
-        >
-          <Trophy size={16} />
-          Logros
-        </button>
-        <button
-          onClick={() => setActiveTab("EXAMS")}
-          className={`flex items-center gap-2 rounded-t-2xl border-b-2 px-5 py-3 text-sm font-black transition-colors ${
-            activeTab === "EXAMS"
-              ? "border-brand-cyan bg-brand-cyan/10 text-brand-cyan dark:text-brand-cyan"
-              : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-brand-navy/20 dark:hover:text-white"
-          }`}
-        >
-          <CalendarDays size={16} />
-          Mis Exámenes
-        </button>
-        <button
-          onClick={() => setActiveTab("FRIENDS")}
-          className={`flex items-center gap-2 rounded-t-2xl border-b-2 px-5 py-3 text-sm font-black transition-colors ${
-            activeTab === "FRIENDS"
-              ? "border-brand-cyan bg-brand-cyan/10 text-brand-cyan dark:text-brand-cyan"
-              : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-brand-navy/20 dark:hover:text-white"
-          }`}
-        >
-          <Users size={16} />
-          Amigos
-        </button>
-        <button
-          onClick={() => setActiveTab("POSTS")}
-          className={`flex items-center gap-2 rounded-t-2xl border-b-2 px-5 py-3 text-sm font-black transition-colors ${
-            activeTab === "POSTS"
-              ? "border-brand-cyan bg-brand-cyan/10 text-brand-cyan dark:text-brand-cyan"
-              : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-brand-navy/20 dark:hover:text-white"
-          }`}
-        >
-          <MessageSquare size={16} />
-          Publicaciones
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-
-        {activeTab === "ACHIEVEMENTS" && (
-          <div className="max-w-4xl mx-auto space-y-6">
+      {/* Unified Single-Screen Layout Grid */}
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Left Column (Sidebar): Medallas & Amigos */}
+        <div className="lg:col-span-1 space-y-6">
           <AchievementSection
             title="Medallas"
             description="Tu progreso y logros desbloqueados."
             achievements={achievements}
+            isLoading={achievementsQuery.isLoading}
+            isError={achievementsQuery.isError}
+            errorText={achievementsQuery.error?.message}
             emptyText="No se encontraron medallas."
           />
 
 
-          </div>
-        )}
-
-        {activeTab === "FRIENDS" && (
-          <div className="max-w-2xl mx-auto space-y-6">
           {/* Amigos Section */}
           <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl shadow-brand-blue/5 dark:border-brand-cyan/15 dark:bg-[#0E1B2F] space-y-4">
             <div>
@@ -493,11 +405,12 @@ export function ProfilePage() {
               </div>
             )}
           </div>
-          </div>
-        )}
+        </div>
 
-        {activeTab === "EXAMS" && (
-          <div className="max-w-4xl mx-auto space-y-6">
+
+
+        {/* Right Column (Main Content): Exámenes & Publicaciones */}
+        <div className="lg:col-span-2 space-y-6">
           {/* Mis Exámenes Section */}
           <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl shadow-brand-blue/5 dark:border-brand-cyan/15 dark:bg-[#0E1B2F] space-y-4">
             <div>
@@ -576,11 +489,7 @@ export function ProfilePage() {
               </div>
             )}
           </div>
-          </div>
-        )}
 
-        {activeTab === "POSTS" && (
-          <div className="max-w-4xl mx-auto space-y-6">
           {/* Mis Publicaciones Section */}
           <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl shadow-brand-blue/5 dark:border-brand-cyan/15 dark:bg-[#0E1B2F] space-y-4">
             <div>
@@ -642,112 +551,189 @@ export function ProfilePage() {
               </div>
             )}
           </div>
-          </div>
-        )}
+        </div>
       </div>
 
 
 
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-md scale-100 rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-brand-cyan/15 dark:bg-[#0E1B2F] animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-brand-navy/30">
-              <h2 className="text-lg font-black text-brand-navy dark:text-white">
-                Editar Perfil
-              </h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="my-6 w-full max-w-2xl scale-100 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-brand-cyan/15 dark:bg-[#0E1B2F] animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-brand-navy/30">
+              <div>
+                <h2 className="text-lg font-black text-brand-navy dark:text-white">
+                  Editar perfil
+                </h2>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  Ajusta tu portada, foto y datos públicos.
+                </p>
+              </div>
               <button
                 onClick={() => setIsEditModalOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-brand-navy/30"
+                className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-brand-navy/30 cursor-pointer"
               >
-                ✕
+                <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProfile} className="mt-4 space-y-4">
-              {saveError && (
-                <div className="rounded-xl bg-red-50 px-4 py-2.5 text-xs font-bold text-red-500 dark:bg-red-950/20 dark:text-red-400">
-                  {saveError}
-                </div>
-              )}
+            <form onSubmit={handleSaveProfile}>
+              <div className="max-h-[calc(100vh-11rem)] overflow-y-auto px-6 py-5">
+                {saveError && (
+                  <div className="mb-5 rounded-xl bg-red-50 px-4 py-2.5 text-xs font-bold text-red-500 dark:bg-red-950/20 dark:text-red-400">
+                    {saveError}
+                  </div>
+                )}
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
-                  Nombre Completo
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editDisplayName}
-                  onChange={(e) => setEditDisplayName(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan"
-                  placeholder="Tu nombre completo"
-                />
-              </div>
+                <div className="relative overflow-visible rounded-3xl border border-slate-200 bg-slate-100 shadow-inner dark:border-brand-cyan/15 dark:bg-brand-navy/20">
+                  <button
+                    type="button"
+                    onClick={() => editBannerInputRef.current?.click()}
+                    disabled={isUploadingEditBanner || isSavingProfile}
+                    className="group relative h-40 w-full overflow-hidden rounded-3xl text-left disabled:cursor-not-allowed disabled:opacity-80 sm:h-48 cursor-pointer"
+                  >
+                    <img
+                      src={editBannerUrl || "/galaxy-banner.png"}
+                      alt="Vista previa de portada"
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/70 via-brand-navy/20 to-black/10" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover:opacity-100">
+                      <span className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-black/35 px-4 py-2 text-xs font-black uppercase tracking-wider text-white backdrop-blur-md">
+                        {isUploadingEditBanner ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Camera size={16} className="text-brand-cyan" />
+                        )}
+                        Cambiar portada
+                      </span>
+                    </div>
+                  </button>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
-                  Nombre de Usuario
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-extrabold text-slate-400">
-                    @
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => editAvatarInputRef.current?.click()}
+                    disabled={isUploadingEditAvatar || isSavingProfile}
+                    className="group absolute -bottom-10 left-5 grid h-24 w-24 place-items-center overflow-hidden rounded-full border-4 border-white bg-white text-3xl font-black text-white shadow-2xl shadow-brand-blue/20 transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-80 dark:border-[#0E1B2F] dark:bg-[#0E1B2F] cursor-pointer"
+                  >
+                    {editPhotoUrl ? (
+                      <img
+                        src={editPhotoUrl}
+                        alt="Vista previa de foto de perfil"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="grid h-full w-full place-items-center bg-gradient-to-br from-brand-blue to-brand-cyan">
+                        {editPreviewInitial}
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/35" />
+                    <span className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full border border-white/25 bg-black/45 text-white backdrop-blur">
+                      {isUploadingEditAvatar ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : (
+                        <Camera size={15} />
+                      )}
+                    </span>
+                  </button>
+
                   <input
-                    type="text"
-                    required
-                    value={editUsername}
-                    onChange={(e) => setEditUsername(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-8 pr-4 text-sm font-semibold outline-none focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan"
-                    placeholder="nombre_de_usuario"
+                    ref={editBannerInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    disabled={isUploadingEditBanner || isSavingProfile}
+                    onChange={(e) => handleEditImageChange(e, "BANNER")}
+                  />
+                  <input
+                    ref={editAvatarInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    disabled={isUploadingEditAvatar || isSavingProfile}
+                    onChange={(e) => handleEditImageChange(e, "AVATAR")}
                   />
                 </div>
-                <p className="text-[10px] text-slate-400">
-                  Min. 3 caracteres. Solo minúsculas, números y guiones bajos (_).
-                </p>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
-                  Universidad Objetivo
-                </label>
-                <input
-                  type="text"
-                  value={editTargetUniversity}
-                  onChange={(e) => setEditTargetUniversity(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan"
-                  placeholder="Ej. UNAM, MIT, UBA..."
-                />
-              </div>
+                <div className="mt-12 grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                      Nombre completo
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editDisplayName}
+                      onChange={(e) => setEditDisplayName(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none transition focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan"
+                    />
+                  </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
-                  Descripción (Bio)
-                </label>
-                <textarea
-                  value={editBio}
-                  onChange={(e) => setEditBio(e.target.value)}
-                  maxLength={240}
-                  rows={3}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan resize-none"
-                  placeholder="Cuéntanos un poco sobre ti..."
-                />
-                <div className="text-right text-[10px] text-slate-400">
-                  {editBio.length}/240
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                      Nombre de usuario
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-extrabold text-slate-400">
+                        @
+                      </span>
+                      <input
+                        type="text"
+                        required
+                        value={editUsername}
+                        onChange={(e) => setEditUsername(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-8 pr-4 text-sm font-semibold outline-none transition focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      Min. 3 caracteres. Solo minúsculas, números y guiones bajos (_).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-1">
+                  <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                    Descripción
+                  </label>
+                  <p className="text-[10px] font-semibold text-slate-400">
+                    Cuenta qué estás preparando, qué te gusta estudiar o qué tipo de compañeros quieres encontrar.
+                  </p>
+                  <textarea
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    maxLength={240}
+                    rows={4}
+                    className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none transition focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan"
+                  />
+                  <div className="text-right text-[10px] text-slate-400">
+                    {editBio.length}/240
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-1">
+                  <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                    Universidad objetivo
+                  </label>
+                  <input
+                    type="text"
+                    value={editTargetUniversity}
+                    onChange={(e) => setEditTargetUniversity(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none transition focus:border-brand-blue focus:bg-white dark:border-brand-navy/30 dark:bg-brand-navy/20 dark:text-white dark:focus:border-brand-cyan"
+                  />
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-3">
+              <div className="flex gap-3 border-t border-slate-100 px-6 py-4 dark:border-brand-navy/30">
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  disabled={isSavingProfile}
+                  disabled={isSavingProfile || isUploadingEditAvatar || isUploadingEditBanner}
                   className="flex-1 rounded-2xl border border-slate-200 py-3 text-xs font-black uppercase tracking-wider text-slate-500 hover:bg-slate-50 dark:border-brand-navy/30 dark:text-slate-400 dark:hover:bg-brand-navy/20 transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingProfile}
+                  disabled={isSavingProfile || isUploadingEditAvatar || isUploadingEditBanner}
                   className="flex-1 rounded-2xl bg-gradient-to-r from-brand-blue to-brand-cyan py-3 text-xs font-black uppercase tracking-wider text-white hover:brightness-105 shadow-md shadow-brand-blue/20 transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isSavingProfile ? (
@@ -831,6 +817,9 @@ interface AchievementSectionProps {
   title: string;
   description: string;
   achievements: AchievementsResponse["data"];
+  isLoading: boolean;
+  isError: boolean;
+  errorText?: string;
   emptyText: string;
 }
 
@@ -838,60 +827,108 @@ function AchievementSection({
   title,
   description,
   achievements,
+  isLoading,
+  isError,
+  errorText,
   emptyText
 }: AchievementSectionProps) {
+  const unlockedAchievements = achievements.filter((achievement) => achievement.unlocked);
+  const lockedAchievements = achievements.filter((achievement) => !achievement.unlocked);
+
   return (
     <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl shadow-brand-blue/5 dark:border-brand-cyan/15 dark:bg-[#0E1B2F] space-y-4">
       <div>
-        <div className="flex items-center gap-2 text-brand-blue dark:text-brand-cyan">
-          <Trophy size={18} />
-          <h2 className="text-xl font-black text-brand-navy dark:text-white">{title}</h2>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-brand-blue dark:text-brand-cyan">
+              <Trophy size={18} />
+              <h2 className="text-xl font-black text-brand-navy dark:text-white">{title}</h2>
+            </div>
+            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">{description}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-cyan/20 bg-brand-sky px-3 py-2 text-center dark:bg-brand-blue/10">
+            <p className="text-lg font-black text-brand-blue dark:text-brand-cyan">{unlockedAchievements.length}</p>
+            <p className="text-[9px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">ganadas</p>
+          </div>
         </div>
-        <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">{description}</p>
       </div>
 
-      {achievements.length === 0 ? (
+      {isLoading ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-6 text-center dark:border-brand-navy/40 dark:bg-[#0E1B2F]/70">
+          <Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-cyan" />
+          <p className="mt-2 text-xs font-bold text-slate-500 dark:text-slate-400">Cargando medallas...</p>
+        </div>
+      ) : isError ? (
+        <div className="rounded-2xl border border-dashed border-red-200 bg-red-50 p-6 text-center dark:border-red-900/40 dark:bg-red-950/20">
+          <Sparkles className="mx-auto h-6 w-6 text-red-400" />
+          <p className="mt-2 text-xs font-bold text-red-500">
+            {errorText || "No se pudieron cargar tus medallas."}
+          </p>
+        </div>
+      ) : achievements.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-6 text-center dark:border-brand-navy/40 dark:bg-[#0E1B2F]/70">
           <Sparkles className="mx-auto h-6 w-6 text-brand-cyan" />
           <p className="mt-2 text-xs font-bold text-slate-500 dark:text-slate-400">{emptyText}</p>
         </div>
       ) : (
         <div className="grid gap-3 grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4">
-          {achievements.map((achievement) => {
-            const isLocked = !achievement.unlocked;
-            const isSecret = achievement.code.startsWith("SECRET_");
-            const displayTitle = isSecret && isLocked ? "🔒 Logro Secreto" : achievement.title;
-            const displayDescription = isSecret && isLocked ? "?? (Sigue estudiando para descubrir este secreto...)" : achievement.description;
-
-            return (
-              <div
-                key={achievement.id}
-                className="group relative flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-200"
-              >
-                <AchievementMedal code={achievement.code} locked={isLocked} size="md" />
-
-                {/* Premium Hover Tooltip */}
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2.5 w-56 -translate-x-1/2 rounded-2xl bg-slate-950 p-3.5 text-left text-[11px] font-semibold text-white opacity-0 scale-95 translate-y-1 shadow-2xl transition-all duration-300 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 dark:bg-slate-900 border border-slate-850 dark:border-brand-navy/35 backdrop-blur-md">
-                  <p className="font-black text-brand-cyan flex items-center gap-1">
-                    <Medal size={11} className={isLocked ? "text-slate-400" : "text-brand-cyan"} />
-                    {displayTitle}
-                  </p>
-                  <p className="mt-1 text-slate-300 font-semibold leading-relaxed">{displayDescription}</p>
-                  <div className="mt-2 flex items-center justify-between border-t border-slate-800 dark:border-brand-navy/20 pt-2 text-[10px]">
-                    <span className="font-extrabold text-slate-400 uppercase">
-                      {isLocked ? "Bloqueada" : "Desbloqueada"}
-                    </span>
-                    <span className="font-black text-brand-yellow">
-                      +{achievement.experienceReward} XP
-                    </span>
-                  </div>
-                  <div className="absolute top-full left-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1.5 rotate-45 bg-slate-950 dark:bg-slate-900 border-r border-b border-slate-800 dark:border-brand-navy/35" />
-                </div>
-              </div>
-            );
-          })}
+          {achievements.map((achievement) => (
+            <AchievementMedalItem key={achievement.id} achievement={achievement} />
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function AchievementMedalItem({ achievement }: { achievement: AchievementsResponse["data"][number] }) {
+  const isLocked = !achievement.unlocked;
+  const isSecret = achievement.code.startsWith("SECRET_");
+  const displayTitle = isSecret && isLocked ? "Logro Secreto" : achievement.title;
+  const displayDescription = isSecret && isLocked
+    ? "Sigue estudiando para descubrir este secreto."
+    : achievement.description;
+
+  return (
+    <div
+      className="group relative flex min-h-20 cursor-pointer items-center justify-center p-2 transition-transform duration-200 hover:-translate-y-0.5 hover:scale-110 focus-visible:outline-none"
+      tabIndex={0}
+      aria-label={`${displayTitle}. ${isLocked ? "Bloqueada" : "Ganada"}. ${achievement.experienceReward} XP.`}
+    >
+      <AchievementMedal code={achievement.code} locked={isLocked} size="md" />
+
+      <div className="pointer-events-none absolute bottom-full left-1/2 z-40 mb-3 w-64 -translate-x-1/2 translate-y-2 scale-95 rounded-2xl border border-slate-800 bg-slate-950 p-4 text-left text-white opacity-0 shadow-2xl shadow-slate-950/25 transition-all duration-200 group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:scale-100 group-focus-visible:opacity-100 dark:border-brand-cyan/20 dark:bg-[#07111F]">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-brand-cyan">{displayTitle}</p>
+            <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-300">
+              {displayDescription}
+            </p>
+          </div>
+          <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border ${
+            isLocked
+              ? "border-slate-700 bg-slate-800 text-slate-500"
+              : "border-brand-cyan/35 bg-brand-cyan/15 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.25)]"
+          }`}>
+            {isLocked ? <Lock size={15} /> : <Trophy size={15} />}
+          </span>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between border-t border-slate-800 pt-3 text-[11px]">
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide ${
+            isLocked
+              ? "bg-slate-800 text-slate-400"
+              : "bg-brand-cyan/15 text-brand-cyan"
+          }`}>
+            {isLocked ? <Lock size={10} /> : <Trophy size={10} />}
+            {isLocked ? "Bloqueada" : "Ganada"}
+          </span>
+          <span className="font-black text-brand-yellow">
+            +{achievement.experienceReward} XP
+          </span>
+        </div>
+        <div className="absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-1.5 rotate-45 border-b border-r border-slate-800 bg-slate-950 dark:border-brand-cyan/20 dark:bg-[#07111F]" />
+      </div>
     </div>
   );
 }

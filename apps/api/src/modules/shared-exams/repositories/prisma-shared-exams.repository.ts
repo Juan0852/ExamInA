@@ -187,6 +187,9 @@ export class PrismaSharedExamsRepository implements SharedExamsRepository {
     description?: string;
     visibility?: CommunityVisibility;
     allowCloning?: boolean;
+    subjectId?: string;
+    topicId?: string;
+    topicName?: string;
     questions: {
       questionId?: string;
       customQuestion?: {
@@ -196,16 +199,39 @@ export class PrismaSharedExamsRepository implements SharedExamsRepository {
         difficulty: string;
         finalAnswer: string;
         explanation: string;
+        fileAssetId?: string;
+        imageUrl?: string;
       };
     }[];
   }): Promise<SharedExamSummaryRecord> {
     const prisma = this.prismaService.getClient();
 
     return prisma.$transaction(async (tx) => {
-      // 1. Create the SharedExam
+      // 1. Resolve Topic if topicName is provided
+      let finalTopicId = input.topicId;
+      if (!finalTopicId && input.topicName && input.subjectId) {
+        const slug = input.topicName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        let topic = await tx.topic.findUnique({
+          where: { subjectId_slug: { subjectId: input.subjectId, slug } }
+        });
+        if (!topic) {
+          topic = await tx.topic.create({
+            data: {
+              subjectId: input.subjectId,
+              name: input.topicName,
+              slug
+            }
+          });
+        }
+        finalTopicId = topic.id;
+      }
+
+      // 2. Create the SharedExam
       const sharedExam = await tx.sharedExam.create({
         data: {
           ownerId: input.ownerId,
+          subjectId: input.subjectId,
+          topicId: finalTopicId,
           title: input.title,
           description: input.description,
           visibility: input.visibility ?? CommunityVisibility.PRIVATE,
@@ -214,7 +240,7 @@ export class PrismaSharedExamsRepository implements SharedExamsRepository {
         }
       });
 
-      // 2. Map and create questions / connections
+      // 3. Map and create questions / connections
       for (let i = 0; i < input.questions.length; i++) {
         const qInput = input.questions[i];
         let qId = qInput.questionId;
@@ -275,12 +301,25 @@ export class PrismaSharedExamsRepository implements SharedExamsRepository {
             type: "OPEN_ANSWER",
             difficulty: custom.difficulty,
             sourceYear: new Date().getFullYear(),
-            sourceExam: "Examen Creado por Usuario"
+            sourceExam: "Examen Creado por Usuario",
+            imageUrl: custom.imageUrl
           };
           solutionSnapshot = {
             finalAnswer: custom.finalAnswer,
             explanation: custom.explanation
           };
+
+          if (custom.fileAssetId) {
+            await tx.fileAsset.update({
+              where: { id: custom.fileAssetId },
+              data: {
+                ownerType: "QUESTION",
+                ownerId: newQ.id,
+                role: "QUESTION_IMAGE",
+                status: "ACTIVE"
+              }
+            });
+          }
         } else {
           throw new Error("Each question must have either questionId or customQuestion");
         }

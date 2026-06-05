@@ -388,7 +388,7 @@ export function QuestionPage() {
                   rows={8}
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
-                  placeholder="Redacta paso a paso tu razonamiento matemático o desarrollo científico aquí..."
+                  placeholder="Explica aquí tu respuesta o procedimiento paso a paso..."
                   disabled={isSubmitting}
                   className="block w-full p-4 border border-slate-200 dark:border-brand-navy/30 rounded-2xl bg-white dark:bg-[#0E1B2F] text-slate-900 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue text-sm transition-all resize-none shadow-xs font-medium shrink-0"
                 />

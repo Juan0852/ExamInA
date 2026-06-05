@@ -45,6 +45,9 @@ export interface SharedExamsRepository {
     description?: string;
     visibility?: CommunityVisibility;
     allowCloning?: boolean;
+    subjectId?: string;
+    topicId?: string;
+    topicName?: string;
     questions: {
       questionId?: string;
       customQuestion?: {

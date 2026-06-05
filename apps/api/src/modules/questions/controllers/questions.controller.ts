@@ -20,7 +20,7 @@ export class QuestionsController {
 
   @Post("generate-ai")
   generateAi(
-    @Body() body: { prompt: string; subjectId?: string; topicId?: string; difficulty?: string },
+    @Body() body: { prompt: string; subjectId?: string; topicId?: string; difficulty?: string; fileAssetId?: string },
     @Headers("authorization") authorizationHeader: string | undefined
   ) {
     return this.questionsService.generateAi(body, authorizationHeader);

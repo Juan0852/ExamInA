@@ -27,7 +27,7 @@ export function AppLayout() {
       <NotificationDrawer />
 
       {/* Área del contenido principal con espaciado adaptativo */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 pt-16 md:pt-0 ${
+      <div className={`flex-1 flex flex-col min-w-0 pt-16 md:pt-0 ${
         sidebarCollapsed ? "md:pl-20" : "md:pl-72"
       }`}>
         <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-8 sm:px-6 lg:px-8">

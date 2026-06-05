@@ -173,7 +173,8 @@ export class AuthService {
       username: profileData.username,
       bio: profileData.bio,
       targetUniversity: profileData.targetUniversity,
-      photoUrl: profileData.photoUrl || undefined
+      photoUrl: profileData.photoUrl || undefined,
+      bannerUrl: profileData.bannerUrl || undefined
     });
 
     return {

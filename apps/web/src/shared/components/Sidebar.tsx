@@ -130,8 +130,7 @@ export function Sidebar() {
       label: "Modo Arquitecto",
       path: "/architect",
       icon: DraftingCompass,
-      disabled: true,
-      badge: "Próximamente",
+      disabled: false,
     },
     {
       label: "Comunidad / Feed",
@@ -168,20 +167,10 @@ export function Sidebar() {
               />
             )}
           </Link>
-
-          {!isMobile && (
-            <button
-              onClick={toggleSidebarCollapse}
-              className="absolute -right-3 top-1/2 -translate-y-1/2 z-40 hidden md:flex items-center justify-center h-6 w-6 rounded-full border border-slate-200 dark:border-brand-navy/40 bg-white dark:bg-[#0E1B2F] text-slate-505 hover:text-brand-blue dark:hover:text-brand-cyan shadow-sm hover:scale-110 transition-all cursor-pointer"
-              title={isCollapsed ? "Expandir menú" : "Colapsar menú"}
-            >
-              {isCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-            </button>
-          )}
         </div>
 
         {/* Enlaces de navegación */}
-        <div className={`flex-1 py-6 space-y-1.5 overflow-y-auto ${isCollapsed ? "px-0 flex flex-col items-center" : "px-4"}`}>
+        <div className={`flex-1 py-4 space-y-1 overflow-y-auto custom-scrollbar ${isCollapsed ? "px-0 flex flex-col items-center" : "px-4"}`}>
           {navItems.map((item, idx) => {
             if (item.isHeader) {
               return !isCollapsed ? (
@@ -276,26 +265,23 @@ export function Sidebar() {
 
         {/* Pie del Sidebar: Config de Tema & Perfil de Usuario */}
         <div className={`border-t border-slate-100 dark:border-brand-navy/15 space-y-4 ${isCollapsed ? "px-0 py-4 flex flex-col items-center" : "p-4"}`}>
-          {/* Toggle de Tema (Deshabilitado temporalmente) */}
-          <button
-            disabled
-            className={`flex items-center rounded-xl text-xs font-medium text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-900/10 border border-slate-200/50 dark:border-brand-navy/10 cursor-not-allowed select-none opacity-60 transition-all ${
-              isCollapsed 
-                ? "w-12 h-12 justify-center space-x-0" 
-                : "w-full justify-between px-4 py-2.5"
-            }`}
-            title="Modo Oscuro (Próximamente)"
-          >
-            <div className={`flex items-center ${isCollapsed ? "justify-center space-x-0" : "space-x-2.5"}`}>
-              <Moon size={isCollapsed ? 22 : 16} />
-              {!isCollapsed && <span>Modo Oscuro</span>}
-            </div>
-            {!isCollapsed && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Próximamente
-              </span>
-            )}
-          </button>
+          {/* Botón Colapsar Sidebar (Reemplaza al Dark Mode) */}
+          {!isMobile && (
+            <button
+              onClick={toggleSidebarCollapse}
+              className={`flex items-center rounded-xl text-sm font-bold text-slate-500 hover:text-brand-blue dark:hover:text-brand-cyan hover:bg-slate-50 dark:hover:bg-slate-900/40 cursor-pointer transition-all ${
+                isCollapsed 
+                  ? "w-12 h-12 justify-center space-x-0 border border-transparent" 
+                  : "w-full justify-start px-4 py-3"
+              }`}
+              title={isCollapsed ? "Expandir menú" : "Colapsar menú"}
+            >
+              <div className={`flex items-center ${isCollapsed ? "justify-center space-x-0" : "space-x-3"}`}>
+                {isCollapsed ? <ChevronRight size={isCollapsed ? 26 : 18} /> : <ChevronLeft size={isCollapsed ? 26 : 18} />}
+                {!isCollapsed && <span>Ocultar menú</span>}
+              </div>
+            </button>
+          )}
 
           {/* Info del Estudiante */}
           {user && (
@@ -407,7 +393,7 @@ export function Sidebar() {
       </header>
 
       {/* DESKTOP SIDEBAR (md:flex) */}
-      <aside className={`hidden md:flex flex-col h-screen fixed top-0 left-0 z-30 transition-all duration-300 ${
+      <aside className={`hidden md:flex flex-col h-screen fixed top-0 left-0 z-30 ${
         sidebarCollapsed ? "w-20" : "w-72"
       }`}>
         <SidebarContent isMobile={false} />

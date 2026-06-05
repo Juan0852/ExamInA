@@ -3,6 +3,7 @@ import type { FindQuestionsQueryDto } from "../dtos/find-questions-query.dto";
 import { QuestionMapper } from "../mappers/question.mapper";
 import type { QuestionsRepository } from "../repositories/questions.repository";
 import { AuthService } from "../../auth/services/auth.service";
+import { PrismaService } from "../../../shared/database/prisma.service";
 import { getLlmProviderConfig } from "../../../shared/providers/ai/llm-provider.config";
 
 export const QUESTIONS_REPOSITORY = Symbol("QUESTIONS_REPOSITORY");
@@ -11,7 +12,8 @@ export const QUESTIONS_REPOSITORY = Symbol("QUESTIONS_REPOSITORY");
 export class QuestionsService {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
-    @Inject(QUESTIONS_REPOSITORY) private readonly questionsRepository: QuestionsRepository
+    @Inject(QUESTIONS_REPOSITORY) private readonly questionsRepository: QuestionsRepository,
+    @Inject(PrismaService) private readonly prismaService: PrismaService
   ) {}
 
   async findAll(authorizationHeader: string | undefined, filters: FindQuestionsQueryDto) {
@@ -55,6 +57,7 @@ export class QuestionsService {
       subjectId?: string;
       topicId?: string;
       difficulty?: string;
+      fileAssetId?: string;
     },
     authorizationHeader: string | undefined
   ): Promise<any> {
@@ -89,8 +92,20 @@ Debes responder obligatoriamente con un único objeto JSON que tenga los siguien
 
 No incluyas explicaciones previas ni posteriores, solo devuelve el objeto JSON válido.`;
 
-    const userPrompt = `Sugerencia/Instrucciones del usuario: "${input.prompt}"
+    let userPromptContent: any = `Sugerencia/Instrucciones del usuario: "${input.prompt}"
 ${input.difficulty ? `Dificultad deseada: ${input.difficulty}` : ""}`;
+
+    if (input.fileAssetId) {
+      const fileAsset = await this.prismaService.getClient().fileAsset.findUnique({
+        where: { id: input.fileAssetId }
+      });
+      if (fileAsset && fileAsset.url) {
+        userPromptContent = [
+          { type: "text", text: userPromptContent },
+          { type: "image_url", image_url: { url: fileAsset.url } }
+        ];
+      }
+    }
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json"
@@ -105,7 +120,7 @@ ${input.difficulty ? `Dificultad deseada: ${input.difficulty}` : ""}`;
       temperature: 0.3,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
+        { role: "user", content: userPromptContent }
       ]
     };
 

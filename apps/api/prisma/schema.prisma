@@ -305,6 +305,7 @@ model Subject {
   questions   Question[]
   enrollments UserSubjectEnrollment[]
   progress    UserSubjectProgress[]
+  sharedExams SharedExam[]
 
   @@map("subjects")
 }
@@ -316,8 +317,9 @@ model Topic {
   slug      String
   createdAt DateTime @default(now())
 
-  subject   Subject             @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  questions Question[]
+  subject     Subject             @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  sharedExams SharedExam[]
 
   @@unique([subjectId, slug])
   @@index([subjectId])
@@ -735,6 +737,8 @@ model SharedExam {
   id                  String              @id @default(cuid())
   ownerId             String
   sourceExamSessionId String?
+  subjectId           String?
+  topicId             String?
   title               String
   description         String?
   visibility          CommunityVisibility @default(PRIVATE)
@@ -745,6 +749,8 @@ model SharedExam {
 
   owner             User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   sourceExamSession ExamSession?         @relation(fields: [sourceExamSessionId], references: [id], onDelete: SetNull)
+  subject           Subject?             @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  topic             Topic?               @relation(fields: [topicId], references: [id], onDelete: SetNull)
   questions         SharedExamQuestion[]
   usages            SharedExamUsage[]
   posts             CommunityPost[]

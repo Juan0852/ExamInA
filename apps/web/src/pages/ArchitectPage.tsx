@@ -19,13 +19,18 @@ import {
   Loader2, 
   ChevronLeft,
   Settings,
-  HelpCircle
+  HelpCircle,
+  ImagePlus,
+  Camera
 } from "lucide-react";
 import { useAuthStore } from "../stores/auth.store";
 import { apiService } from "../shared/services/api.service";
 import { useSubjectsViewModel } from "../viewmodels/useSubjectsViewModel";
 import { useTopicsViewModel } from "../viewmodels/useTopicsViewModel";
 import { MathText } from "../shared/components/MathText";
+import { CustomSelect } from "../shared/components/CustomSelect";
+import { TopicCombobox } from "../shared/components/TopicCombobox";
+import { useFileUpload } from "../viewmodels/useFileUploadViewModel";
 
 interface CustomQuestionInput {
   subjectId: string;
@@ -34,6 +39,8 @@ interface CustomQuestionInput {
   difficulty: "EASY" | "MEDIUM" | "HARD";
   finalAnswer: string;
   explanation: string;
+  fileAssetId?: string;
+  imageUrl?: string;
 }
 
 interface ExamQuestionItem {
@@ -45,6 +52,8 @@ interface ExamQuestionItem {
   topicId: string;
   topicName: string;
   customQuestion?: CustomQuestionInput; // set if type === "custom"
+  fileAssetId?: string;
+  imageUrl?: string;
 }
 
 export function ArchitectPage() {
@@ -60,6 +69,7 @@ export function ArchitectPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
+  const [globalTopic, setGlobalTopic] = useState<{ id: string | null; name: string } | null>(null);
   const [visibility, setVisibility] = useState<"PRIVATE" | "PUBLIC">("PRIVATE");
   const [allowCloning, setAllowCloning] = useState(true);
 
@@ -72,12 +82,76 @@ export function ArchitectPage() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   // Custom question state
-  const [customTopicId, setCustomTopicId] = useState("");
   const [customStatement, setCustomStatement] = useState("");
   const [customDifficulty, setCustomDifficulty] = useState<"EASY" | "MEDIUM" | "HARD">("MEDIUM");
   const [customFinalAnswer, setCustomFinalAnswer] = useState("");
   const [customExplanation, setCustomExplanation] = useState("");
+  const [customFileAssetId, setCustomFileAssetId] = useState<string | null>(null);
+  const [customImageUrl, setCustomImageUrl] = useState<string | null>(null);
   const [isCustomFormOpen, setIsCustomFormOpen] = useState(false);
+
+  const { upload, isUploading: isUploadingImage } = useFileUpload({
+    purpose: "QUESTION_ATTACHMENT",
+    visibility: "PUBLIC"
+  });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const result = await upload(file);
+    if (result) {
+      setCustomFileAssetId(result.fileAssetId);
+      setCustomImageUrl(result.url);
+    }
+  };
+
+  const handleOcrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!selectedSubjectId || !globalTopic) {
+      alert("Por favor selecciona una asignatura y un tema en el paso 1.");
+      return;
+    }
+    
+    const result = await upload(file);
+    if (!result) return;
+    
+    setIsGeneratingAi(true);
+    setIsCustomFormOpen(true);
+    setCustomFileAssetId(result.fileAssetId);
+    setCustomImageUrl(result.url);
+    setCustomStatement("Procesando imagen con IA...");
+    
+    try {
+      const response = await apiService.post<{
+        data: {
+          statement: string;
+          difficulty: "EASY" | "MEDIUM" | "HARD";
+          finalAnswer: string;
+          explanation: string;
+        };
+      }>("/questions/generate-ai", {
+        prompt: "Por favor extrae la pregunta de la imagen adjunta y resuélvela.",
+        subjectId: selectedSubjectId,
+        topicId: globalTopic.id,
+        difficulty: "MEDIUM",
+        fileAssetId: result.fileAssetId
+      });
+
+      if (response.data) {
+        setCustomStatement(response.data.statement);
+        setCustomDifficulty(response.data.difficulty);
+        setCustomFinalAnswer(response.data.finalAnswer);
+        setCustomExplanation(response.data.explanation);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error al procesar la imagen con IA.");
+      setCustomStatement("");
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
 
   // AI Generator custom question state
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
@@ -146,29 +220,32 @@ export function ArchitectPage() {
   // Add custom question to builder
   const handleAddCustomQuestion = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSubjectId || !customTopicId || !customStatement.trim() || !customFinalAnswer.trim()) {
+    if (!selectedSubjectId || !globalTopic?.id || !customStatement.trim() || !customFinalAnswer.trim()) {
       alert("Por favor completa los campos obligatorios de la pregunta.");
       return;
     }
 
-    const selectedTopic = topics.find((t) => t.id === customTopicId);
-    const topicName = selectedTopic ? selectedTopic.name : "Tema personalizado";
+    const topicName = globalTopic.name;
 
     const newItem: ExamQuestionItem = {
       id: `custom-${Date.now()}`,
       type: "custom",
       statement: customStatement.trim(),
       difficulty: customDifficulty,
-      topicId: customTopicId,
+      topicId: globalTopic.id,
       topicName,
       customQuestion: {
         subjectId: selectedSubjectId,
-        topicId: customTopicId,
+        topicId: globalTopic.id,
         statement: customStatement.trim(),
         difficulty: customDifficulty,
         finalAnswer: customFinalAnswer.trim(),
-        explanation: customExplanation.trim()
-      }
+        explanation: customExplanation.trim(),
+        fileAssetId: customFileAssetId ?? undefined,
+        imageUrl: customImageUrl ?? undefined
+      },
+      fileAssetId: customFileAssetId ?? undefined,
+      imageUrl: customImageUrl ?? undefined
     };
 
     setAddedQuestions((prev) => [...prev, newItem]);
@@ -177,6 +254,8 @@ export function ArchitectPage() {
     setCustomStatement("");
     setCustomFinalAnswer("");
     setCustomExplanation("");
+    setCustomFileAssetId(null);
+    setCustomImageUrl(null);
     setIsCustomFormOpen(false);
   };
 
@@ -186,8 +265,8 @@ export function ArchitectPage() {
       alert("Por favor, escribe una descripción básica del problema en el enunciado para que la IA lo complete.");
       return;
     }
-    if (!customTopicId) {
-      alert("Por favor, selecciona un tema antes de completar con IA.");
+    if (!globalTopic?.id) {
+      alert("No hay un tema global seleccionado.");
       return;
     }
 
@@ -204,7 +283,7 @@ export function ArchitectPage() {
       }>("/questions/generate-ai", {
         prompt: customStatement.trim(),
         subjectId: selectedSubjectId,
-        topicId: customTopicId,
+        topicId: globalTopic?.id,
         difficulty: customDifficulty
       });
 
@@ -229,7 +308,8 @@ export function ArchitectPage() {
     setCustomFinalAnswer("");
     setCustomExplanation("");
     setCustomDifficulty("MEDIUM");
-    setCustomTopicId("");
+    setCustomFileAssetId(null);
+    setCustomImageUrl(null);
   };
 
 
@@ -276,6 +356,9 @@ export function ArchitectPage() {
       description: description.trim() || undefined,
       visibility,
       allowCloning,
+      subjectId: selectedSubjectId,
+      topicId: globalTopic?.id || undefined,
+      topicName: globalTopic?.name || undefined,
       questions: addedQuestions.map((q) => {
         if (q.type === "existing") {
           return { questionId: q.questionId };
@@ -304,6 +387,7 @@ export function ArchitectPage() {
     setTitle("");
     setDescription("");
     setSelectedSubjectId("");
+    setGlobalTopic(null);
     setVisibility("PRIVATE");
     setAllowCloning(true);
     setAddedQuestions([]);
@@ -357,7 +441,7 @@ export function ArchitectPage() {
               <BookOpen size={48} className="mx-auto text-slate-300 dark:text-slate-750 mb-3" />
               <h3 className="text-sm font-bold text-slate-600 dark:text-slate-350">No tienes exámenes creados</h3>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm mx-auto">
-                Crea tu primer examen e incorpora preguntas del banco o escribe tus propios enunciados con LaTeX.
+                Crea tu primer examen e incorpora preguntas del banco o escribe tus propios enunciados.
               </p>
               <button
                 onClick={() => setIsCreating(true)}
@@ -421,11 +505,14 @@ export function ArchitectPage() {
         <div className="bg-white dark:bg-[#0E1B2F] rounded-3xl border border-slate-200/60 dark:border-brand-navy/30 p-6 md:p-8 transition-all">
           {/* Stepper Header */}
           <div className="flex items-center justify-center max-w-lg mx-auto mb-8 relative">
-            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-100 dark:bg-slate-850 -translate-y-1/2 z-0" />
-            <div 
-              className="absolute top-1/2 left-0 h-0.5 bg-brand-blue -translate-y-1/2 z-0 transition-all duration-300"
-              style={{ width: `${((step - 1) / 2) * 100}%` }}
-            />
+            {/* Lines Container to center perfectly between first and last steps */}
+            <div className="absolute top-4 left-[16.66%] right-[16.66%] -translate-y-1/2 z-0">
+              <div className="w-full h-0.5 bg-slate-100 dark:bg-slate-850" />
+              <div 
+                className="absolute top-0 left-0 h-0.5 bg-brand-blue transition-all duration-300"
+                style={{ width: `${((step - 1) / 2) * 100}%` }}
+              />
+            </div>
 
             {[
               { num: 1, label: "Info General" },
@@ -491,22 +578,31 @@ export function ArchitectPage() {
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                     Asignatura <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <CustomSelect
                     value={selectedSubjectId}
-                    onChange={(e) => {
-                      setSelectedSubjectId(e.target.value);
-                      setAddedQuestions([]); // clear questions if subject changes
+                    onChange={(val) => {
+                      setSelectedSubjectId(val);
+                      setGlobalTopic(null); // clear topic when subject changes
+                      setAddedQuestions([]); 
                     }}
-                    className="w-full rounded-2xl border border-slate-200 dark:border-brand-navy/40 bg-slate-50/50 dark:bg-slate-900/10 px-4 py-3 text-sm font-bold outline-none focus:border-brand-blue dark:focus:border-brand-cyan transition-all"
-                  >
-                    <option value="">Selecciona...</option>
-                    {subjects.map((sub) => (
-                      <option key={sub.id} value={sub.id}>
-                        {sub.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Selecciona una asignatura..."
+                    options={subjects.map(s => ({ value: s.id, label: s.name }))}
+                  />
                 </div>
+
+                {selectedSubjectId && (
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                      Tema Global del Examen <span className="text-red-500">*</span>
+                    </label>
+                    <TopicCombobox
+                      value={globalTopic}
+                      onChange={setGlobalTopic}
+                      options={topics.map(t => ({ id: t.id, name: t.name }))}
+                      placeholder="Busca un tema o escribe uno nuevo..."
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
@@ -553,7 +649,7 @@ export function ArchitectPage() {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  disabled={!title.trim() || !selectedSubjectId}
+                  disabled={!title.trim() || !selectedSubjectId || !globalTopic}
                   className="flex items-center gap-1.5 px-6 py-3 rounded-2xl bg-brand-blue disabled:opacity-50 text-white text-xs font-bold hover:bg-brand-blue-hover transition-all cursor-pointer shadow-lg shadow-brand-blue/15"
                 >
                   Siguiente <ChevronRight size={14} />
@@ -658,7 +754,12 @@ export function ArchitectPage() {
                             {q.type === "existing" ? "Banco" : "Propia"}
                           </span>
                         </div>
-                        <MathText value={q.statement} className="text-sm font-semibold text-slate-700 dark:text-slate-350 line-clamp-3" />
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          {q.imageUrl && (
+                            <img src={q.imageUrl} alt="Pregunta" className="w-24 h-24 object-cover rounded-xl border border-slate-200 dark:border-brand-navy/30" />
+                          )}
+                          <MathText value={q.statement} className="text-sm font-semibold text-slate-700 dark:text-slate-350 line-clamp-3" />
+                        </div>
                       </div>
 
                       {/* Delete */}
@@ -724,6 +825,16 @@ export function ArchitectPage() {
                     </p>
                   </div>
                   <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tema Global</span>
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                      {globalTopic?.name || "Sin tema"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Preguntas</span>
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-350">{addedQuestions.length} preguntas</p>
+                  </div>
+                  <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Visibilidad</span>
                     <p className="text-xs font-bold text-slate-600 dark:text-slate-350">
                       {visibility === "PUBLIC" ? "Público" : "Privado"}
@@ -731,10 +842,7 @@ export function ArchitectPage() {
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Preguntas</span>
-                  <p className="text-xs font-bold text-slate-600 dark:text-slate-350">{addedQuestions.length} preguntas</p>
-                </div>
+
               </div>
 
               {saveError && (
@@ -799,32 +907,30 @@ export function ArchitectPage() {
             <div className="px-6 py-4 bg-slate-50/50 dark:bg-slate-900/20 border-b border-slate-100 dark:border-brand-navy/10 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Filtrar por Tema</label>
-                <select
+                <CustomSelect
                   value={searchTopicId}
-                  onChange={(e) => setSearchTopicId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 dark:border-brand-navy/40 bg-white dark:bg-slate-950 px-3 py-2 text-xs font-semibold outline-none"
-                >
-                  <option value="">Todos los temas</option>
-                  {topics.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSearchTopicId}
+                  placeholder="Todos los temas"
+                  options={[
+                    { value: "", label: "Todos los temas" },
+                    ...topics.map(t => ({ value: t.id, label: t.name }))
+                  ]}
+                />
               </div>
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Dificultad</label>
-                <select
+                <CustomSelect
                   value={searchDifficulty}
-                  onChange={(e) => setSearchDifficulty(e.target.value as any)}
-                  className="w-full rounded-xl border border-slate-200 dark:border-brand-navy/40 bg-white dark:bg-slate-950 px-3 py-2 text-xs font-semibold outline-none"
-                >
-                  <option value="">Todas las dificultades</option>
-                  <option value="EASY">Fácil</option>
-                  <option value="MEDIUM">Medio</option>
-                  <option value="HARD">Difícil</option>
-                </select>
+                  onChange={(val) => setSearchDifficulty(val as any)}
+                  placeholder="Todas las dificultades"
+                  options={[
+                    { value: "", label: "Todas las dificultades" },
+                    { value: "EASY", label: "Fácil" },
+                    { value: "MEDIUM", label: "Medio" },
+                    { value: "HARD", label: "Difícil" }
+                  ]}
+                />
               </div>
             </div>
 
@@ -913,61 +1019,67 @@ export function ArchitectPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                    Tema <span className="text-red-500">*</span>
+                    Tema Heredado
                   </label>
-                  <select
-                    value={customTopicId}
-                    onChange={(e) => setCustomTopicId(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 dark:border-brand-navy/40 bg-slate-50/50 dark:bg-slate-900/10 px-3 py-2.5 text-xs font-bold outline-none focus:border-brand-blue"
-                    required
-                  >
-                    <option value="">Selecciona...</option>
-                    {topics.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full rounded-2xl border border-slate-200 dark:border-brand-navy/40 bg-slate-100/50 dark:bg-slate-900/30 px-4 py-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                    {globalTopic?.name || "Sin tema"}
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                     Dificultad <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <CustomSelect
                     value={customDifficulty}
-                    onChange={(e) => setCustomDifficulty(e.target.value as any)}
-                    className="w-full rounded-2xl border border-slate-200 dark:border-brand-navy/40 bg-slate-50/50 dark:bg-slate-900/10 px-3 py-2.5 text-xs font-bold outline-none focus:border-brand-blue"
-                    required
-                  >
-                    <option value="EASY">Fácil</option>
-                    <option value="MEDIUM">Medio</option>
-                    <option value="HARD">Difícil</option>
-                  </select>
+                    onChange={(val) => setCustomDifficulty(val as any)}
+                    options={[
+                      { value: "EASY", label: "Fácil" },
+                      { value: "MEDIUM", label: "Medio" },
+                      { value: "HARD", label: "Difícil" }
+                    ]}
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                  Enunciado de la Pregunta <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  placeholder="Escribe el enunciado. Soporta LaTeX mediante delimitadores $$ ... $$ y \( ... \). Si vas a usar IA, escribe aquí tu prompt e indicaciones y haz clic en Completar con IA."
-                  value={customStatement}
-                  onChange={(e) => setCustomStatement(e.target.value)}
-                  rows={4}
-                  className="w-full rounded-2xl border border-slate-200 dark:border-brand-navy/40 bg-slate-50/50 dark:bg-slate-900/10 px-4 py-3 text-sm font-semibold outline-none focus:border-brand-blue placeholder-slate-400 dark:placeholder-slate-500"
-                  required
-                />
-                {customStatement.trim() && (
-                  <div className="mt-2 p-3 rounded-2xl border border-dashed border-slate-200 dark:border-brand-navy/20 bg-slate-50/30 dark:bg-slate-900/5 text-xs text-slate-800 dark:text-slate-200">
-                    <div className="flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500">
-                      <Eye size={10} />
-                      Vista Previa Enunciado
-                    </div>
-                    <MathText value={customStatement} />
+              <div className="flex flex-col sm:flex-row items-start gap-4">
+                {customImageUrl ? (
+                  <div className="relative group shrink-0 self-center sm:self-start">
+                    <img src={customImageUrl} alt="Pregunta" className="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-2xl border border-slate-200 dark:border-brand-navy/30" />
+                    <button type="button" onClick={() => { setCustomImageUrl(null); setCustomFileAssetId(null); }} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                      <Trash2 size={12} />
+                    </button>
                   </div>
+                ) : (
+                  <label className={`shrink-0 self-center sm:self-start w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-2 border-dashed border-slate-300 dark:border-brand-navy/50 flex flex-col items-center justify-center text-slate-400 hover:text-brand-blue hover:border-brand-blue dark:hover:text-brand-cyan dark:hover:border-brand-cyan transition-colors cursor-pointer ${isUploadingImage ? "opacity-50 pointer-events-none" : ""}`}>
+                    {isUploadingImage ? <Loader2 size={24} className="animate-spin mb-1" /> : <ImagePlus size={24} className="mb-1" />}
+                    <span className="text-[9px] font-bold uppercase text-center px-2">{isUploadingImage ? "Subiendo" : "Añadir Imagen"}</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploadingImage} />
+                  </label>
                 )}
+
+                <div className="flex-1 w-full">
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                    Enunciado de la Pregunta <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    placeholder="Escribe el enunciado de la pregunta."
+                    value={customStatement}
+                    onChange={(e) => setCustomStatement(e.target.value)}
+                    rows={4}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-brand-navy/40 bg-slate-50/50 dark:bg-slate-900/10 px-4 py-3 text-sm font-semibold outline-none focus:border-brand-blue placeholder-slate-400 dark:placeholder-slate-500"
+                    required
+                  />
+                  {customStatement.trim() && (
+                    <div className="mt-2 p-3 rounded-2xl border border-dashed border-slate-200 dark:border-brand-navy/20 bg-slate-50/30 dark:bg-slate-900/5 text-xs text-slate-800 dark:text-slate-200">
+                      <div className="flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-wider text-slate-450 dark:text-slate-500">
+                        <Eye size={10} />
+                        Vista Previa Enunciado
+                      </div>
+                      <MathText value={customStatement} />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4">
@@ -977,7 +1089,7 @@ export function ArchitectPage() {
                   </label>
                   <input
                     type="text"
-                    placeholder="Ej. \(\frac{3}{2}\) o 4 (Completar con IA lo rellenará por ti)"
+                    placeholder="Escribe la respuesta."
                     value={customFinalAnswer}
                     onChange={(e) => setCustomFinalAnswer(e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 dark:border-brand-navy/40 bg-slate-50/50 dark:bg-slate-900/10 px-4 py-3 text-sm font-semibold outline-none focus:border-brand-blue placeholder-slate-400 dark:placeholder-slate-550"
@@ -999,7 +1111,7 @@ export function ArchitectPage() {
                     Explicación / Procedimiento
                   </label>
                   <textarea
-                    placeholder="Explica los pasos necesarios para llegar a la solución final (Completar con IA lo redactará por ti)..."
+                    placeholder="Explica los pasos necesarios para llegar a la solución final."
                     value={customExplanation}
                     onChange={(e) => setCustomExplanation(e.target.value)}
                     rows={3}
@@ -1018,26 +1130,41 @@ export function ArchitectPage() {
               </div>
 
               {/* Modal Form Footer */}
-              <div className="flex justify-between items-center gap-2 border-t border-slate-100 dark:border-brand-navy/15 pt-4 mt-6">
-                {/* Completar con IA button on the left */}
-                <button
-                  type="button"
-                  onClick={handleCompleteWithAi}
-                  disabled={isGeneratingAi}
-                  className="px-4 py-2 bg-gradient-to-r from-brand-blue to-purple-600 hover:from-brand-blue-hover hover:to-purple-700 text-white text-xs font-black rounded-xl shadow-md shadow-brand-blue/15 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isGeneratingAi ? (
-                    <>
-                      <Loader2 className="animate-spin" size={14} />
-                      Completando...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={14} />
-                      Completar con IA
-                    </>
-                  )}
-                </button>
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-slate-100 dark:border-brand-navy/15 pt-4 mt-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative group flex items-center">
+                    <button
+                      type="button"
+                      onClick={handleCompleteWithAi}
+                      disabled={isGeneratingAi || customStatement.trim().length < 5}
+                      className="px-4 py-2 bg-gradient-to-r from-brand-blue to-purple-600 hover:from-brand-blue-hover hover:to-purple-700 text-white text-xs font-black rounded-xl shadow-md shadow-brand-blue/15 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isGeneratingAi ? (
+                        <>
+                          <Loader2 className="animate-spin" size={14} />
+                          Mejorando...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={14} />
+                          Mejorar con IA
+                        </>
+                      )}
+                    </button>
+                    {customStatement.trim().length < 5 && !isGeneratingAi && (
+                      <div className="absolute bottom-full left-0 mb-2 w-48 bg-slate-800 text-white text-[10px] font-medium p-2 rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-10 shadow-xl shadow-black/20 text-center">
+                        Escribe un mínimo de texto en el enunciado para que la IA pueda completarlo.
+                        <div className="absolute top-full left-4 -mt-1 border-4 border-transparent border-t-slate-800" />
+                      </div>
+                    )}
+                  </div>
+
+                  <label className={`flex items-center gap-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-800/40 hover:bg-slate-200 dark:hover:bg-slate-700/50 border border-slate-200 dark:border-brand-navy/35 text-slate-700 dark:text-slate-300 text-xs font-black rounded-xl transition-all cursor-pointer shadow-sm ${isUploadingImage ? "opacity-50 pointer-events-none" : ""}`}>
+                    {isUploadingImage ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                    {isUploadingImage ? "Subiendo..." : "Añadir con foto"}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleOcrUpload} disabled={isUploadingImage} />
+                  </label>
+                </div>
 
                 <div className="flex gap-2">
                   <button

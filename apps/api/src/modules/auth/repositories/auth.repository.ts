@@ -34,9 +34,9 @@ export interface AuthRepository {
       bio?: string;
       targetUniversity?: string;
       photoUrl?: string;
+      bannerUrl?: string;
     }
   ): Promise<AuthenticatedUserEntity>;
   isUsernameAvailable(username: string, currentUserId: string): Promise<boolean>;
   findFriends(userId: string): Promise<any[]>;
 }
-

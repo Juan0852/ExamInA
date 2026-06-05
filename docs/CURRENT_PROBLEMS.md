@@ -8,10 +8,8 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 
 | Prioridad | Problema | Area | Estado |
 | --- | --- | --- | --- |
-| P1 | Gestion de errores sin estrategia clara | API/Web/Mobile | Cerrado 2026-06-04 |
 | P2 | Unificar UI Dashboard y Mensajes Racha | Web/Mobile | Abierto |
 | P2 | Refactorizar Bottom Navigation Bar (Unir Temario y Exámenes) | Mobile | Abierto |
-| P2 | Diccionario de frases motivacionales al login | Web/Mobile | Cerrado 2026-06-03 |
 | P2 | Toasts globales de logros en mobile con paridad web | Mobile/Achievements | Abierto |
 | P2 | Retirar Firebase Client SDK/config del frontend web | Web/Auth/API | Abierto |
 | P2 | Prisma/pg warning al iniciar o ejecutar API | API/DB | Abierto |
@@ -22,23 +20,34 @@ Este documento centraliza problemas abiertos, riesgos tecnicos y decisiones pend
 | P3 | Micro-recompensas de XP (anti-farming) y Toasts | API/Web/Mobile | Idea |
 | P3 | Logs de debug en parser/proveedor IA | API | Abierto |
 | P1 | Feed/Comunidad: publicaciones tipo red social | API/Web/Mobile | Abierto |
-| P1 | Modo Arquitecto de examenes en web | Web | Abierto |
 | P2 | Sistema de amigos (Friends) | API/Web/Mobile | Abierto |
-| Cerrado | Mejorar pantalla de perfil en mobile | Mobile | Cerrado 2026-06-04 |
 | P2 | Medallas y toasts de logros dentro del perfil mobile | Mobile/Achievements | Abierto |
 | P2 | Dashboard mobile no conserva paridad visual con web | Mobile/Web | Abierto |
-| Cerrado | Placeholders en flujos reales | Mobile/API | Cerrado 2026-06-02 |
-| Cerrado | Auditoria de documentos vivos restantes | Docs | Cerrado 2026-06-02 |
-| Cerrado | Backend permite reevaluar una pregunta IA dentro de la misma sesion | API/ExamSessions/Corrections | Cerrado 2026-06-02 |
-| Cerrado | Heartbeat/tiempo de estudio incompleto en mobile | Mobile/API | Cerrado 2026-06-02 |
-| Cerrado | Imagenes subidas no persisten visualmente al reabrir sesion | Storage/Mobile/API | Cerrado 2026-06-02 |
-| Cerrado | Endpoints actuales no estan inventariados contra implementacion real | API/Docs | Cerrado 2026-06-02 |
-| Cerrado | Validaciones incompletas en registro mobile | Mobile/Auth | Cerrado 2026-06-02 |
-| Cerrado | Token Firebase expirado al inicio de sesión | Mobile/Auth/API | Cerrado 2026-06-02 |
-| Cerrado | Mobile no pasa typecheck | Mobile | Cerrado 2026-06-01 |
-| Cerrado | Salida del modo examen web usaba reload bruto | Web/ExamSessions | Cerrado 2026-06-03 |
-| Cerrado | Heartbeat podia inflar tiempo y desbloquear logros de estudio | API/Web/Mobile/Achievements | Cerrado 2026-06-03 |
-| Cerrado | Onboarding post-registro faltante en mobile | Mobile/Auth/Profile | Cerrado 2026-06-03 |
+
+## Problemas Solucionados
+
+| Problema | Area | Estado |
+| --- | --- | --- |
+| Mejorar Experiencia y Soporte Multimedia en Modo Arquitecto | Web | Cerrado 2026-06-05 |
+| Correcciones de UI y Placeholders Técnicos (LaTeX) | Web | Cerrado 2026-06-05 |
+| Animación de barra lateral (layout thrashing) | Web | Cerrado 2026-06-05 |
+| UI medallas en el layout base | Web | Cerrado 2026-06-04 |
+| Gestion de errores sin estrategia clara | API/Web/Mobile | Cerrado 2026-06-04 |
+| Diccionario de frases motivacionales al login | Web/Mobile | Cerrado 2026-06-03 |
+| Modo Arquitecto de examenes en web | Web | Cerrado 2026-06-04 |
+| Mejorar pantalla de perfil en mobile | Mobile | Cerrado 2026-06-04 |
+| Placeholders en flujos reales | Mobile/API | Cerrado 2026-06-02 |
+| Auditoria de documentos vivos restantes | Docs | Cerrado 2026-06-02 |
+| Backend permite reevaluar una pregunta IA dentro de la misma sesion | API/ExamSessions/Corrections | Cerrado 2026-06-02 |
+| Heartbeat/tiempo de estudio incompleto en mobile | Mobile/API | Cerrado 2026-06-02 |
+| Imagenes subidas no persisten visualmente al reabrir sesion | Storage/Mobile/API | Cerrado 2026-06-02 |
+| Endpoints actuales no estan inventariados contra implementacion real | API/Docs | Cerrado 2026-06-02 |
+| Validaciones incompletas en registro mobile | Mobile/Auth | Cerrado 2026-06-02 |
+| Token Firebase expirado al inicio de sesión | Mobile/Auth/API | Cerrado 2026-06-02 |
+| Mobile no pasa typecheck | Mobile | Cerrado 2026-06-01 |
+| Salida del modo examen web usaba reload bruto | Web/ExamSessions | Cerrado 2026-06-03 |
+| Heartbeat podia inflar tiempo y desbloquear logros de estudio | API/Web/Mobile/Achievements | Cerrado 2026-06-03 |
+| Onboarding post-registro faltante en mobile | Mobile/Auth/Profile | Cerrado 2026-06-03 |
 
 ## Problemas abiertos
 
@@ -554,16 +563,14 @@ Branch sugerida: `feature/feed-community`
 
 ### 27. Modo Arquitecto de examenes en web
 
-Estado: Abierto
+Estado: Cerrado el 2026-06-04.
 
-Problema:
-En web no existe el "Modo Arquitecto" para crear o gestionar examenes de forma visual. Actualmente los examenes solo se pueden insertar por seed o directamente en la base de datos.
+El "Modo Arquitecto" ya había sido implementado en su totalidad en el frontend y en el backend (con soporte para creación guiada por IA, banco de preguntas y visibilidad comunitaria). Se encontraba deshabilitado en la `Sidebar.tsx` con la etiqueta "Próximamente". Se procedió a habilitarlo para todos los usuarios.
 
 Requerimientos:
 - Pantalla en web donde un usuario con rol adecuado pueda disenar examenes: seleccionar materia, tema, tipo de preguntas, anadir preguntas manualmente o asistido por IA.
 - Preview del examen antes de publicarlo.
 - Gestion de borradores.
-- Decidir si es exclusivo para administradores/profesores o si cualquier usuario puede crear examenes personalizados.
 
 Impacto: Sin esto, no hay forma de crear contenido desde la propia plataforma.
 
@@ -658,3 +665,16 @@ Orden sugerido teniendo en cuenta dependencias:
 5. Modo Arquitecto en web (creacion de contenido desde la plataforma).
 6. Gestion de errores unificada (deuda tecnica transversal).
 7. Dashboard mobile con paridad visual web.
+
+### 32. Mejorar Experiencia y Soporte Multimedia en Modo Arquitecto
+
+Estado: Abierto
+
+Problema:
+El flujo actual de crear preguntas manuales usa placeholders técnicos (mencionando LaTeX) y los botones son confusos. Además, falta soporte para añadir preguntas a partir de fotos (usando OCR/Visión de la IA) y soporte para que las preguntas incluyan imágenes ilustrativas (ej. biología).
+
+Requerimientos:
+- Cambiar placeholders a versiones amigables.
+- Cambiar botón a "Mejorar con IA".
+- Añadir botón "Añadir pregunta con foto".
+- Modificar el backend para aceptar imágenes en la generación de la pregunta y asociarlas al FileAsset.

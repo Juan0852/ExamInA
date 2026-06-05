@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions } from "react-native";
+import React, { useMemo, useState } from "react";
+import { ActivityIndicator, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "../../src/stores/auth.store";
@@ -12,6 +12,8 @@ import { apiService } from "../../src/services/api.service";
 import { 
   FlameIcon, LightningIcon, TrophyIcon, BookIcon, TargetIcon, ClockIcon, AwardIcon 
 } from "../../src/components/icons/CustomIcons";
+import { AchievementMedal } from "../../src/components/achievements/AchievementMedal";
+import type { AchievementsResponse } from "../../src/achievements/types";
 
 const { width } = Dimensions.get("window");
 
@@ -38,6 +40,12 @@ export default function ProfileScreen() {
   const myFriendsQuery = useQuery({
     queryKey: ["my-friends"],
     queryFn: () => apiService.get<{ data: any[] }>("/auth/friends"),
+    enabled: !!user
+  });
+
+  const achievementsQuery = useQuery<AchievementsResponse, Error>({
+    queryKey: ["achievements-me"],
+    queryFn: () => apiService.get<AchievementsResponse>("/achievements/me"),
     enabled: !!user
   });
 
@@ -91,6 +99,16 @@ export default function ProfileScreen() {
   const studyTimeMins = progress?.totalStudyTimeSeconds 
     ? Math.floor((progress.totalStudyTimeSeconds % 3600) / 60) 
     : 0;
+
+  const achievements = useMemo(() => {
+    const items = achievementsQuery.data?.data ?? [];
+    return [...items].sort((a, b) => {
+      if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+      return a.title.localeCompare(b.title);
+    });
+  }, [achievementsQuery.data?.data]);
+
+  const unlockedAchievementCount = achievements.filter((achievement) => achievement.unlocked).length;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
@@ -226,50 +244,74 @@ export default function ProfileScreen() {
         {/* Tab Content */}
         {activeTab === "ACHIEVEMENTS" && (
           <View>
-            {/* Medals & Achievements (Locked View) */}
             <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Tus Medallas</Text>
-          </View>
-          
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.medalsCarousel}>
-            {/* Medalla 1 */}
-            <View style={styles.medalCard}>
-              <View style={styles.medalIconLocked}>
-                <Lock size={20} color="#94a3b8" />
+              <View style={styles.sectionHeader}>
+                <View>
+                  <Text style={styles.sectionTitle}>Tus Medallas</Text>
+                  <Text style={styles.sectionSubtitle}>
+                    {unlockedAchievementCount} de {achievements.length || achievementsQuery.data?.meta.total || 0} desbloqueadas
+                  </Text>
+                </View>
+                <View style={styles.achievementCounterPill}>
+                  <Trophy size={13} color={theme.colors.brandBlue} />
+                  <Text style={styles.achievementCounterText}>{unlockedAchievementCount}</Text>
+                </View>
               </View>
-              <Text style={styles.medalTitleLocked}>Primera Racha</Text>
-              <Text style={styles.medalDescLocked}>3 días seguidos</Text>
-            </View>
 
-            {/* Medalla 2 */}
-            <View style={styles.medalCard}>
-              <View style={styles.medalIconLocked}>
-                <Lock size={20} color="#94a3b8" />
-              </View>
-              <Text style={styles.medalTitleLocked}>Erudito</Text>
-              <Text style={styles.medalDescLocked}>100 preguntas</Text>
-            </View>
+              {achievementsQuery.isLoading ? (
+                <View style={styles.achievementsStateCard}>
+                  <ActivityIndicator size="small" color={theme.colors.brandBlue} />
+                  <Text style={styles.achievementsStateText}>Cargando tus medallas...</Text>
+                </View>
+              ) : achievementsQuery.isError ? (
+                <View style={styles.achievementsStateCard}>
+                  <Sparkles size={24} color="#ef4444" />
+                  <Text style={[styles.achievementsStateText, { color: "#ef4444" }]}>
+                    No se pudieron cargar las medallas.
+                  </Text>
+                </View>
+              ) : achievements.length === 0 ? (
+                <View style={styles.achievementsStateCard}>
+                  <Sparkles size={24} color={theme.colors.brandBlue} />
+                  <Text style={styles.achievementsStateText}>No se encontraron medallas disponibles.</Text>
+                </View>
+              ) : (
+                <View style={styles.achievementsGrid}>
+                  {achievements.map((achievement) => {
+                    const isLocked = !achievement.unlocked;
+                    const isSecret = achievement.code.startsWith("SECRET_");
+                    const displayTitle = isSecret && isLocked ? "Logro secreto" : achievement.title;
+                    const displayDescription = isSecret && isLocked
+                      ? "Sigue estudiando para descubrir esta medalla."
+                      : achievement.description;
 
-            {/* Medalla 3 */}
-            <View style={styles.medalCard}>
-              <View style={styles.medalIconLocked}>
-                <Lock size={20} color="#94a3b8" />
-              </View>
-              <Text style={styles.medalTitleLocked}>Imparable</Text>
-              <Text style={styles.medalDescLocked}>Nivel 10</Text>
+                    return (
+                      <View
+                        key={achievement.id}
+                        style={[
+                          styles.achievementCard,
+                          achievement.unlocked ? styles.achievementCardUnlocked : styles.achievementCardLocked
+                        ]}
+                      >
+                        <AchievementMedal code={achievement.code} locked={isLocked} size="md" />
+                        <Text style={[styles.achievementTitle, isLocked && styles.achievementTitleLocked]} numberOfLines={2}>
+                          {displayTitle}
+                        </Text>
+                        <Text style={styles.achievementDescription} numberOfLines={3}>
+                          {displayDescription}
+                        </Text>
+                        <View style={styles.achievementFooter}>
+                          <Text style={[styles.achievementStatus, achievement.unlocked ? styles.achievementStatusUnlocked : styles.achievementStatusLocked]}>
+                            {achievement.unlocked ? "Desbloqueada" : "Bloqueada"}
+                          </Text>
+                          <Text style={styles.achievementXp}>+{achievement.experienceReward} XP</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
             </View>
-
-            {/* Medalla 4 */}
-            <View style={styles.medalCard}>
-              <View style={styles.medalIconLocked}>
-                <Lock size={20} color="#94a3b8" />
-              </View>
-              <Text style={styles.medalTitleLocked}>Francotirador</Text>
-              <Text style={styles.medalDescLocked}>100% acierto</Text>
-            </View>
-          </ScrollView>
-        </View>
 
         {/* Detailed Study Stats */}
         <View style={styles.sectionContainer}>
@@ -989,42 +1031,121 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: "#0f172a",
   },
-
-  // Medals Carousel
-  medalsCarousel: {
-    paddingRight: 20, // For end spacing
-    gap: 16,
+  sectionSubtitle: {
+    marginTop: 3,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#64748b",
   },
-  medalCard: {
-    width: 110,
-    backgroundColor: "#f8fafc",
-    borderRadius: 20,
-    padding: 16,
+  achievementCounterPill: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: `${theme.colors.brandBlue}10`,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderStyle: "dashed",
+    borderColor: `${theme.colors.brandBlue}20`,
   },
-  medalIconLocked: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#e2e8f0",
-    justifyContent: "center",
+  achievementCounterText: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: theme.colors.brandBlue,
+  },
+  achievementsStateCard: {
     alignItems: "center",
-    marginBottom: 12,
+    justifyContent: "center",
+    gap: 10,
+    minHeight: 150,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#cbd5e1",
+    backgroundColor: "#ffffff",
+    padding: 24,
   },
-  medalTitleLocked: {
+  achievementsStateText: {
     fontSize: 13,
     fontWeight: "800",
     color: "#64748b",
     textAlign: "center",
-    marginBottom: 4,
   },
-  medalDescLocked: {
-    fontSize: 11,
-    color: "#94a3b8",
+  achievementsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  achievementCard: {
+    width: (width - 40 - 12) / 2,
+    minHeight: 210,
+    alignItems: "center",
+    borderRadius: 24,
+    padding: 14,
+    borderWidth: 1,
+    shadowColor: theme.colors.brandBlue,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  achievementCardUnlocked: {
+    backgroundColor: "#ffffff",
+    borderColor: `${theme.colors.brandCyan}55`,
+    shadowOpacity: 0.1,
+  },
+  achievementCardLocked: {
+    backgroundColor: "#f8fafc",
+    borderColor: "#e2e8f0",
+    shadowOpacity: 0.03,
+  },
+  achievementTitle: {
+    marginTop: 10,
+    minHeight: 34,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: "900",
+    color: "#0f172a",
     textAlign: "center",
+  },
+  achievementTitleLocked: {
+    color: "#475569",
+  },
+  achievementDescription: {
+    marginTop: 6,
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "700",
+    color: "#64748b",
+    textAlign: "center",
+  },
+  achievementFooter: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#eef2f7",
+  },
+  achievementStatus: {
+    flex: 1,
+    fontSize: 9,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  achievementStatusUnlocked: {
+    color: theme.colors.brandBlue,
+  },
+  achievementStatusLocked: {
+    color: "#94a3b8",
+  },
+  achievementXp: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#f59e0b",
   },
 
   // Detailed Stats Grid

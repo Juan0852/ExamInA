@@ -75,7 +75,6 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
             select: {
               username: true,
               bio: true,
-              avatarFileId: true,
               currentStreakDays: true,
               longestStreakDays: true
             }
@@ -117,7 +116,7 @@ export class PrismaAchievementsRepository implements AchievementsRepository {
 
     const hasName = Boolean(user?.profile?.username);
     const hasBio = (user?.profile?.bio?.trim().length ?? 0) >= 24;
-    const hasAvatar = Boolean(user?.photoUrl || user?.profile?.avatarFileId);
+    const hasAvatar = Boolean(user?.photoUrl);
     const profileCompletion = (hasName ? 40 : 0) + (hasBio ? 40 : 0) + (hasAvatar ? 20 : 0);
 
     // Calculate current streak dynamically based on studyActivity
