@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth.store";
-import { signOutClient } from "../services/firebase-client.service";
+
 import { useQuery } from "@tanstack/react-query";
 import { apiService } from "../services/api.service";
 import { useUiStore } from "../../stores/ui.store";
@@ -76,11 +76,6 @@ export function Sidebar() {
   };
 
   const handleLogout = async () => {
-    try {
-      await signOutClient();
-    } catch (e) {
-      console.error("Error signing out from Firebase:", e);
-    }
     clearSession();
     navigate("/login");
   };

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import { apiService } from "../shared/services/api.service";
-import { signInWithGoogle } from "../shared/services/firebase-client.service";
 import { registerSchema } from "../shared/validation/schemas";
 
 /**
@@ -20,27 +19,6 @@ export function useRegisterViewModel() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const createBackendSession = async (idToken: string) => {
-    const response = await apiService.post<{
-      data: {
-        user: {
-          id: string;
-          email: string;
-          displayName?: string | null;
-          photoUrl?: string | null;
-          role: "STUDENT" | "ADMIN";
-        };
-      };
-    }>("/auth/session", null, {
-      headers: {
-        Authorization: `Bearer ${idToken}`
-      }
-    });
-
-    setSession(idToken, response.data.user);
-
-    return response.data.user;
-  };
 
   /**
    * Realiza el registro con correo y contraseña.
@@ -101,13 +79,32 @@ export function useRegisterViewModel() {
     }
   };
 
-  const handleGoogleRegister = async () => {
+  const handleGoogleRegister = async (idToken: string) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const { idToken } = await signInWithGoogle();
-      await createBackendSession(idToken);
+      const response = await apiService.post<{
+        data: {
+          user: {
+            id: string;
+            email: string;
+            displayName?: string | null;
+            photoUrl?: string | null;
+            role: "STUDENT" | "ADMIN";
+          };
+          auth?: {
+            idToken: string;
+            refreshToken: string;
+          };
+        };
+      }>("/auth/google", { idToken });
+
+      if (!response.data.auth?.idToken) {
+        throw new Error("El backend no devolvió un token válido.");
+      }
+
+      setSession(response.data.auth.idToken, response.data.user, response.data.auth.refreshToken);
       navigate("/onboarding");
     } catch (err: any) {
       setError(err.message || "Error al registrarte con Google.");

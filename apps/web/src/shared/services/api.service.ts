@@ -6,6 +6,42 @@ import { ApiError } from "../errors/api-error";
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
 
 let refreshPromise: Promise<{ idToken: string; refreshToken: string } | null> | null = null;
+const TOKEN_REFRESH_MARGIN_SECONDS = 120;
+
+function isAuthEndpoint(path: string): boolean {
+  return path === "/auth/login" ||
+    path === "/auth/register" ||
+    path === "/auth/google" ||
+    path === "/auth/refresh";
+}
+
+function decodeBase64Url(input: string): string {
+  const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+  return atob(padded);
+}
+
+function getJwtExpirationSeconds(token: string | null): number | null {
+  if (!token) return null;
+
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+
+    const parsed = JSON.parse(decodeBase64Url(payload)) as { exp?: unknown };
+    return typeof parsed.exp === "number" ? parsed.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function shouldRefreshToken(token: string | null): boolean {
+  const expirationSeconds = getJwtExpirationSeconds(token);
+  if (!expirationSeconds) return false;
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return expirationSeconds - nowSeconds <= TOKEN_REFRESH_MARGIN_SECONDS;
+}
 
 async function refreshBackendSession(refreshToken: string): Promise<{ idToken: string; refreshToken: string } | null> {
   try {
@@ -27,6 +63,41 @@ async function refreshBackendSession(refreshToken: string): Promise<{ idToken: s
   }
 }
 
+async function getFreshTokenIfNeeded(force = false): Promise<string | null> {
+  const authStore = useAuthStore.getState();
+
+  if (!authStore.token || !authStore.refreshToken || !authStore.user) {
+    return force ? null : authStore.token;
+  }
+
+  if (!force && !shouldRefreshToken(authStore.token)) {
+    return authStore.token;
+  }
+
+  if (!refreshPromise) {
+    refreshPromise = refreshBackendSession(authStore.refreshToken)
+      .then((newTokens) => {
+        if (!newTokens) return null;
+
+        const currentUser = useAuthStore.getState().user;
+        if (!currentUser) return null;
+
+        useAuthStore.getState().setSession(
+          newTokens.idToken,
+          currentUser,
+          newTokens.refreshToken
+        );
+        return newTokens;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  const newTokens = await refreshPromise;
+  return newTokens?.idToken ?? (force ? null : authStore.token);
+}
+
 /**
  * Define las opciones de configuración para las peticiones HTTP.
  */
@@ -40,7 +111,9 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
  */
 async function httpRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const url = `${BASE_URL}${path}`;
-  const token = useAuthStore.getState().token;
+  const token = isAuthEndpoint(path)
+    ? useAuthStore.getState().token
+    : await getFreshTokenIfNeeded();
 
   // Cabeceras por defecto
   const headers = new Headers(options.headers || {});
@@ -92,30 +165,16 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
     if (response.status === 401 || errorCode === "AUTH_REQUIRED" || errorMessage.includes("Firebase ID token has expired") || errorMessage.includes("auth/id-token-expired")) {
       const authStore = useAuthStore.getState();
       
-      if (path === "/auth/login" || path === "/auth/register" || path === "/auth/google") {
+      if (isAuthEndpoint(path)) {
         authStore.clearSession();
         throw new ApiError(errorMessage, errorCode, response.status, errorDetails, requestId);
       }
 
       if (authStore.refreshToken && authStore.user) {
-        if (!refreshPromise) {
-          refreshPromise = refreshBackendSession(authStore.refreshToken).then((newTokens) => {
-            if (newTokens) {
-              useAuthStore.getState().setSession(newTokens.idToken, useAuthStore.getState().user!, newTokens.refreshToken);
-              return newTokens;
-            } else {
-              useAuthStore.getState().clearSession();
-              return null;
-            }
-          }).finally(() => {
-            refreshPromise = null;
-          });
-        }
-
-        const newTokens = await refreshPromise;
-        if (newTokens) {
+        const freshToken = await getFreshTokenIfNeeded(true);
+        if (freshToken) {
           const retryHeaders = new Headers(options.headers || {});
-          retryHeaders.set("Authorization", `Bearer ${newTokens.idToken}`);
+          retryHeaders.set("Authorization", `Bearer ${freshToken}`);
           if (!retryHeaders.has("Content-Type") && !(options.body instanceof FormData)) {
             retryHeaders.set("Content-Type", "application/json");
           }
@@ -127,6 +186,9 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
           });
 
           if (!retryResponse.ok) {
+            if (retryResponse.status === 401) {
+              useAuthStore.getState().clearSession();
+            }
             throw new ApiError(errorMessage, errorCode, retryResponse.status, errorDetails, requestId);
           }
 
@@ -138,10 +200,10 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
           }
           return result as T;
         }
-      } else {
-        useAuthStore.getState().clearSession();
-        throw new ApiError(errorMessage, errorCode, response.status, errorDetails, requestId);
       }
+
+      useAuthStore.getState().clearSession();
+      throw new ApiError(errorMessage, errorCode, response.status, errorDetails, requestId);
     }
     
     throw new ApiError(errorMessage, errorCode, response.status, errorDetails, requestId);

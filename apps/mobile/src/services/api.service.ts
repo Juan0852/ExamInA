@@ -85,7 +85,7 @@ async function getFreshTokenIfNeeded(force = false): Promise<string | null> {
   const authStore = useAuthStore.getState();
 
   if (!authStore.token || !authStore.refreshToken || !authStore.user) {
-    return authStore.token;
+    return force ? null : authStore.token;
   }
 
   if (!force && !shouldRefreshToken(authStore.token)) {
@@ -201,6 +201,9 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
             });
 
             if (!retryResponse.ok) {
+              if (retryResponse.status === 401) {
+                await useAuthStore.getState().clearSession();
+              }
               throw new ApiError(errorMessage, errorCode, retryResponse.status, errorDetails, requestId);
             }
 
@@ -208,6 +211,9 @@ async function httpRequest<T>(path: string, options: RequestOptions = {}): Promi
             return (await retryResponse.json()) as T;
           }
         }
+
+        await useAuthStore.getState().clearSession();
+        throw new ApiError(errorMessage, errorCode, response.status, errorDetails, requestId);
       }
       
       throw new ApiError(errorMessage, errorCode, response.status, errorDetails, requestId);

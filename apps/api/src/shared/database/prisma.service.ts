@@ -15,7 +15,9 @@ export class PrismaService implements OnModuleDestroy {
       }
 
       this.client = new PrismaClient({
-        adapter: new PrismaPg(databaseUrl)
+        adapter: new PrismaPg({
+          connectionString: databaseUrl
+        })
       });
     }
 

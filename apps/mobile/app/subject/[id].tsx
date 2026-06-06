@@ -78,10 +78,12 @@ export default function SubjectDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.heroSection}>
-        <Image source={iconSource} style={styles.heroIconLarge} contentFit="contain" />
-        <Text style={styles.heroTitle}>{subject?.name || "Materia"}</Text>
-        <Text style={styles.heroSubtitle}>Domina todos los conceptos para arrasar en selectividad.</Text>
+      <View style={styles.headerContainer}>
+        <View style={styles.headerCard}>
+          <Image source={iconSource} style={styles.heroIconLarge} contentFit="contain" />
+          <Text style={styles.heroTitle}>{subject?.name || "Materia"}</Text>
+          <Text style={styles.heroSubtitle}>Domina todos los conceptos para arrasar en selectividad.</Text>
+        </View>
       </View>
 
       {/* Main Content Wrapped in a Premium Box */}
@@ -126,19 +128,33 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 0 },
   backButton: { width: 40, height: 40, justifyContent: "center", alignItems: "flex-start" },
   
-  heroSection: {
-    paddingHorizontal: 24,
-    paddingTop: 10,
-    paddingBottom: 30,
+  headerContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 24,
+  },
+  headerCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 28,
+    paddingTop: 20,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
     alignItems: "center",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(226, 232, 240, 0.8)",
   },
   heroIconLarge: { 
-    width: 140, 
-    height: 140, 
-    marginBottom: 20 
+    width: 120, 
+    height: 120, 
+    marginBottom: 16 
   },
-  heroTitle: { fontSize: 32, fontWeight: "900", color: "#0f172a", marginBottom: 8, textAlign: "center" },
-  heroSubtitle: { fontSize: 16, color: "#64748b", textAlign: "center", paddingHorizontal: 20 },
+  heroTitle: { fontSize: 28, fontWeight: "900", color: "#0f172a", marginBottom: 6, textAlign: "center", letterSpacing: -0.5 },
+  heroSubtitle: { fontSize: 15, color: "#64748b", textAlign: "center", lineHeight: 22 },
   
   mainBoxWrapper: {
     flex: 1,
