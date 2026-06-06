@@ -8,6 +8,8 @@ import { NotificationsService } from "../../notifications/services/notifications
 import { CommunityReactionType } from "@prisma/client";
 
 
+import { CommunityGateway } from "../gateways/community.gateway";
+
 export const COMMUNITY_POSTS_REPOSITORY = Symbol("COMMUNITY_POSTS_REPOSITORY");
 
 @Injectable()
@@ -17,23 +19,34 @@ export class CommunityPostsService {
     @Inject(COMMUNITY_POSTS_REPOSITORY)
     private readonly communityPostsRepository: CommunityPostsRepository,
     @Inject(PrismaService) private readonly prismaService: PrismaService,
-    @Inject(NotificationsService) private readonly notificationsService: NotificationsService
+    @Inject(NotificationsService) private readonly notificationsService: NotificationsService,
+    @Inject(CommunityGateway) private readonly communityGateway: CommunityGateway
   ) {}
 
 
   async create(authorizationHeader: string | undefined, data: CreateCommunityPostRequestDto) {
     const user = await this.authService.resolveAuthenticatedUser(authorizationHeader);
     const post = await this.communityPostsRepository.create(user.id, data);
+    
+    const responseData = CommunityPostMapper.toResponse(post);
+    this.communityGateway.broadcastNewPost(responseData);
 
     return {
-      data: CommunityPostMapper.toResponse(post),
+      data: responseData,
       meta: {},
       error: null
     };
   }
 
-  async findFeed() {
-    const posts = await this.communityPostsRepository.findFeed();
+  async findFeed(authorizationHeader?: string, tab: string = "new") {
+    // We pass userId to repository if filtering by friends/foryou
+    let userId = null;
+    if (authorizationHeader && (tab === "friends" || tab === "foryou")) {
+      const user = await this.authService.resolveAuthenticatedUser(authorizationHeader);
+      userId = user.id;
+    }
+    
+    const posts = await this.communityPostsRepository.findFeed(tab, userId);
 
     return {
       data: posts.map(CommunityPostMapper.toResponse),

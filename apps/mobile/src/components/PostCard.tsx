@@ -52,6 +52,45 @@ export function PostCard({ post, onPress, onReactionToggle }: PostCardProps) {
       <View style={styles.content}>
         {post.title && <Text style={styles.postTitle}>{post.title}</Text>}
         <Text style={styles.postText}>{post.content}</Text>
+        
+        {post.fileAssets && post.fileAssets.length > 0 && (
+          <View style={styles.imageGallery}>
+            {post.fileAssets.map((asset, index) => (
+              <Image 
+                key={asset.id} 
+                source={{ uri: asset.url }} 
+                style={[
+                  styles.postImage, 
+                  post.fileAssets!.length > 1 && styles.postImageMulti
+                ]} 
+                contentFit="cover" 
+              />
+            ))}
+          </View>
+        )}
+
+        {post.sharedExam && (
+          <View style={styles.sharedExamWidget}>
+            <Text style={styles.sharedExamTitle}>{post.sharedExam.title}</Text>
+            {post.sharedExam.description && (
+              <Text style={styles.sharedExamDesc} numberOfLines={2}>
+                {post.sharedExam.description}
+              </Text>
+            )}
+            <TouchableOpacity style={styles.sharedExamButton}>
+              <Text style={styles.sharedExamButtonText}>Ver Examen</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {post.examSession && (
+          <View style={styles.examSessionWidget}>
+            <Text style={styles.examSessionTitle}>Resultado: {post.examSession.title}</Text>
+            <Text style={styles.examSessionScore}>
+              Nota: {post.examSession.totalScore} / {post.examSession.maxScore}
+            </Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.footer}>
@@ -148,5 +187,71 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: theme.colors.textSoft,
+  },
+  imageGallery: {
+    marginTop: theme.spacing.space3,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  postImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: theme.colors.borderLight,
+  },
+  postImageMulti: {
+    width: "48%",
+    height: 150,
+  },
+  sharedExamWidget: {
+    marginTop: theme.spacing.space3,
+    padding: theme.spacing.space4,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sharedExamTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.brandNavy,
+    marginBottom: 4,
+  },
+  sharedExamDesc: {
+    fontSize: 13,
+    color: theme.colors.textSoft,
+    marginBottom: 12,
+  },
+  sharedExamButton: {
+    backgroundColor: theme.colors.brandBlue,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+  },
+  sharedExamButtonText: {
+    color: "white",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  examSessionWidget: {
+    marginTop: theme.spacing.space3,
+    padding: theme.spacing.space4,
+    backgroundColor: "#F0FDF4",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+  },
+  examSessionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#166534",
+    marginBottom: 4,
+  },
+  examSessionScore: {
+    fontSize: 14,
+    color: "#15803D",
+    fontWeight: "600",
   },
 });

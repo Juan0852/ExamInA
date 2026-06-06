@@ -6,6 +6,7 @@ export interface CommunityPostResponseDto {
   title: string | null;
   content: string;
   examSessionId: string | null;
+  sharedExamId: string | null;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -20,4 +21,7 @@ export interface CommunityPostResponseDto {
   };
   commentsCount: number;
   reactionsCount: number;
+  sharedExam?: any;
+  examSession?: any;
+  fileAssets?: any[];
 }

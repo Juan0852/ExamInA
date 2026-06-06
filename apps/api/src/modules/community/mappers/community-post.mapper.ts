@@ -21,7 +21,11 @@ export class CommunityPostMapper {
         profile: post.author.profile
       },
       commentsCount: post._count?.comments ?? 0,
-      reactionsCount: post._count?.reactions ?? 0
+      reactionsCount: post._count?.reactions ?? 0,
+      sharedExamId: (post as any).sharedExamId ?? null,
+      sharedExam: (post as any).sharedExam ?? undefined,
+      examSession: (post as any).examSession ?? undefined,
+      fileAssets: (post as any).fileAssets ?? undefined,
     };
   }
 }

@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { apiService } from "../services/api.service";
 
+import { io, Socket } from "socket.io-client";
+
+// ... existing types ...
 export type CommunityReactionType = "LIKE" | "USEFUL" | "CONGRATS" | "INTERESTING" | "SAVED";
 export type CommunityPostType = "TEXT" | "QUESTION" | "EXAM_RESULT" | "PROGRESS_UPDATE" | "TIP" | "DOUBT";
 
@@ -36,16 +39,34 @@ export interface CommunityPost {
     id: string;
     type: CommunityReactionType;
   };
+  fileAssets?: any[];
+  sharedExam?: any;
+  examSession?: any;
 }
 
-export function useFeed() {
+let socketInstance: Socket | null = null;
+export function getCommunitySocket() {
+  if (!socketInstance) {
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.5:3000";
+    // Usually socket server is on the same host but without the /api prefix, depending on setup
+    // Assuming backend runs on 3000 and socket server is attached to it
+    const socketUrl = apiUrl.replace("/api", "");
+    socketInstance = io(socketUrl + "/community", {
+      transports: ["websocket"],
+      autoConnect: true,
+    });
+  }
+  return socketInstance;
+}
+
+export function useFeed(tab: string = "new") {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchFeed = useCallback(async () => {
     try {
-      const response = await apiService.get("/community/posts");
+      const response = await apiService.get(`/community/posts?tab=${tab}`);
       if (response?.data) {
         setPosts(response.data);
       }
@@ -55,11 +76,36 @@ export function useFeed() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [tab]);
 
   useEffect(() => {
+    setIsLoading(true);
     fetchFeed();
-  }, [fetchFeed]);
+  }, [fetchFeed, tab]);
+
+  useEffect(() => {
+    const socket = getCommunitySocket();
+    
+    const handleNewPost = (newPost: CommunityPost) => {
+      // If we are in "new" tab, we prepend the post.
+      // Or we can just show a toast "New posts available" 
+      // For now, let's prepend it if it's the "new" tab
+      if (tab === "new") {
+        setPosts(prev => {
+          if (prev.find(p => p.id === newPost.id)) return prev;
+          return [newPost, ...prev];
+        });
+      } else {
+        // Just refetch or ignore depending on tab logic
+      }
+    };
+
+    socket.on("new_post", handleNewPost);
+
+    return () => {
+      socket.off("new_post", handleNewPost);
+    };
+  }, [tab]);
 
   const refetch = useCallback(() => {
     setIsRefreshing(true);
@@ -72,10 +118,24 @@ export function useFeed() {
 export function useCommunityActions() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const createPost = async (content: string, type: CommunityPostType = "TEXT", title?: string) => {
+  const createPost = async (
+    content: string, 
+    type: CommunityPostType = "TEXT", 
+    title?: string,
+    imageKeys?: string[],
+    sharedExamId?: string,
+    examSessionId?: string
+  ) => {
     setIsSubmitting(true);
     try {
-      const response = await apiService.post("/community/posts", { content, type, title });
+      const response = await apiService.post("/community/posts", { 
+        content, 
+        type, 
+        title,
+        imageKeys,
+        sharedExamId,
+        examSessionId
+      });
       return response.data as CommunityPost;
     } catch (error) {
       console.error("Failed to create post:", error);

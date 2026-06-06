@@ -62,6 +62,7 @@ export default function RootLayout() {
           <StatusBar style="dark" />
           <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
             <Stack.Screen name="create-post" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+            <Stack.Screen name="architect" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
             <Stack.Screen name="post/[id]" options={{ presentation: "card" }} />
           </Stack>
           <AchievementToastHost />

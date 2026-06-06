@@ -9,10 +9,13 @@ import {
   CommunityPostsService
 } from "./services/community-posts.service";
 
+import { CommunityGateway } from "./gateways/community.gateway";
+
 @Module({
   imports: [AuthModule, DatabaseModule, NotificationsModule],
   controllers: [CommunityPostsController],
   providers: [
+    CommunityGateway,
     CommunityPostsService,
     {
       provide: COMMUNITY_POSTS_REPOSITORY,

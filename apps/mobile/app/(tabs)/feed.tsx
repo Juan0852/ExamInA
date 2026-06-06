@@ -1,5 +1,5 @@
-import React from "react";
-import { View, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Text } from "react-native";
+import React, { useState } from "react";
+import { View, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { theme } from "../../src/theme";
@@ -9,7 +9,8 @@ import { Rss } from "lucide-react-native";
 
 export default function FeedScreen() {
   const router = useRouter();
-  const { posts, isLoading, isRefreshing, refetch } = useFeed();
+  const [currentTab, setCurrentTab] = useState("new");
+  const { posts, isLoading, isRefreshing, refetch } = useFeed(currentTab);
   const { toggleReaction } = useCommunityActions();
 
   const handleReactionToggle = async (postId: string, reacted: boolean) => {
@@ -20,15 +21,36 @@ export default function FeedScreen() {
     }
   };
 
+  const tabs = [
+    { id: "new", label: "Nuevos" },
+    { id: "foryou", label: "Para ti" },
+    { id: "friends", label: "Amigos" },
+  ];
+
   const renderHeader = () => (
-    <View style={styles.hero}>
-      <View style={styles.iconBubble}>
-        <Rss size={32} color={theme.colors.brandBlue} />
+    <View>
+      <View style={styles.hero}>
+        <View style={styles.iconBubble}>
+          <Rss size={32} color={theme.colors.brandBlue} />
+        </View>
+        <Text style={styles.title}>Comunidad</Text>
+        <Text style={styles.subtitle}>
+          Conecta con otros estudiantes, comparte tus dudas y celebra tus logros.
+        </Text>
       </View>
-      <Text style={styles.title}>Comunidad</Text>
-      <Text style={styles.subtitle}>
-        Conecta con otros estudiantes, comparte tus dudas y celebra tus logros.
-      </Text>
+      <View style={styles.tabContainer}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.id}
+            style={[styles.tabButton, currentTab === tab.id && styles.activeTabButton]}
+            onPress={() => setCurrentTab(tab.id)}
+          >
+            <Text style={[styles.tabText, currentTab === tab.id && styles.activeTabText]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 
@@ -61,7 +83,7 @@ export default function FeedScreen() {
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No hay publicaciones aún. ¡Sé el primero en compartir algo!</Text>
+              <Text style={styles.emptyText}>No hay publicaciones aún en esta sección.</Text>
             </View>
           }
         />
@@ -87,8 +109,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#F2FAFF",
     padding: theme.spacing.space6,
+  },
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "#F2FAFF",
+    paddingHorizontal: theme.spacing.space4,
+    paddingBottom: theme.spacing.space4,
     borderBottomWidth: 1,
     borderBottomColor: "#D8ECFF",
+    justifyContent: "space-around",
+  },
+  tabButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: "transparent",
+  },
+  activeTabButton: {
+    backgroundColor: theme.colors.brandBlue,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.textSoft,
+  },
+  activeTabText: {
+    color: theme.colors.white,
   },
   iconBubble: {
     width: 60,

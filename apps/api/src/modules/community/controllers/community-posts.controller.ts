@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Inject, Post, Param } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Inject, Post, Param, Query } from "@nestjs/common";
 import { ZodValidationPipe } from "../../../shared/validation/zod-validation.pipe";
 import {
   createCommunityPostRequestSchema,
@@ -28,8 +28,11 @@ export class CommunityPostsController {
   }
 
   @Get()
-  findFeed() {
-    return this.communityPostsService.findFeed();
+  findFeed(
+    @Headers("authorization") authorizationHeader?: string,
+    @Query("tab") tab?: string
+  ) {
+    return this.communityPostsService.findFeed(authorizationHeader, tab);
   }
 
   @Post(":id/comments")

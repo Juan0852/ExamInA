@@ -11,6 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 import * as NavigationBar from "expo-navigation-bar";
 import { theme } from "../theme";
+import { CreationLightbox } from "./CreationLightbox";
 
 const BAR_HEIGHT = 61;
 const NAV_GRADIENT_TOP    = "#FFFFFF";
@@ -112,6 +113,7 @@ export function CustomTabBar({ state, navigation }: CustomTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomOffset = (insets.bottom || 0) + FLOAT_BOTTOM_MARGIN;
   const [barWidth, setBarWidth] = useState(0);
+  const [isLightboxVisible, setLightboxVisible] = useState(false);
 
   const translateY = useSharedValue(0);
   useEffect(() => {
@@ -143,23 +145,7 @@ export function CustomTabBar({ state, navigation }: CustomTabBarProps) {
         <TouchableOpacity
           style={styles.fab}
           activeOpacity={0.85}
-          onPress={() => {
-            Alert.alert(
-              "¿Qué deseas crear?",
-              "Elige una opción",
-              [
-                { text: "Cancelar", style: "cancel" },
-                { text: "Nuevo Examen", onPress: () => navigation.navigate("examenes") },
-                { text: "Nueva Publicación", onPress: () => {
-                  // We can't use router easily here due to the component structure,
-                  // but we can just use navigation.navigate to the absolute path if it was in the stack.
-                  // Since expo-router maps paths to routes, we can just import router from expo-router.
-                  const { router } = require("expo-router");
-                  router.push("/create-post");
-                } },
-              ]
-            );
-          }}
+          onPress={() => setLightboxVisible(true)}
         >
           <Plus size={28} color="#ffffff" strokeWidth={2.5} />
         </TouchableOpacity>
@@ -261,6 +247,20 @@ export function CustomTabBar({ state, navigation }: CustomTabBarProps) {
 
       {/* ── Outline SVG — contorno dibujado con coordenadas ── */}
       <BarOutline barWidth={barWidth} />
+
+      {/* ── Lightbox Modal ── */}
+      <CreationLightbox 
+        visible={isLightboxVisible} 
+        onClose={() => setLightboxVisible(false)} 
+        onSelectArchitect={() => {
+          const { router } = require("expo-router");
+          router.push("/architect");
+        }} 
+        onSelectFeed={() => {
+          const { router } = require("expo-router");
+          router.push("/create-post");
+        }} 
+      />
     </Animated.View>
   );
 }
