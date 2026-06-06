@@ -150,7 +150,13 @@ export function CustomTabBar({ state, navigation }: CustomTabBarProps) {
               [
                 { text: "Cancelar", style: "cancel" },
                 { text: "Nuevo Examen", onPress: () => navigation.navigate("examenes") },
-                { text: "Nueva Publicación", onPress: () => navigation.navigate("feed") },
+                { text: "Nueva Publicación", onPress: () => {
+                  // We can't use router easily here due to the component structure,
+                  // but we can just use navigation.navigate to the absolute path if it was in the stack.
+                  // Since expo-router maps paths to routes, we can just import router from expo-router.
+                  const { router } = require("expo-router");
+                  router.push("/create-post");
+                } },
               ]
             );
           }}
